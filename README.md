@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 52 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 54 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -235,9 +235,11 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Welfare: quantifica TFR e pensione a cui si rinuncia | Completezza del confronto |
 | Soglie: individua il gradino raggiungibile e lo quantifica | Ottimizzazione sulle discontinuità |
 | Soglie: nessun suggerimento se l'imponibile è già basso | Assenza di consigli inutili |
+| Ottimizzazione: nessun premio promesso oltre la soglia di reddito | Coerenza fra promesso ed erogato |
+| Soglie: lo spostamento porta l'imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**52 test su 52 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**54 test su 54 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -254,6 +256,9 @@ Il collaudo ha prodotto tre correzioni, documentate al §5.1.
 | Avvisi privi di senso con RAL 0 | Detrazioni non godute e soglie contributive segnalate su un rapporto inesistente | Senza retribuzione resta un solo avviso, gli altri sono soppressi |
 | Versamento al fondo superiore alla busta paga | Con pochi giorni lavorati un importo fisso eccedeva la retribuzione. Il limite non è però la retribuzione: dedurre azzera l'imposta e fa perdere il trattamento integrativo, quindi il netto disponibile scende più in fretta di quanto si versa | Il trattenuto viene cercato per approssimazioni successive fino a mantenere il netto non negativo, e l'interfaccia dichiara quanto è stato effettivamente trattenuto |
 | Rapporto netto/costo negativo | Con netto sotto zero l'indicatore perdeva significato | Mostra un trattino invece di una percentuale priva di senso |
+| Pacchetto che prometteva welfare non erogabile | Oltre 80.000 € di reddito il premio agevolato non spetta, ma il pacchetto continuava a contarlo: prometteva 6.200 € di welfare consegnandone 3.200 | Il pacchetto viene ricostruito senza premio, così i numeri mostrati coincidono con ciò che il lavoratore riceve |
+| Spostamento verso la soglia calcolato con l'aliquota sbagliata | Fra RAL e imponibile non c'è solo l'aliquota del lavoratore: ci sono anche il contributo aggiuntivo dell'1% e i fondi di categoria. Su un dirigente lo spostamento mancava il bersaglio di 128 € e lasciava l'imponibile sopra la soglia | Lo spostamento si misura per bisezione sul motore, quindi vale per qualunque profilo |
+| Obiettivo netto non sempre raggiungibile | I salti normativi rendono certe cifre irraggiungibili, ma l'intestazione dichiarava comunque il valore richiesto | Quando il pacchetto consegna una cifra diversa, lo dichiara esplicitamente |
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
 

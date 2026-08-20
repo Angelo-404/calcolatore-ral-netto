@@ -18120,7 +18120,18 @@ function componiPacchetto(nome, descrizione, params, quote, obiettivo) {
     ral = invertiCosto(obiettivo.valore, comune);
   }
 
-  const r = calcolaPremium({ ...comune, ral });
+  let r = calcolaPremium({ ...comune, ral });
+
+  /* Il premio agevolato non spetta oltre la soglia di reddito: se la RAL
+     necessaria la supera, il pacchetto prometterebbe un welfare che non
+     verra' erogato. Si ricostruisce senza premio, cosi' i numeri mostrati
+     corrispondono a cio' che il lavoratore riceve davvero. */
+  if (premio > 0 && ral > PREMIUM.PREMIO_REDDITO_MAX) {
+    const senzaPremio = componiPacchetto(nome, descrizione, params,
+                                         { fringe: quote.fringe, buoni: quote.buoni, premio: 0 }, obiettivo);
+    return { ...senzaPremio, premioOltreSoglia: true };
+  }
+
   return {
     nome, descrizione, ral,
     fringe, buoni, premio, welfare: r.welfareEsente,
@@ -18233,10 +18244,23 @@ function opportunitaSoglia(params, welfareDisponibile) {
 
   for (const soglia of soglieRilevanti(params)) {
     if (imponibile <= soglia.valore) continue;                 // gia' sotto
-    const eccedenza = imponibile - soglia.valore;
-    // Quanto lordo va spostato perche' l'imponibile scenda sotto la soglia
-    const spostamento = eccedenza / (1 - (attuale.profilo.lavoratore || 0)) + 5;
-    if (spostamento > welfareDisponibile) continue;            // fuori portata
+
+    /* Quanto lordo spostare perche' l'imponibile scenda sotto la soglia non
+       si ricava da una sola aliquota: fra RAL e imponibile ci sono anche il
+       contributo aggiuntivo dell'1% e i fondi di categoria, che variano per
+       profilo. Su un dirigente la stima analitica sbagliava di 128 euro e
+       lasciava l'imponibile sopra la soglia. Si misura per bisezione. */
+    const imponibileCon = (taglio) => calcolaPremium({ ...params, ral: params.ral - taglio }).imponibile;
+    if (imponibileCon(welfareDisponibile) >= soglia.valore) continue;   // fuori portata
+
+    let basso = 0, alto = welfareDisponibile;
+    for (let i = 0; i < 40 && alto - basso > 0.5; i++) {
+      const mezzo = (basso + alto) / 2;
+      if (imponibileCon(mezzo) >= soglia.valore) basso = mezzo;
+      else alto = mezzo;
+    }
+    const spostamento = Math.min(alto + 5, welfareDisponibile);
+    if (imponibileCon(spostamento) >= soglia.valore) continue;
 
     const prova = calcolaPremium({ ...params, ral: params.ral - spostamento });
     const valorePrima = attuale.nettoAnnuo + attuale.welfareEsente;
@@ -19375,6 +19399,29 @@ function eseguiTest() {
   check('Soglie: nessun suggerimento se l’imponibile è già basso',
         opportunitaSoglia({ ...scenarioBase, anno: 2026, ral: 12000 }, 6200) === null);
 
+  // Un pacchetto non deve promettere welfare che non verrà erogato: oltre
+  // la soglia di reddito il premio agevolato non spetta.
+  const obiettivoAlto = pacchettiOttimizzati({ tipo: 'netto', valore: 90000 }, { ...scenarioBase, anno: 2026 });
+  check('Ottimizzazione: nessun premio promesso oltre la soglia di reddito',
+        obiettivoAlto.every((p) => !(p.premio > 0 && p.ral > PREMIUM.PREMIO_REDDITO_MAX)) &&
+        obiettivoAlto.every((p) => vicino(p.valoreTotale, p.nettoCassa + p.welfare, 0.02)),
+        obiettivoAlto[2].premioOltreSoglia ? 'ricostruito senza premio' : 'premio applicabile');
+
+  // Lo spostamento verso una soglia va misurato: fra RAL e imponibile ci
+  // sono anche l'aliquota aggiuntiva e i fondi di categoria, che variano
+  // per profilo. Sul dirigente la stima analitica mancava il bersaglio.
+  let soglieCentrate = true, soglieScarto = '';
+  for (const profilo of Object.keys(PROFILI_CONTRIBUTIVI)) {
+    const occ = opportunitaSoglia({ ...scenarioBase, anno: 2026, profilo, ral: 26500 }, 6200);
+    if (occ && occ.imponibileDopo >= occ.valore) {
+      soglieCentrate = false;
+      soglieScarto = `${profilo}: imponibile ${euro2(occ.imponibileDopo)} contro soglia ${euro(occ.valore)}`;
+      break;
+    }
+  }
+  check('Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo',
+        soglieCentrate, soglieScarto);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -20026,6 +20073,10 @@ function renderOttimizzazione(modo, importoGrezzo) {
           ? `Per consegnare <strong>${euro(valore)}</strong> di valore annuo, il pacchetto migliore costa
              <strong>${euro(migliore.costoAzienda)}</strong> invece di ${euro(riferimento.costoAzienda)}:
              <strong class="text-emerald-700">${euro(guadagno)} risparmiati</strong>.`
+            + (Math.abs(migliore.valoreTotale - valore) > 1
+                ? ` <span class="text-amber-700">La cifra esatta non &egrave; raggiungibile per via dei salti normativi:
+                    il pacchetto ne consegna ${euro(migliore.valoreTotale)}.</span>`
+                : '')
           : `Con un budget di <strong>${euro(valore)}</strong>, il pacchetto migliore consegna
              <strong>${euro(migliore.valoreTotale)}</strong> invece di ${euro(riferimento.valoreTotale)}:
              <strong class="text-emerald-700">${euro(guadagno)} in più al lavoratore</strong>.`}
