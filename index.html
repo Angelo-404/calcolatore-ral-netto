@@ -17505,7 +17505,9 @@ function detrazioneAltriFamiliari(reddito, num) {
    MOTORE PREMIUM
    ==================================================================== */
 function calcolaPremium(params) {
-  const p = {
+  // Non è costante perché lo scenario senza retribuzione azzera le
+  // componenti accessorie prima di procedere: vedi il controllo più sotto.
+  let p = {
     anno: 2026,
     ral: 0,
     mensilita: 13,
@@ -17540,6 +17542,14 @@ function calcolaPremium(params) {
   /* --- Retribuzione effettivamente maturata nel periodo ---------------- */
   const ralContrattuale = Math.max(0, p.ral);
   const ral = ralContrattuale * quotaPartTime * quotaAnno;
+
+  // Senza retribuzione non c'è un rapporto di lavoro da simulare: welfare e
+  // compensi da soli genererebbero contributi su una busta paga inesistente,
+  // cioè un netto negativo. Si azzerano tutte le componenti accessorie.
+  if (ral <= 0) {
+    p = { ...p, fringeBenefit: 0, buoniPastoGiorno: 0, premioRisultato: 0,
+          compensiAccessori: 0, fondoPensione: 0 };
+  }
 
   /* --- Welfare: quota esente e quota imponibile ------------------------ */
   const sogliaFringe = p.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA;
@@ -18414,6 +18424,16 @@ function spiegazioniPremium(r) {
 /* Avvisi contestuali: situazioni che un HR deve vedere esplicitamente */
 function renderAvvisi(r) {
   const avvisi = [];
+  const box = el('pm-alert');
+
+  // Senza retribuzione ogni altro avviso è rumore: le detrazioni non godute
+  // e le soglie contributive non hanno significato su una busta inesistente.
+  if (r.ralContrattuale <= 0) {
+    box.className = 'rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm';
+    box.innerHTML = '<p class="text-amber-900">Senza una retribuzione non esiste un rapporto di lavoro da simulare: '
+      + 'welfare e compensi accessori sono stati ignorati. Inserisci una RAL.</p>';
+    return;
+  }
 
   if (r.massimaleRaggiunto) {
     avvisi.push(`Massimale contributivo ${r.anno} raggiunto (${euro(ANNI[r.anno].massimale)}): la contribuzione si ferma, il netto marginale sale.`);
@@ -18424,6 +18444,9 @@ function renderAvvisi(r) {
   if (r.sottoMinimale) {
     avvisi.push(`Retribuzione mensile sotto il minimale contributivo INPS (${euro2(r.minimaleMese)}): i contributi vanno comunque calcolati sul minimale.`);
   }
+  if (r.nettoAnnuo < 0) {
+    avvisi.push('Le trattenute superano la retribuzione in denaro: il cedolino risulterebbe incapiente. Succede quando i versamenti volontari eccedono il netto disponibile.');
+  }
   if (r.detrazioneNonGoduta > 1) {
     avvisi.push(`${euro(r.detrazioneNonGoduta)} di detrazioni perse per incapienza: non generano credito d'imposta.`);
   }
@@ -18431,7 +18454,6 @@ function renderAvvisi(r) {
     avvisi.push('Il comune non ha ancora deliberato per il 2026: resta in vigore l’aliquota 2025.');
   }
 
-  const box = el('pm-alert');
   if (!avvisi.length) {
     box.classList.add('hidden');
     return;
@@ -18643,6 +18665,32 @@ function eseguiTest() {
   check('Compensi accessori: imposta sostitutiva solo dal 2026',
         acc25.accessoriAmmessi === 0 && acc25.impostaAccessori === 0 && acc26.accessoriAmmessi === 2000,
         `2025 ordinari · 2026 agevolati ${euro2(acc26.impostaAccessori)}`);
+
+  // Senza retribuzione, welfare e compensi da soli genererebbero contributi
+  // su una busta paga inesistente, cioè un netto negativo.
+  const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
+    fringeBenefit: 2500, buoniPastoGiorno: 12, premioRisultato: 5000, fondoPensione: 9000 });
+  check('Senza retribuzione il netto resta a zero, non va sotto',
+        senzaStipendio.nettoAnnuo === 0 && senzaStipendio.inps === 0,
+        euro2(senzaStipendio.nettoAnnuo));
+
+  // Sweep sistematico su tutte le combinazioni di contratto: nessuna deve
+  // produrre valori non finiti, netti negativi o quadrature rotte.
+  let combinazioni = 0, anomalie = 0;
+  for (const profilo of Object.keys(PROFILI_CONTRIBUTIVI))
+  for (const anno of [2025, 2026])
+  for (const regime of Object.keys(REGIMI))
+  for (const ral of [0, 15000, 35000, 80000, 250000]) {
+    combinazioni++;
+    const x = calcolaPremium({ ...scenarioBase, anno, ral, profilo, regime, massimaleAttivo: ral > 120000 });
+    const identita = x.ral + x.premioSostitutiva + x.premioOrdinario + x.accessoriAmmessi
+                   + x.accessoriOrdinari - x.totaleTrattenute - x.fondoPensioneDeducibile + x.totaleBonus;
+    const sano = Object.values(x).every((v) => typeof v !== 'number' || Number.isFinite(v))
+              && x.nettoAnnuo >= -0.01 && Math.abs(identita - x.nettoAnnuo) <= 0.02;
+    if (!sano) anomalie++;
+  }
+  check('Sweep su tutte le combinazioni di contratto e regime',
+        anomalie === 0, `${combinazioni} combinazioni, ${anomalie} anomalie`);
 
   // Ogni provincia del dataset deve ricadere in una regione esistente,
   // altrimenti si potrebbe calcolare un comune con l'addizionale sbagliata
@@ -19229,8 +19277,18 @@ const INTERRUTTORI_URL = {
 };
 
 let ripristinoInCorso = false;
+let timerUrl = null;
 
+/* I browser limitano la frequenza di history.replaceState: una chiamata a
+   ogni digitazione supera la soglia e le successive vengono scartate in
+   silenzio, lasciando l'indirizzo indietro rispetto ai campi. Si scrive
+   quindi una sola volta, quando l'utente ha smesso di digitare. */
 function scriviUrl() {
+  clearTimeout(timerUrl);
+  timerUrl = setTimeout(scriviUrlOra, 350);
+}
+
+function scriviUrlOra() {
   if (ripristinoInCorso) return;
   const q = new URLSearchParams();
   q.set('sezione', el('panel-premium').classList.contains('hidden') ? 'base' : 'premium');
