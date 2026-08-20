@@ -17638,7 +17638,27 @@ function calcolaPremium(params) {
      tavolo. Il tetto di deducibilita' di 5.164,57 euro e' unico per i
      due versamenti, e la parte di contributo aziendale che lo supera
      torna a essere reddito imponibile per il lavoratore. */
-  const versamentoLavoratore = Math.max(0, p.fondoPensione);
+  /* Il versamento e' trattenuto dalla busta paga e non puo' eccedere quanto
+     la busta contiene. Il tetto non e' banale da trovare: dedurre abbassa
+     l'imponibile e, a redditi molto bassi, azzera l'imposta facendo perdere
+     il trattamento integrativo. Il netto disponibile quindi si riduce piu'
+     di quanto si versa, e il valore va cercato per avvicinamenti successivi.
+     Il parametro interno `senzaCapienza` interrompe la ricorsione. */
+  const versamentoRichiesto = Math.max(0, p.fondoPensione);
+  let versamentoLavoratore = versamentoRichiesto;
+
+  if (versamentoRichiesto > 0 && !p.senzaCapienza) {
+    const disponibile = calcolaPremium({ ...p, fondoPensione: 0, contributoDatoreFondo: 0, senzaCapienza: true });
+    let tentativo = Math.min(versamentoRichiesto, Math.max(0, disponibile.nettoAnnuo));
+
+    for (let i = 0; i < 4 && tentativo > 0; i++) {
+      const prova = calcolaPremium({ ...p, fondoPensione: tentativo, senzaCapienza: true });
+      if (prova.nettoAnnuo >= -0.005) break;
+      tentativo = Math.max(0, tentativo + prova.nettoAnnuo);
+    }
+    versamentoLavoratore = tentativo;
+  }
+  const versamentoNonCapiente = versamentoRichiesto - versamentoLavoratore;
   const contributoDatoreFondo = versamentoLavoratore > 0
     ? ral * Math.min(Math.max(0, p.contributoDatoreFondo), 100) / 100
     : 0;
@@ -17716,7 +17736,8 @@ function calcolaPremium(params) {
   const costoAzienda = ral + premioLordo + Math.max(0, p.compensiAccessori)
     + contributiDatore + fondoDatore + contributoDatoreFondo + inail + tfrLordo
     + p.fringeBenefit + buoniTotale;
-  const efficienza = costoAzienda > 0 ? (nettoAnnuo / costoAzienda) * 100 : 0;
+  // Senza un netto positivo il rapporto non ha significato
+  const efficienza = costoAzienda > 0 && nettoAnnuo > 0 ? (nettoAnnuo / costoAzienda) * 100 : 0;
 
   /* --- Controllo del minimale contributivo ----------------------------- */
   const retribuzioneMese = p.mensilita > 0 ? ral / p.mensilita : 0;
@@ -17731,7 +17752,8 @@ function calcolaPremium(params) {
     baseContributivaApplicata: contributi.baseApplicata,
     imponibileLordo, imponibile, redditoComplessivo,
     regimeAbbattuto: regime.abbattuto, regimeNome: REGIMI[p.regime].nome,
-    fondoPensioneDeducibile, versamentoLavoratore, fondoLavoratoreNonDedotto,
+    fondoPensioneDeducibile, versamentoLavoratore, versamentoRichiesto,
+    versamentoNonCapiente, fondoLavoratoreNonDedotto,
     contributoDatoreFondo, fondoDatoreEccedente, tfrAlFondo: !!p.tfrAlFondo,
     irpefLorda, detrazioniBase, ulterioreDetrazione,
     detrConiuge, detrFigli, detrAltri, detrFamiliari,
@@ -18244,7 +18266,7 @@ function renderPremium(r, baseline) {
     ? 'versato al fondo pensione'
     : 'accantonato in azienda';
   el('pm-costo').textContent = euro(r.costoAzienda);
-  el('pm-efficienza').textContent = perc(r.efficienza);
+  el('pm-efficienza').textContent = r.efficienza > 0 ? perc(r.efficienza) : '—';
 
   el('tip-valore').innerHTML = bottoneSpiegazione({
     titolo: 'Valore totale percepito',
@@ -18541,6 +18563,10 @@ function renderAvvisi(r) {
       + 'In busta paga i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva: '
       + 'il motore <strong>non</strong> applica questa correzione, quindi qui i contributi sono sottostimati.');
   }
+  if (r.versamentoNonCapiente > 0.01) {
+    avvisi.push(`Il versamento richiesto al fondo supera quanto la busta paga contiene: `
+      + `trattenuti ${euro(r.versamentoLavoratore)} invece di ${euro(r.versamentoRichiesto)}.`);
+  }
   if (r.nettoAnnuo < 0) {
     avvisi.push('Le trattenute superano la retribuzione in denaro: il cedolino risulterebbe incapiente. Succede quando i versamenti volontari eccedono il netto disponibile.');
   }
@@ -18795,6 +18821,35 @@ function eseguiTest() {
         tfrAlFondo.tfr > tfrInAzienda.tfr &&
         vicino(tfrAlFondo.tfr - tfrInAzienda.tfr, 30000 * 0.005, 0.01),
         `+${euro2(tfrAlFondo.tfr - tfrInAzienda.tfr)}`);
+
+  // Il versamento al fondo non può eccedere quanto la busta contiene. Il
+  // limite non è la retribuzione: dedurre azzera l'imposta e fa perdere il
+  // trattamento integrativo, quindi il netto disponibile scende più in
+  // fretta di quanto si versa e il valore va cercato per approssimazioni.
+  const bustaMinima = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 12000,
+                                       giorniLavorati: 1, fondoPensione: 9000 });
+  check('Fondo: il versamento non supera quanto la busta contiene',
+        bustaMinima.versamentoLavoratore < bustaMinima.versamentoRichiesto &&
+        bustaMinima.nettoAnnuo >= -0.005 &&
+        bustaMinima.versamentoNonCapiente > 0,
+        `richiesti ${euro(bustaMinima.versamentoRichiesto)}, trattenuti ${euro2(bustaMinima.versamentoLavoratore)}`);
+
+  // Sweep sui fondi: nessuna combinazione deve produrre un netto negativo
+  let combinazioniFondo = 0, anomalieFondo = 0;
+  for (const ral of [0, 12000, 32000, 120000])
+  for (const versamento of [0, 384, 5164.57, 9000])
+  for (const datore of [0, 2, 20])
+  for (const tfrAlFondo of [false, true]) {
+    combinazioniFondo++;
+    const x = calcolaPremium({ ...scenarioBase, anno: 2026, ral, fondoPensione: versamento,
+                               contributoDatoreFondo: datore, tfrAlFondo });
+    const sano = x.nettoAnnuo >= -0.005 && x.efficienza >= 0 && x.tfr >= 0 &&
+                 x.fondoPensioneDeducibile <= x.versamentoLavoratore + 0.01 &&
+                 (x.versamentoLavoratore > 0 || x.contributoDatoreFondo === 0);
+    if (!sano) anomalieFondo++;
+  }
+  check('Sweep sulle combinazioni di previdenza complementare',
+        anomalieFondo === 0, `${combinazioniFondo} combinazioni, ${anomalieFondo} anomalie`);
 
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.

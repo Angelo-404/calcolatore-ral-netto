@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 37 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 39 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -220,11 +220,13 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Fondo: tetto di deducibilità condiviso fra lavoratore e datore | Confine del tetto unico |
 | Fondo: il contributo aziendale oltre il tetto torna imponibile | Trattamento dell'eccedenza |
 | TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia | Destinazione del TFR |
+| Fondo: il versamento non supera quanto la busta contiene | Capienza della busta paga |
+| Sweep sulle combinazioni di previdenza complementare (96) | Copertura combinatoria |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**37 test su 37 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**39 test su 39 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
-**Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **21.458 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
+**Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
 L'interfaccia è stata collaudata a parte su **332 scenari**, pilotando i controlli reali e ispezionando ciò che viene disegnato: nessun `NaN` o valore mancante nel testo, dettaglio e grafico sempre presenti, nessuno scorrimento orizzontale, ogni spiegazione contestuale con un contenuto reale.
 
@@ -237,6 +239,8 @@ Il collaudo ha prodotto tre correzioni, documentate al §5.1.
 | Netto negativo con RAL 0 e fringe benefit | Senza retribuzione i contributi venivano calcolati su una busta paga inesistente | Le componenti accessorie si azzerano e l'interfaccia lo dichiara con un avviso dedicato |
 | Indirizzo rimasto indietro rispetto ai campi | I browser limitano la frequenza di `history.replaceState`: una chiamata a ogni digitazione superava la soglia e le successive venivano scartate in silenzio | L'indirizzo si scrive una sola volta, 350 ms dopo l'ultima modifica |
 | Avvisi privi di senso con RAL 0 | Detrazioni non godute e soglie contributive segnalate su un rapporto inesistente | Senza retribuzione resta un solo avviso, gli altri sono soppressi |
+| Versamento al fondo superiore alla busta paga | Con pochi giorni lavorati un importo fisso eccedeva la retribuzione. Il limite non è però la retribuzione: dedurre azzera l'imposta e fa perdere il trattamento integrativo, quindi il netto disponibile scende più in fretta di quanto si versa | Il trattenuto viene cercato per approssimazioni successive fino a mantenere il netto non negativo, e l'interfaccia dichiara quanto è stato effettivamente trattenuto |
+| Rapporto netto/costo negativo | Con netto sotto zero l'indicatore perdeva significato | Mostra un trattino invece di una percentuale priva di senso |
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
 
