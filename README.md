@@ -91,6 +91,19 @@ Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenari
 | Mensilità | 13 | Il netto mensile è il netto annuo diviso 13 |
 | Addizionali locali | **A regime, per competenza** | Vedi sotto |
 
+### Dove il profilo standard smette di valere
+
+L'aliquota INPS piatta al 9,19% senza massimale è corretta nella fascia retributiva ordinaria, ma oltre due soglie contributive non lo è più:
+
+| Soglia 2025 | Cosa cambia | Effetto sul netto della sezione Base |
+|---|---|---|
+| 55.448 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: +245,52 € a 80.000 € di RAL |
+| 120.607 € | Opera il massimale contributivo per chi è privo di anzianità al 31/12/1995 | Sottostimato: i contributi continuano a crescere quando dovrebbero fermarsi |
+
+La sezione Base **non** implementa queste due regole, perché il profilo richiesto è quello standard. Piuttosto che presentare un numero impreciso come esatto, la interfaccia lo dichiara: superata la soglia compare un avviso che nomina la norma, quantifica lo scostamento e offre di ricalcolare nella sezione Premium, che applica entrambe le regole. La RAL viene trasferita e il massimale attivato automaticamente.
+
+A 200.000 € di RAL la differenza fra i due motori è di circa 4.000 € annui.
+
 ### Sul criterio "a regime, per competenza"
 
 Nel cedolino reale l'addizionale regionale e comunale seguono un criterio di **cassa sfalsato**: l'addizionale dell'anno N è determinata a conguaglio e trattenuta in rate nell'anno N+1, mentre nell'anno corrente si versano acconti calcolati sull'imponibile dell'anno precedente. In un anno di ingresso in azienda o di variazione retributiva, la trattenuta effettiva in busta paga non coincide quindi con l'addizionale di competenza.

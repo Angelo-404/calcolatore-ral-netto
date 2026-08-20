@@ -194,6 +194,16 @@
         <p class="text-[11px] text-slate-400 mt-2 text-center">Il calcolo &egrave; comunque aggiornato in tempo reale a ogni digitazione</p>
       </div>
 
+      <!-- Segnala i casi in cui il profilo standard non è più adeguato -->
+      <div id="base-avviso" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <h4 class="font-bold text-amber-900 text-sm">Oltre il perimetro del profilo standard</h4>
+        <p id="base-avviso-testo" class="text-sm text-amber-900/90 mt-1.5"></p>
+        <button id="btn-vai-premium"
+                class="no-print mt-3 text-xs font-semibold px-3 py-2 rounded-lg bg-amber-900 text-white hover:bg-amber-800 transition">
+          Ricalcola nella simulazione avanzata
+        </button>
+      </div>
+
       <div class="bg-brand-600 text-white rounded-2xl shadow-lg p-6">
         <p class="text-brand-100 text-sm font-semibold uppercase tracking-wider">Netto mensile</p>
         <p id="out-netto-mese" class="num text-4xl sm:text-5xl font-extrabold mt-1 leading-tight">&euro; 0</p>
@@ -17692,6 +17702,8 @@ function renderBase(r) {
   el('box-bonus').classList.toggle('hidden', r.totaleBonus <= 0);
   el('out-tot-bonus').textContent = '+ ' + euro(r.totaleBonus);
 
+  aggiornaAvvisoBase(r);
+
   apriRegistroSpiegazioni('b');
   el('tip-pressione').innerHTML = bottoneSpiegazione({
     titolo: 'Pressione fiscale',
@@ -17756,6 +17768,42 @@ function renderBase(r) {
 
   el('tbody-cascata').innerHTML = html;
   renderComposizione(r);
+}
+
+/* Il motore Base implementa il profilo standard richiesto: aliquota INPS
+   piatta al 9,19% senza massimale. Sono ipotesi corrette nella fascia
+   retributiva ordinaria, ma oltre due soglie contributive smettono di
+   valere, e il risultato va dichiarato per quello che è invece di essere
+   presentato come esatto. */
+const SOGLIE_OLTRE_STANDARD = { primaFascia: 55448, massimale: 120607 };
+
+function aggiornaAvvisoBase(r) {
+  const box = el('base-avviso');
+  const messaggi = [];
+
+  if (r.ral > SOGLIE_OLTRE_STANDARD.massimale) {
+    const eccedenza = r.ral - SOGLIE_OLTRE_STANDARD.massimale;
+    messaggi.push(
+      `Sopra ${euro(SOGLIE_OLTRE_STANDARD.massimale)} di retribuzione opera il massimale contributivo, ` +
+      `per chi è privo di anzianità al 31/12/1995: la contribuzione si ferma e non cresce più. ` +
+      `Qui i contributi sono calcolati sull'intera RAL, quindi il netto è sottostimato di circa ` +
+      `${euro(eccedenza * COSTANTI.ALIQUOTA_INPS)}.`
+    );
+  } else if (r.ral > SOGLIE_OLTRE_STANDARD.primaFascia) {
+    const uno = (r.ral - SOGLIE_OLTRE_STANDARD.primaFascia) * 0.01;
+    messaggi.push(
+      `Sopra ${euro(SOGLIE_OLTRE_STANDARD.primaFascia)} si aggiunge l'aliquota contributiva dell'1% ` +
+      `prevista dall'art. 3-ter del D.L. 384/1992, che il profilo standard non applica: ` +
+      `il netto qui indicato è sovrastimato di circa ${euro(uno)} l'anno.`
+    );
+  }
+
+  if (!messaggi.length) {
+    box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  el('base-avviso-testo').innerHTML = messaggi.join(' ');
 }
 
 /* Derivazioni della sezione Base, calcolate sui valori correnti */
@@ -18481,6 +18529,16 @@ document.querySelectorAll('.preset').forEach((b) => {
   });
 });
 el('btn-print').addEventListener('click', () => window.print());
+
+// Porta la stessa RAL nella simulazione avanzata, che applica le regole
+// contributive mancanti nel profilo standard.
+el('btn-vai-premium').addEventListener('click', () => {
+  el('p-ral').value = ralInput.value;
+  el('p-massimale').checked = parseFloat(ralInput.value) > SOGLIE_OLTRE_STANDARD.massimale;
+  mostraSezione('premium');
+  aggiornaPremium();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 // Il calcolo è già reattivo sull'evento "input": il pulsante ricalcola in modo
 // esplicito e segnala visivamente il risultato aggiornato.
