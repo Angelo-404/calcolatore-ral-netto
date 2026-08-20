@@ -363,6 +363,12 @@
         </div>
 
         <div>
+          <label for="p-rapporto" class="block text-sm font-semibold text-slate-700 mb-1.5">Tipo di rapporto</label>
+          <select id="p-rapporto" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <p id="p-rapporto-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <div>
           <label for="p-profilo" class="block text-sm font-semibold text-slate-700 mb-1.5">Inquadramento e settore</label>
           <select id="p-profilo" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
           <p id="p-profilo-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
@@ -17413,9 +17419,39 @@ const PROFILI_CONTRIBUTIVI = {
   industria_cigs:      { nome: 'Industria — con CIGS (oltre 50 dip.)', lavoratore: 0.0949, datore: 0.3271 },
   edilizia_operaio:    { nome: 'Edilizia — operaio',                lavoratore: 0.0919, datore: 0.3450 },
   dirigente:           { nome: 'Dirigente industria',               lavoratore: 0.0919, datore: 0.3081, fondo: 0.04, fondoDatore: 0.04, fondoTetto: 180000, fondoNome: 'Previndai' },
-  apprendista:         { nome: 'Apprendista',                       lavoratore: 0.0584, datore: 0.1161 },
   agricolo_operaio:    { nome: 'Agricoltura — operaio',             lavoratore: 0.0884, datore: 0.2500 },
   domestico:           { nome: 'Lavoro domestico',                  lavoratore: 0.0240, datore: 0.1200 }
+};
+
+/* ------------------------------------------------- Tipi di rapporto */
+/* Asse distinto da settore e inquadramento: un apprendista puo' lavorare
+   nel terziario come nell'industria, e un tempo determinato riguarda
+   qualunque inquadramento. Tenerli separati evita combinazioni impossibili
+   e soprattutto rende esplicito cio' che cambia davvero: non solo le
+   aliquote, ma in un caso la natura stessa del reddito. */
+const TIPI_RAPPORTO = {
+  indeterminato: {
+    nome: 'Tempo indeterminato',
+    nota: 'Contribuzione ordinaria del settore selezionato.'
+  },
+  determinato: {
+    nome: 'Tempo determinato',
+    addizionaleDatore: 0.014,
+    nota: 'Contributo addizionale NASpI dell’1,40% a carico del datore, '
+        + 'che sale di 0,50 punti a ogni rinnovo ed e’ restituito se il rapporto viene trasformato.'
+  },
+  apprendistato: {
+    nome: 'Apprendistato',
+    lavoratore: 0.0584,
+    datore: 0.1161,
+    nota: 'Aliquota agevolata per legge, indipendente dal settore: 5,84% a carico dell’apprendista.'
+  },
+  tirocinio: {
+    nome: 'Tirocinio / stage',
+    assimilato: true,
+    nota: 'L’indennità non è reddito di lavoro dipendente ma assimilato '
+        + '(art. 50, comma 1, lett. c TUIR): nessun contributo previdenziale, nessun TFR, nessuna mensilità aggiuntiva.'
+  }
 };
 
 /* --------------------------------------------------- Regimi agevolati */
@@ -17503,7 +17539,7 @@ function calcolaContributiLavoratore(baseContributiva, profilo, anno, massimaleA
   const base = massimaleAttivo ? Math.min(baseContributiva, A.massimale) : baseContributiva;
 
   const ordinari = base * profilo.lavoratore;
-  const aggiuntivo = profilo.lavoratore < PREMIUM.SOGLIA_ALIQUOTA_AGGIUNTIVA
+  const aggiuntivo = profilo.lavoratore > 0 && profilo.lavoratore < PREMIUM.SOGLIA_ALIQUOTA_AGGIUNTIVA
     ? Math.max(0, base - A.soglia1pc) * PREMIUM.ALIQUOTA_AGGIUNTIVA
     : 0;
   const fondo = profilo.fondo
@@ -17599,6 +17635,7 @@ function calcolaPremium(params) {
     ral: 0,
     mensilita: 13,
     profilo: 'terziario_impiegato',
+    tipoRapporto: 'indeterminato',
     massimaleAttivo: false,
     regione: 'Lombardia',
     comune: 'F205',
@@ -17624,7 +17661,19 @@ function calcolaPremium(params) {
   };
 
   const A = ANNI[p.anno];
-  const profilo = PROFILI_CONTRIBUTIVI[p.profilo] || PROFILI_CONTRIBUTIVI.terziario_impiegato;
+  const rapporto = TIPI_RAPPORTO[p.tipoRapporto] || TIPI_RAPPORTO.indeterminato;
+  const profiloSettore = PROFILI_CONTRIBUTIVI[p.profilo] || PROFILI_CONTRIBUTIVI.terziario_impiegato;
+
+  /* Il tipo di rapporto prevale sulle aliquote del settore: l'apprendistato
+     ha un'aliquota fissata per legge, il tirocinio non genera contribuzione
+     previdenziale perche' l'indennita' e' reddito assimilato. */
+  const profilo = rapporto.assimilato
+    ? { ...profiloSettore, nome: profiloSettore.nome, lavoratore: 0, datore: 0,
+        fondo: 0, fondoDatore: 0, assimilato: true }
+    : { ...profiloSettore,
+        lavoratore: rapporto.lavoratore !== undefined ? rapporto.lavoratore : profiloSettore.lavoratore,
+        datore: (rapporto.datore !== undefined ? rapporto.datore : profiloSettore.datore)
+                + (rapporto.addizionaleDatore || 0) };
   const giorni = Math.min(Math.max(p.giorniLavorati, 0), PREMIUM.GIORNI_ANNO);
   const quotaAnno = giorni / PREMIUM.GIORNI_ANNO;
   const quotaPartTime = Math.min(Math.max(p.partTime, 0), 100) / 100;
@@ -17739,9 +17788,16 @@ function calcolaPremium(params) {
   const irpefLorda = calcolaIrpefLordaAnno(imponibile, p.anno);
 
   // Le detrazioni e i benefici del cuneo sono rapportati al periodo di lavoro
+  // La detrazione dell'art. 13 comma 1 TUIR richiama espressamente l'art. 50
+  // comma 1 lettera c): al tirocinante spetta, ed e' rapportata ai giorni.
   const detrazioniBase = calcolaDetrazioniBase(redditoComplessivo) * quotaAnno;
-  const bonusCuneo = calcolaBonusCuneo(redditoComplessivo) * quotaAnno;
-  const ulterioreDetrazione = calcolaUlterioreDetrazione(redditoComplessivo) * quotaAnno;
+
+  // Il taglio del cuneo e il trattamento integrativo si rivolgono ai
+  // titolari di reddito di lavoro dipendente: l'indennita' di tirocinio e'
+  // reddito assimilato, quindi qui non vengono riconosciuti. La scelta e'
+  // dichiarata in interfaccia perche' e' un'interpretazione, non un calcolo.
+  const bonusCuneo = rapporto.assimilato ? 0 : calcolaBonusCuneo(redditoComplessivo) * quotaAnno;
+  const ulterioreDetrazione = rapporto.assimilato ? 0 : calcolaUlterioreDetrazione(redditoComplessivo) * quotaAnno;
 
   const detrConiuge = p.coniugeACarico ? detrazioneConiuge(redditoComplessivo) * quotaAnno : 0;
   const detrFigli = detrazioneFigli(redditoComplessivo, p.figli) * quotaAnno;
@@ -17753,8 +17809,8 @@ function calcolaPremium(params) {
   const detrazioneNonGoduta = totDetrazioni - detrazioneEffettiva;
   const irpefNetta = Math.max(0, irpefLorda - detrazioneEffettiva);
 
-  const trattamentoIntegrativo =
-    calcolaTrattamentoIntegrativo(redditoComplessivo, irpefLorda, detrazioniBase, totDetrazioni) * quotaAnno;
+  const trattamentoIntegrativo = rapporto.assimilato ? 0
+    : calcolaTrattamentoIntegrativo(redditoComplessivo, irpefLorda, detrazioniBase, totDetrazioni) * quotaAnno;
 
   /* --- Imposta sostitutiva su premi e compensi accessori --------------- */
   const impostaPremio = premioSostitutiva * A.premiAliquota;
@@ -17799,7 +17855,8 @@ function calcolaPremium(params) {
   const tfrLordo = baseTfr / PREMIUM.TFR_DIVISORE;
   // Conferito al fondo il TFR non subisce il contributo dello 0,50% al
   // Fondo di garanzia, che riguarda l'accantonamento in azienda.
-  const tfr = p.tfrAlFondo ? tfrLordo : tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO;
+  const tfr = rapporto.assimilato ? 0
+    : (p.tfrAlFondo ? tfrLordo : tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO);
 
   const contributiDatore = contributi.baseApplicata * profilo.datore;
   const fondoDatore = profilo.fondoDatore
@@ -17807,7 +17864,8 @@ function calcolaPremium(params) {
     : 0;
   const inail = ral * PREMIUM.DATORE_INAIL;
   const costoAzienda = ral + premioLordo + Math.max(0, p.compensiAccessori)
-    + contributiDatore + fondoDatore + contributoDatoreFondo + inail + tfrLordo
+    + contributiDatore + fondoDatore + contributoDatoreFondo + inail
+    + (rapporto.assimilato ? 0 : tfrLordo)
     + p.fringeBenefit + buoniTotale;
   // Senza un netto positivo il rapporto non ha significato
   const efficienza = costoAzienda > 0 && nettoPrimaTrattenute > 0
@@ -17820,6 +17878,7 @@ function calcolaPremium(params) {
   return {
     anno: p.anno, ral, ralContrattuale, giorni, quotaAnno, quotaPartTime,
     profiloNome: profilo.nome, profilo,
+    tipoRapporto: p.tipoRapporto, rapportoNome: rapporto.nome, assimilato: !!rapporto.assimilato,
     inps, contributiOrdinari: contributi.ordinari,
     contributoAggiuntivo: contributi.aggiuntivo, contributoFondo: contributi.fondo,
     massimaleRaggiunto: contributi.massimaleRaggiunto, baseContributiva,
@@ -18475,9 +18534,9 @@ function renderPremium(r, baseline) {
   el('pm-mensilita-label').textContent = `su ${M} mensilità`;
   el('pm-valore').textContent = euro(r.valoreTotale);
   el('pm-tfr').textContent = euro(r.tfr);
-  el('pm-tfr-dove').textContent = r.tfrAlFondo
-    ? 'versato al fondo pensione'
-    : 'accantonato in azienda';
+  el('pm-tfr-dove').textContent = r.assimilato
+    ? 'non previsto nel tirocinio'
+    : (r.tfrAlFondo ? 'versato al fondo pensione' : 'accantonato in azienda');
   el('pm-costo').textContent = euro(r.costoAzienda);
   el('pm-efficienza').textContent = r.efficienza > 0 ? perc(r.efficienza) : '—';
 
@@ -18502,14 +18561,16 @@ function renderPremium(r, baseline) {
     fonte: 'Aliquote datore: stima parametrica — INAIL: tariffa dei premi per classe di rischio',
     html: formula([
       ['Retribuzione e variabili', euro2(r.ral + r.premioSostitutiva + r.premioOrdinario + r.accessoriAmmessi + r.accessoriOrdinari)],
-      [`Contributi datore (~${aliq(r.profilo.datore)})`, euro2(r.contributiDatore)],
+      [r.tipoRapporto === 'determinato'
+        ? `Contributi datore, NASpI inclusa (~${aliq(r.profilo.datore)})`
+        : `Contributi datore (~${aliq(r.profilo.datore)})`, euro2(r.contributiDatore)],
       ['INAIL (ipotesi 0,50%)', euro2(r.inail)],
       ['Quota TFR', euro2(r.tfr)],
       ['Welfare e benefit', euro2(r.fringeEsente + r.fringeImponibile + r.buoniTotale)]
     ], ['Stima del costo annuo', euro2(r.costoAzienda)])
   });
   el('pm-sottotitolo').textContent =
-    `${r.profiloNome} · ${r.comuneNome} · ${r.regioneNome} · anno ${r.anno}` +
+    `${r.rapportoNome} · ${r.profiloNome} · ${r.comuneNome} · ${r.regioneNome} · anno ${r.anno}` +
     (r.giorni < 365 ? ` · ${r.giorni} giorni` : '') +
     (r.quotaPartTime < 1 ? ` · part-time ${Math.round(r.quotaPartTime * 100)}%` : '');
 
@@ -18542,7 +18603,11 @@ function renderPremium(r, baseline) {
   if (r.fringeImponibile > 0) html += rigaCascata('Fringe benefit imponibili', 'Soglia superata: intero valore tassato', r.fringeImponibile, M, { tipo: 'neutro', indent: true, spiega: S.fringe });
   if (r.buoniEccedenza > 0) html += rigaCascata('Buoni pasto &mdash; quota eccedente', 'Oltre il limite giornaliero esente', r.buoniEccedenza, M, { tipo: 'neutro', indent: true });
 
-  html += rigaCascata('Contributi INPS ordinari', `Aliquota ${aliq(r.profilo.lavoratore)} a carico del lavoratore`, r.contributiOrdinari, M, { tipo: 'negativo', spiega: S.contributi });
+  if (r.assimilato) {
+    html += rigaCascata('Contributi previdenziali', 'Non dovuti sull&rsquo;indennit&agrave; di tirocinio', 0, M, { tipo: 'negativo' });
+  } else {
+    html += rigaCascata('Contributi INPS ordinari', `Aliquota ${aliq(r.profilo.lavoratore)} a carico del lavoratore`, r.contributiOrdinari, M, { tipo: 'negativo', spiega: S.contributi });
+  }
   if (r.contributoAggiuntivo > 0) html += rigaCascata('Aliquota aggiuntiva 1%', `Quota oltre ${euro(ANNI[r.anno].soglia1pc)} &mdash; art. 3-ter L. 438/1992`, r.contributoAggiuntivo, M, { tipo: 'negativo', indent: true, spiega: S.aggiuntivo });
   if (r.contributoFondo > 0) html += rigaCascata(`Fondo ${r.profilo.fondoNome || 'di categoria'}`, 'Quota a carico del dirigente', r.contributoFondo, M, { tipo: 'negativo', indent: true });
 
@@ -18784,6 +18849,12 @@ function renderAvvisi(r) {
     return;
   }
 
+  if (r.assimilato) {
+    avvisi.push('Indennit&agrave; di tirocinio: &egrave; reddito assimilato al lavoro dipendente '
+      + '(art. 50, comma 1, lett. c TUIR). Nessun contributo previdenziale, nessun TFR, nessuna mensilit&agrave; aggiuntiva. '
+      + 'La detrazione dell&rsquo;art. 13 spetta, mentre il taglio del cuneo e il trattamento integrativo qui non sono '
+      + 'riconosciuti, perch&eacute; si rivolgono ai titolari di reddito di lavoro dipendente.');
+  }
   if (r.massimaleRaggiunto) {
     avvisi.push(`Massimale contributivo ${r.anno} raggiunto (${euro(ANNI[r.anno].massimale)}): la contribuzione si ferma, il netto marginale sale.`);
   }
@@ -19140,6 +19211,42 @@ function eseguiTest() {
         vicino(eff.premioWelfare, 1, 0.001) && eff.ral < 0.6,
         `retribuzione ${fmtPerc2.format(eff.ral)} € per euro speso`);
 
+  // Il tempo determinato costa di più solo all'azienda: il contributo
+  // addizionale NASpI è a carico del datore e non tocca la busta paga.
+  const indet = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 24000, tipoRapporto: 'indeterminato' });
+  const det = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 24000, tipoRapporto: 'determinato' });
+  check('Tempo determinato: NASpI 1,40% sul solo costo azienda',
+        vicino(det.nettoAnnuo, indet.nettoAnnuo, 0.01) &&
+        vicino(det.costoAzienda - indet.costoAzienda, 24000 * 0.014, 0.01),
+        `+${euro2(det.costoAzienda - indet.costoAzienda)} per l'azienda`);
+
+  // L'apprendistato ha un'aliquota fissata per legge, uguale in ogni settore
+  const appTerziario = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 24000,
+                                        profilo: 'terziario_impiegato', tipoRapporto: 'apprendistato' });
+  const appIndustria = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 24000,
+                                        profilo: 'industria_operaio', tipoRapporto: 'apprendistato' });
+  check('Apprendistato: aliquota 5,84% indipendente dal settore',
+        vicino(appTerziario.inps, 24000 * 0.0584, 0.01) &&
+        vicino(appTerziario.nettoAnnuo, appIndustria.nettoAnnuo, 0.01),
+        euro2(appTerziario.inps));
+
+  // Il tirocinio è reddito assimilato: cambia la natura, non solo l'aliquota
+  const stage = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 9000,
+                                 mensilita: 12, tipoRapporto: 'tirocinio' });
+  check('Tirocinio: nessun contributo, nessun TFR, imponibile pieno',
+        stage.inps === 0 && stage.tfr === 0 &&
+        vicino(stage.imponibile, 9000, 0.01) &&
+        vicino(stage.costoAzienda, 9000 * (1 + PREMIUM.DATORE_INAIL), 0.01),
+        `imponibile ${euro2(stage.imponibile)}, costo ${euro2(stage.costoAzienda)}`);
+
+  // Cuneo e trattamento integrativo si rivolgono al lavoro dipendente
+  const stageBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 6000, mensilita: 12, tipoRapporto: 'tirocinio' });
+  const dipendenteBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 6000, mensilita: 12 });
+  check('Tirocinio: niente cuneo né trattamento integrativo',
+        stageBasso.bonusCuneo === 0 && stageBasso.trattamentoIntegrativo === 0 &&
+        dipendenteBasso.bonusCuneo > 0,
+        `il dipendente riceve ${euro2(dipendenteBasso.bonusCuneo)} di cuneo, il tirocinante nulla`);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -19355,6 +19462,7 @@ function leggiParametriPremium() {
     ral: Math.max(0, parseFloat(el('p-ral').value) || 0),
     mensilita: parseInt(el('p-mensilita').value, 10),
     profilo: el('p-profilo').value,
+    tipoRapporto: el('p-rapporto').value,
     massimaleAttivo: el('p-massimale').checked,
     regione: el('p-regione').value,
     comune: comuneCorrente,
@@ -19393,6 +19501,23 @@ function aggiornaNoteContestuali(p) {
   const profilo = PROFILI_CONTRIBUTIVI[p.profilo];
 
   el('anno-nota').textContent = A.note;
+  const rapporto = TIPI_RAPPORTO[p.tipoRapporto] || TIPI_RAPPORTO.indeterminato;
+  el('p-rapporto-nota').innerHTML = rapporto.nota;
+
+  // Nel tirocinio non esistono mensilita' aggiuntive ne' TFR: i controlli
+  // che non hanno effetto vengono disattivati invece di restare attivi e
+  // ininfluenti, che sarebbe piu' confuso.
+  const assimilato = !!rapporto.assimilato;
+  for (const id of ['p-mensilita', 'p-tfr-fondo', 'p-massimale']) {
+    const nodo = el(id);
+    nodo.disabled = assimilato;
+    nodo.parentElement.classList.toggle('opacity-40', assimilato);
+  }
+  if (assimilato && el('p-mensilita').value !== '12') {
+    el('p-mensilita').value = '12';
+    p.mensilita = 12;
+  }
+
   el('p-profilo-nota').textContent =
     `Lavoratore ${aliq(profilo.lavoratore)} · datore ~${aliq(profilo.datore)} (stima)` +
     (profilo.fondo ? ` · ${profilo.fondoNome} ${aliq(profilo.fondo)}` : '');
@@ -19454,6 +19579,10 @@ function aggiornaNoteContestuali(p) {
 function popolaSelect() {
   el('p-profilo').innerHTML = Object.entries(PROFILI_CONTRIBUTIVI)
     .map(([k, v]) => `<option value="${k}"${k === 'terziario_impiegato' ? ' selected' : ''}>${v.nome}</option>`)
+    .join('');
+
+  el('p-rapporto').innerHTML = Object.entries(TIPI_RAPPORTO)
+    .map(([k, v]) => `<option value="${k}"${k === 'indeterminato' ? ' selected' : ''}>${v.nome}</option>`)
     .join('');
 
   el('p-regione').innerHTML = Object.keys(REGIONI).sort()
@@ -19592,7 +19721,7 @@ document.querySelectorAll('.anno-btn').forEach((b) => {
   });
 });
 
-['p-ral', 'p-mensilita', 'p-profilo', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
+['p-ral', 'p-mensilita', 'p-profilo', 'p-rapporto', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
  'p-premio', 'p-premio-welfare', 'p-accessori', 'p-fondo', 'p-fondo-datore', 'p-tfr-fondo',
  'p-trattenute', 'p-regime', 'p-impatriati-figli']
@@ -19912,7 +20041,7 @@ el('btn-azzera-scenario').addEventListener('click', () => {
    predefinito finiscono nell'indirizzo, per tenerlo leggibile. */
 const CAMPI_URL = {
   ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', 'terziario_impiegato'],
-  regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
+  rapporto: ['p-rapporto', 'indeterminato'], regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
   figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
   buoni: ['p-buoni', '0'], buonigiorni: ['p-buoni-giorni', '220'], premio: ['p-premio', '0'],
   accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'],

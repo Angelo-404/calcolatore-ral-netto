@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 45 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 49 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -228,9 +228,13 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Ottimizzazione dal budget: stessa spesa, valore crescente | Correttezza nella seconda direzione |
 | Ottimizzazione: il welfare resta entro i tetti di legge | Rispetto delle soglie |
 | Efficienza misurata: welfare esente 1:1, retribuzione molto meno | Misura anziché stima |
+| Tempo determinato: NASpI 1,40% sul solo costo azienda | Confine fra costo e busta paga |
+| Apprendistato: aliquota 5,84% indipendente dal settore | Indipendenza dei due assi |
+| Tirocinio: nessun contributo, nessun TFR, imponibile pieno | Natura del reddito assimilato |
+| Tirocinio: niente cuneo né trattamento integrativo | Perimetro delle misure per il lavoro dipendente |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**45 test su 45 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**49 test su 49 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -293,7 +297,8 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 
 | Funzionalità | Nota |
 |---|---|
-| 10 profili contributivi | Terziario impiegato e quadro, industria impiegato/operaio/con CIGS, edilizia, dirigente, apprendista, agricoltura, lavoro domestico |
+| 9 profili di settore e inquadramento | Terziario impiegato e quadro, industria impiegato/operaio/con CIGS, edilizia, dirigente, agricoltura, lavoro domestico |
+| 4 tipi di rapporto | Indeterminato, determinato, apprendistato, tirocinio. Asse separato dal settore: si combinano fra loro. Vedi §6.17 |
 | **Aliquota aggiuntiva 1%** | Art. 3-ter D.L. 384/1992: 1% sulla quota oltre la prima fascia di retribuzione pensionabile, dovuta quando l'aliquota a carico del lavoratore è inferiore al 10%. Assente in quasi tutti i calcolatori online |
 | **Massimale contributivo** | Per chi è privo di anzianità al 31/12/1995: oltre il tetto la contribuzione si ferma e il netto marginale sale bruscamente |
 | Minimale retributivo | Segnalato quando la retribuzione mensile scende sotto la soglia INPS |
@@ -458,6 +463,29 @@ Il dato sulla retribuzione è marginale: a 45.000 € di RAL, l'euro aggiuntivo 
 - Non supera mai le soglie di esenzione: oltre la soglia il fringe benefit diventa imponibile per intero e il vantaggio evapora. È l'effetto scalino del §4.2 applicato a un altro istituto.
 - Segnala quando il premio di risultato non spetta, perché il reddito supera gli 80.000 € o manca il contratto aziendale.
 - Dichiara sempre quanta parte del valore arriva come denaro e quanta come welfare vincolato. Non li somma fingendo che siano la stessa cosa: nel pacchetto migliore dell'esempio, il 76,2% è denaro in busta.
+
+### 6.17 Tipo di rapporto, separato da settore e inquadramento
+
+La prima versione mescolava tre assi in un unico selettore: settore, inquadramento e tipo di contratto. Non era possibile simulare *un apprendista nell'industria* o *un operaio a tempo determinato*, perché erano alternative mutuamente esclusive. Ora sono due dimensioni indipendenti che si combinano.
+
+Ma il punto vero non era la combinatoria: era che ogni voce cambiava **soltanto due aliquote**, mentre certi rapporti cambiano la natura stessa del reddito.
+
+| Tipo | Cosa cambia davvero |
+|---|---|
+| **Indeterminato** | Contribuzione ordinaria del settore |
+| **Tempo determinato** | Contributo addizionale NASpI dell'1,40% **a carico del solo datore**: la busta paga del lavoratore è identica, cambia solo il costo aziendale. A 24.000 € sono 336 € l'anno |
+| **Apprendistato** | Aliquota del lavoratore fissata per legge al 5,84%, indipendente dal settore scelto |
+| **Tirocinio / stage** | Non è un'aliquota diversa: è un reddito diverso |
+
+**Il tirocinio è il caso che valeva la pena modellare.** L'indennità non è reddito di lavoro dipendente ma **assimilato**, ex art. 50, comma 1, lettera c) del TUIR. Le conseguenze sono strutturali:
+
+- **Nessun contributo previdenziale.** L'imponibile IRPEF coincide con l'intera indennità, non con l'indennità al netto dei contributi. A parità di importo lordo il tirocinante paga *più* IRPEF di un dipendente, non meno.
+- **Nessun TFR, nessuna mensilità aggiuntiva.** I controlli che non hanno effetto vengono disattivati invece di restare attivi e ininfluenti.
+- **La detrazione dell'art. 13 spetta**, ed è ragguagliata ai giorni: il comma 1 richiama espressamente l'art. 50 comma 1 lettera c). L'ho verificato sul testo della norma, perché due fonti secondarie sostenevano che si applicasse la detrazione per "taluni redditi assimilati" del comma 5 — che invece riguarda le lettere e), f), g), h), i), non la c).
+- **Cuneo fiscale e trattamento integrativo non sono riconosciuti**, perché si rivolgono ai titolari di reddito di lavoro dipendente. Questa è un'interpretazione, non un calcolo, ed è dichiarata come tale nell'avviso in pagina.
+- **Costo per il soggetto ospitante**: indennità più copertura INAIL, senza contribuzione previdenziale.
+
+Restano fuori la **somministrazione** e le **collaborazioni in gestione separata**: la prima aggiunge i contributi ai fondi bilaterali, la seconda è un rapporto non subordinato con una logica contributiva propria, fuori dal perimetro di un calcolatore sul lavoro dipendente.
 
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 
