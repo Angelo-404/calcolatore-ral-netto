@@ -567,7 +567,7 @@
 
       <div class="grid sm:grid-cols-4 gap-4">
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Valore totale</p>
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Valore totale<span id="tip-valore"></span></p>
           <p id="pm-valore" class="num text-lg font-bold mt-1 text-emerald-600">&euro; 0</p>
           <p class="text-[11px] text-slate-400 mt-0.5">netto + welfare esente</p>
         </div>
@@ -576,8 +576,11 @@
           <p id="pm-tfr" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Costo azienda</p>
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+            Costo azienda<span id="tip-costo"></span>
+          </p>
           <p id="pm-costo" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
+          <p class="text-[11px] text-amber-700 mt-0.5 font-medium">stima, non un preventivo</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto / costo</p>
@@ -674,6 +677,12 @@
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <tr><td class="px-6 py-3 font-medium text-slate-700">Contributi a carico del datore</td>
                   <td class="px-6 py-3">Stima parametrica: variano per CCNL, dimensione aziendale e codice ATECO. Le aliquote a carico del lavoratore sono invece valori normativi.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Premio INAIL</td>
+                  <td class="px-6 py-3">Fissato allo 0,50%, valore da lavoro d'ufficio. La tariffa reale dipende dalla lavorazione e <strong>varia dallo 0,4% a oltre il 13%</strong>: su attivit&agrave; industriali il costo azienda mostrato &egrave; sensibilmente sottostimato.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Minimale contributivo</td>
+                  <td class="px-6 py-3">Quando la retribuzione mensile scende sotto il minimale INPS, la situazione viene segnalata ma i contributi <strong>non</strong> vengono ricalcolati sul minimale come avverrebbe in busta paga.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Rivalutazione del TFR</td>
+                  <td class="px-6 py-3">&Egrave; mostrata la sola quota che matura nell'anno. Manca la rivalutazione annua dell'1,5% pi&ugrave; il 75% dell'indice ISTAT, e la base di calcolo pu&ograve; differire dalla RAL secondo il CCNL.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Detrazione figli 21+</td>
                   <td class="px-6 py-3">La maggiorazione del tetto per i figli successivi al primo &egrave; applicata in forma aggregata anzich&eacute; per singolo figlio.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Soglie di premi e compensi accessori</td>
@@ -8870,7 +8879,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.5
 0;0.8
 7500;0.8
-8500;0.8
+8174;0.8
 7500;0.75
 0;0.8
 0;0.8
@@ -9746,7 +9755,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 10000;0.8
 0;0.75
 0;0
-10329;0.8
+0;0.8
 7999;0.8
 0;0.65
 0;0
@@ -10013,7 +10022,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.5
 0;0.8
 0;0.8
-7500;0.8
+0;0.8
 0;0.2
 10000;0.8
 0;0
@@ -11912,7 +11921,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 10000;0.68:15000,0.74:28000,0.78:50000,0.8
 0;0.8
 0;0.8
-185;0.8
+0;0.8
 0;0.8
 0;0.8
 0;0.8
@@ -12468,7 +12477,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.8
 0;0
 0;0.8
-12000;0.6
+0;0.6
 0;0.5
 0;0.6
 0;0.8
@@ -12721,7 +12730,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 15000;0.3:28000,0.3:50000,0.5
 8500;0.6
 0;0.5
-7500;0.8
+0;0.8
 10000;0.8
 0;0.6
 12500;0.8
@@ -13398,7 +13407,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.8
 0;0.8
 0;0
-12000;0.8
+10000;0.8
 12000;0.67:15000,0.72:28000,0.77:50000,0.79
 10001;0.2
 0;0
@@ -14022,7 +14031,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.75
 0;0.8
 10000;0.72
-8500;0.8
+8000;0.8
 0;0.8
 12000;0.4:15000,0.5:28000,0.6:50000,0.7
 0;0.8
@@ -14132,7 +14141,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 7499;0.8
 0;0.8
 0;0
-10000;0.8
+0;0.8
 10000;0.75
 0;0.8
 0;0.57:15000,0.59:28000,0.76:50000,0.8
@@ -15215,7 +15224,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.8
 0;0.7
 7999;0.75
-12000;0.6:15000,0.65:28000,0.7:50000,0.75
+0;0.6:15000,0.65:28000,0.7:50000,0.75
 7500;0.8
 0;0.7
 0;0
@@ -15332,7 +15341,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 11000;0.72:28000,0.75:50000,0.78
 0;0.8
 0;0.5
-15000;0.8
+0;0.8
 0;0.8
 0;0.6:15000,0.6:28000,0.8:50000,0.8
 12000;0.8
@@ -15653,7 +15662,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 15000;0.8
 0;0.5
 10000;0.8
-10000;0.7
+0;0.7
 10000;0.8
 8000;0.6:15000,0.65:28000,0.7:50000,0.8
 0;0.6:15000,0.6:28000,0.6:50000,0.65
@@ -15761,7 +15770,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.5
 0;0
 0;0
-7500;0.8
+0;0.8
 15000;0.8
 0;0.78:28000,0.79:50000,0.8
 0;0.2
@@ -15927,7 +15936,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 10000;0.8
 0;0
 0;0
-15000;0.4
+0;0.4
 0;0.8
 0;0.7
 0;0.75
@@ -15990,7 +15999,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 10000;0.39:28000,0.75:50000,0.8
 9999;0.7
 0;0.7
-7500;0.8
+0;0.8
 15000;0.8
 10000;0.8
 0;0
@@ -16082,7 +16091,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0
 10000;0.7
 0;0.8
-8000;0.8
+0;0.8
 0;0.8
 10000;0.8
 8500;0.8
@@ -16370,7 +16379,7 @@ const COMUNI_TARIFFE_2025 = `12000;0.8
 0;0.8
 0;0
 9500;0.8
-11500;0.8
+11000;0.8
 10000;0.8
 10000;0.7
 0;0.6:15000,0.8:28000,0.8:50000,0.8
@@ -17091,7 +17100,6 @@ const COMUNI_DIFF_2026 = `66=10000;0.63:15000,0.76:28000,0.79:50000,0.8
 5310=20000;0.6
 5312=0;0.8
 5315=6799;0.64:28000,0.67:50000,0.7
-5322=7000;0.8
 5334=0;0.3:15000,0.75:28000,0.75:50000,0.8
 5375=10000;0.8
 5377=0;0.8
@@ -17211,7 +17219,7 @@ const COMUNI_DIFF_2026 = `66=10000;0.63:15000,0.76:28000,0.79:50000,0.8
 6997=0;0.7
 7022=10000;0.5:28000,0.7:50000,0.8
 7068=0;0.45:28000,0.6:50000,0.7
-7074=15000;0.8
+7074=0;0.8
 7095=11000;0.59:28000,0.6:50000,0.61
 7099=0;0.7
 7111=0;0.8
@@ -18196,6 +18204,34 @@ function renderPremium(r, baseline) {
   el('pm-tfr').textContent = euro(r.tfr);
   el('pm-costo').textContent = euro(r.costoAzienda);
   el('pm-efficienza').textContent = perc(r.efficienza);
+
+  el('tip-valore').innerHTML = bottoneSpiegazione({
+    titolo: 'Valore totale percepito',
+    corpo: 'Somma il netto in busta e il welfare esente da imposte. Attenzione a come si legge: '
+      + 'mille euro di buoni pasto non equivalgono a mille euro in busta, perché sono vincolati '
+      + 'nel loro uso e non finanziano la pensione. Il confronto fra due offerte va fatto sapendolo.',
+    html: formula([
+      ['Netto in busta', euro2(r.nettoAnnuo)],
+      ['Welfare esente', euro2(r.welfareEsente)]
+    ], ['Valore percepito', euro2(r.valoreTotale)])
+  });
+
+  el('tip-costo').innerHTML = bottoneSpiegazione({
+    titolo: 'Costo azienda: perché è una stima',
+    corpo: 'La retribuzione e i contributi del lavoratore sono valori normativi, calcolabili con precisione. '
+      + 'Il costo del datore no: dipende da CCNL, dimensione aziendale e classe di rischio. '
+      + '<strong>Il premio INAIL da solo varia dallo 0,4% a oltre il 13%</strong> secondo la lavorazione: '
+      + 'qui è fissato allo 0,5%, valore da ufficio. Per una lavorazione industriale il costo reale è '
+      + 'sensibilmente più alto di quanto mostrato. Consideralo un ordine di grandezza, non un preventivo.',
+    fonte: 'Aliquote datore: stima parametrica — INAIL: tariffa dei premi per classe di rischio',
+    html: formula([
+      ['Retribuzione e variabili', euro2(r.ral + r.premioSostitutiva + r.premioOrdinario + r.accessoriAmmessi + r.accessoriOrdinari)],
+      [`Contributi datore (~${aliq(r.profilo.datore)})`, euro2(r.contributiDatore)],
+      ['INAIL (ipotesi 0,50%)', euro2(r.inail)],
+      ['Quota TFR', euro2(r.tfr)],
+      ['Welfare e benefit', euro2(r.fringeEsente + r.fringeImponibile + r.buoniTotale)]
+    ], ['Stima del costo annuo', euro2(r.costoAzienda)])
+  });
   el('pm-sottotitolo').textContent =
     `${r.profiloNome} · ${r.comuneNome} · ${r.regioneNome} · anno ${r.anno}` +
     (r.giorni < 365 ? ` · ${r.giorni} giorni` : '') +
@@ -18442,7 +18478,9 @@ function renderAvvisi(r) {
     avvisi.push(`Aliquota aggiuntiva 1% attiva sulla quota oltre ${euro(ANNI[r.anno].soglia1pc)}.`);
   }
   if (r.sottoMinimale) {
-    avvisi.push(`Retribuzione mensile sotto il minimale contributivo INPS (${euro2(r.minimaleMese)}): i contributi vanno comunque calcolati sul minimale.`);
+    avvisi.push(`Retribuzione mensile sotto il minimale contributivo INPS (${euro2(r.minimaleMese)}). `
+      + 'In busta paga i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva: '
+      + 'il motore <strong>non</strong> applica questa correzione, quindi qui i contributi sono sottostimati.');
   }
   if (r.nettoAnnuo < 0) {
     avvisi.push('Le trattenute superano la retribuzione in denaro: il cedolino risulterebbe incapiente. Succede quando i versamenti volontari eccedono il netto disponibile.');

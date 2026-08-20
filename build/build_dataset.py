@@ -83,6 +83,14 @@ def parse_comuni(path):
                 f_low = fascia.lower()
 
                 if 'esenzione' in f_low:
+                    # Alcune delibere esentano categorie che non sono lavoratori
+                    # dipendenti: pensionati, lavoro autonomo o impresa, compensi
+                    # sportivi. Applicarle a un dipendente sarebbe un errore.
+                    altre_categorie = any(x in f_low for x in
+                                          ('pension', 'autonom', 'impresa', 'sportiv', 'assegni periodic'))
+                    per_dipendenti = 'dipendent' in f_low or 'assimilat' in f_low
+                    if altre_categorie and not per_dipendenti:
+                        continue
                     v = euro(fascia)
                     if v:
                         esenzione = max(esenzione, v)

@@ -378,6 +378,18 @@ Servono a portare il contenuto di questo documento dentro l'interfaccia, dove vi
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
 - **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
 
+### 6.13 Cosa non è conoscibile, e come viene dichiarato
+
+Un calcolatore che presenta come esatto un numero che nessuno può conoscere perde credibilità presso chi il mestiere lo fa. Tre voci della sezione Premium hanno un margine di incertezza che non dipende dall'implementazione, e sono marcate come tali nell'interfaccia:
+
+| Voce | Perché non è conoscibile | Come viene dichiarato |
+|---|---|---|
+| **Costo azienda** | Il premio INAIL varia dallo 0,4% a oltre il 13% secondo la lavorazione; qui è fissato allo 0,5%, valore da ufficio. Le aliquote a carico del datore variano per CCNL, dimensione e ATECO | La card porta la dicitura *"stima, non un preventivo"* e una spiegazione che scompone il calcolo e nomina l'incertezza |
+| **Valore totale percepito** | Somma denaro e benefit come se fossero equivalenti, ma mille euro di buoni pasto non sono mille euro in busta: sono vincolati nell'uso e non finanziano la pensione | Spiegazione dedicata che avverte di come va letto il confronto |
+| **Minimale contributivo** | Sotto la soglia INPS i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva | L'avviso dice esplicitamente che il motore **non** applica la correzione e che i contributi risultano sottostimati |
+
+La regola seguita: dove il dato è normativo si calcola; dove dipende da variabili che il calcolatore non può conoscere, si dichiara.
+
 ### Limiti dichiarati
 
 Dichiarati anche nell'interfaccia, non solo qui:
@@ -437,6 +449,7 @@ La prima versione del prototipo usava, per i territori diversi da Milano e Lomba
 | Dato | Prima versione | Fonte ufficiale |
 |---|---|---|
 | Esenzione comunale di Roma | 12.000 € | **14.000 €** |
+| Esenzioni comunali riservate ad altre categorie | Applicate anche ai dipendenti | **Filtrate**: 17 comuni deliberano esenzioni per pensionati, lavoro autonomo o compensi sportivi. Ad Acerra convivono tre soglie e quella dei dipendenti è 8.174 €, non gli 8.500 € dei pensionati |
 | Tetto massimo dell'addizionale comunale | 0,80% | **1,20%** — i comuni che hanno aderito agli accordi per il ripiano del disavanzo (Genova, Torino, Alessandria, Brindisi e altri) superano il tetto ordinario |
 | Aliquota INPS a carico del lavoratore sopra soglia | 9,19% piatta | **9,19% + 1%** sulla quota oltre la prima fascia pensionabile |
 
