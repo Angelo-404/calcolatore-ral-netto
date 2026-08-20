@@ -512,6 +512,8 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 
 `index.html` pesa circa **425 KB**, di cui **252 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 173 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
 
+Il repository è collegato a Vercel: ogni push sul ramo `main` pubblica il sito, e ogni pull request genera un'anteprima con indirizzo proprio. La pull request aperta dal workflow di aggiornamento dati è quindi ispezionabile prima di essere accettata.
+
 **Riproducibilità.** Lo script scarica da solo le fonti mancanti dal Dipartimento delle Finanze:
 
 ```bash
