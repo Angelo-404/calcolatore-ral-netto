@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 49 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 52 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -232,9 +232,12 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Apprendistato: aliquota 5,84% indipendente dal settore | Indipendenza dei due assi |
 | Tirocinio: nessun contributo, nessun TFR, imponibile pieno | Natura del reddito assimilato |
 | Tirocinio: niente cuneo né trattamento integrativo | Perimetro delle misure per il lavoro dipendente |
+| Welfare: quantifica TFR e pensione a cui si rinuncia | Completezza del confronto |
+| Soglie: individua il gradino raggiungibile e lo quantifica | Ottimizzazione sulle discontinuità |
+| Soglie: nessun suggerimento se l'imponibile è già basso | Assenza di consigli inutili |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**49 test su 49 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**52 test su 52 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -459,6 +462,26 @@ Un euro di RAL e un euro di welfare non costano uguale all'azienda, perché non 
 Il dato sulla retribuzione è marginale: a 45.000 € di RAL, l'euro aggiuntivo sconta contributi del datore e del lavoratore, IRPEF marginale al 33%, addizionali e perdita progressiva delle detrazioni.
 
 **Risultato concreto.** Per consegnare 26.000 € di valore annuo: 48.114 € di costo con la sola retribuzione, **38.868 € con il pacchetto ottimizzato**. Sono 9.246 € risparmiati, il 19%.
+
+**Cosa il lavoratore guadagna e cosa rinuncia.** Un confronto che mostrasse solo il risparmio dell'azienda sarebbe metà della verità. Il welfare non passa dalla busta paga, e ciò che non è retribuzione non costruisce pensione né matura TFR. Il pannello espone le due colonne affiancate.
+
+Sull'esempio dei 26.000 € di valore annuo:
+
+| Guadagna | | Rinuncia | |
+|---|---:|---|---:|
+| Welfare esente da imposte | 6.200 € | Retribuzione lorda dichiarata | −11.216 € |
+| Costo aziendale in meno | 9.246 € | TFR maturato nell'anno | −775 € |
+| | | Accantonamento pensionistico | −3.701 € |
+
+Sono **4.476 € l'anno di accantonamenti differiti**, calcolati con l'aliquota di computo del 33% che alimenta il montante contributivo. Cala anche la base per NASpI, malattia e maternità, e il reddito che una banca legge per concedere un mutuo. Il minor costo per l'azienda non sparisce: è il margine su cui si può trattare l'offerta, ed è giusto che entrambe le parti lo vedano.
+
+**Ottimizzazione rispetto alle soglie.** Non tutte le soglie sono uguali: alcune cambiano solo l'aliquota marginale, e attraversarle non costa nulla di netto; altre sono gradini, e superarle di un euro fa perdere un importo intero. Spostare retribuzione su welfare abbassa l'imponibile e può riportarlo sotto un gradino.
+
+Il calcolo cerca la soglia più conveniente fra quelle raggiungibili con la capienza welfare disponibile — inclusa **l'esenzione comunale del comune selezionato**, che varia da comune a comune — e quantifica il recupero. Con un imponibile di 24.065 €:
+
+> L'imponibile supera di poco la soglia del **bonus del cuneo fiscale** (20.000 €). Spostando 4.481 € dalla retribuzione al welfare, l'imponibile scende a 19.995 € e il lavoratore recupera **1.937 € l'anno**.
+
+Sceglie l'occasione con il recupero maggiore, non la più vicina: l'esenzione comunale di Milano era a soli 1.173 € di distanza, ma vale 192 € contro i 1.937 € del cuneo. E non suggerisce nulla a chi è già sotto tutte le soglie.
 
 **Tre vincoli che l'ottimizzatore rispetta.**
 

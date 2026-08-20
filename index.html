@@ -18158,6 +18158,98 @@ function pacchettiOttimizzati(obiettivo, params) {
 }
 
 /* ====================================================================
+   COSA IL LAVORATORE GUADAGNA E COSA RINUNCIA
+   ----------------------------------------------------------------------
+   Il welfare non passa dalla busta paga: non e' imponibile, ma proprio per
+   questo non e' nemmeno retribuzione. Cio' che non e' retribuzione non
+   costruisce pensione, non matura TFR e non entra nelle basi di calcolo
+   delle prestazioni. Un confronto che mostrasse solo il risparmio sarebbe
+   una meta' della verita'.
+   ==================================================================== */
+
+/* Aliquota di computo ai fini pensionistici per il lavoro dipendente:
+   e' la quota di retribuzione che alimenta il montante contributivo,
+   piu' alta della sola trattenuta in busta perche' comprende la parte
+   a carico del datore. */
+const ALIQUOTA_COMPUTO_PENSIONE = 0.33;
+
+function analisiRinunce(riferimento, alternativo) {
+  const deltaRal = riferimento.ral - alternativo.ral;
+  const deltaTfr = riferimento.risultato.tfr - alternativo.risultato.tfr;
+  const deltaMontante = deltaRal * ALIQUOTA_COMPUTO_PENSIONE;
+  const deltaNettoCassa = alternativo.nettoCassa - riferimento.nettoCassa;
+  const deltaCosto = riferimento.costoAzienda - alternativo.costoAzienda;
+  const deltaValore = alternativo.valoreTotale - riferimento.valoreTotale;
+
+  return {
+    deltaRal, deltaTfr, deltaMontante, deltaNettoCassa, deltaCosto, deltaValore,
+    welfare: alternativo.welfare,
+    // Il TFR e' differito ma resta denaro del lavoratore: la rinuncia vera,
+    // sul singolo anno, e' la somma di TFR e accantonamento pensionistico.
+    rinunciaAnnua: deltaTfr + deltaMontante,
+    guadagnoAnnuo: deltaValore > 0.5 ? deltaValore : deltaCosto
+  };
+}
+
+/* ====================================================================
+   SOGLIE: DOVE CONVIENE FERMARE L'IMPONIBILE
+   ----------------------------------------------------------------------
+   Le soglie normative non sono tutte uguali. Alcune fanno cambiare solo
+   l'aliquota marginale, e attraversarle non costa nulla di netto. Altre
+   sono gradini veri: superarle di un euro fa perdere un importo intero.
+   Spostare retribuzione su welfare abbassa l'imponibile, quindi puo'
+   riportarlo sotto un gradino. Vale la pena solo se il recupero supera
+   cio' cui si rinuncia.
+   ==================================================================== */
+
+function soglieRilevanti(params) {
+  const comune = COMUNI_PER_CODICE.get(params.comune);
+  const esenzioneComunale = comune ? comune[params.anno].esenzione : 0;
+
+  const soglie = [
+    { valore: PREMIUM.PREMIO_REDDITO_MAX, nome: 'Accesso ai premi agevolati', gradino: true },
+    { valore: 15000, nome: 'Trattamento integrativo', gradino: true },
+    { valore: 20000, nome: 'Bonus del cuneo fiscale', gradino: true },
+    { valore: 35000, nome: 'Correttivo di fascia', gradino: true },
+    { valore: 28000, nome: 'Seconda aliquota IRPEF', gradino: false },
+    { valore: 50000, nome: 'Terza aliquota IRPEF', gradino: false }
+  ];
+  if (esenzioneComunale > 0) {
+    soglie.push({ valore: esenzioneComunale, gradino: true,
+                  nome: `Esenzione comunale di ${comune.nome}` });
+  }
+  return soglie.sort((a, b) => a.valore - b.valore);
+}
+
+/* Cerca la soglia piu' vicina sotto l'imponibile attuale e misura, senza
+   stimare, quanto si recupererebbe portandolo appena al di sotto. */
+function opportunitaSoglia(params, welfareDisponibile) {
+  const attuale = calcolaPremium(params);
+  const imponibile = attuale.imponibile;
+  if (!(imponibile > 0) || welfareDisponibile <= 0) return null;
+
+  let migliore = null;
+
+  for (const soglia of soglieRilevanti(params)) {
+    if (imponibile <= soglia.valore) continue;                 // gia' sotto
+    const eccedenza = imponibile - soglia.valore;
+    // Quanto lordo va spostato perche' l'imponibile scenda sotto la soglia
+    const spostamento = eccedenza / (1 - (attuale.profilo.lavoratore || 0)) + 5;
+    if (spostamento > welfareDisponibile) continue;            // fuori portata
+
+    const prova = calcolaPremium({ ...params, ral: params.ral - spostamento });
+    const valorePrima = attuale.nettoAnnuo + attuale.welfareEsente;
+    const valoreDopo = prova.nettoAnnuo + prova.welfareEsente + spostamento;
+    const guadagno = valoreDopo - valorePrima;
+
+    if (guadagno > 1 && (!migliore || guadagno > migliore.guadagno)) {
+      migliore = { ...soglia, spostamento, guadagno, imponibileDopo: prova.imponibile };
+    }
+  }
+  return migliore;
+}
+
+/* ====================================================================
    FORMATTAZIONE
    ==================================================================== */
 
@@ -19260,6 +19352,28 @@ function eseguiTest() {
         dipendenteBasso.bonusCuneo > 0,
         `il dipendente riceve ${euro2(dipendenteBasso.bonusCuneo)} di cuneo, il tirocinante nulla`);
 
+  // Il welfare non è retribuzione: cio' che non passa dalla busta non
+  // alimenta TFR ne' montante pensionistico. La rinuncia va quantificata.
+  const pacchetti = pacchettiOttimizzati({ tipo: 'netto', valore: 26000 }, { ...scenarioBase, anno: 2026 });
+  const rinunce = analisiRinunce(pacchetti[0], pacchetti[2]);
+  check('Welfare: quantifica TFR e pensione a cui si rinuncia',
+        rinunce.deltaRal > 0 && rinunce.deltaTfr > 0 &&
+        vicino(rinunce.deltaMontante, rinunce.deltaRal * ALIQUOTA_COMPUTO_PENSIONE, 0.01) &&
+        vicino(rinunce.rinunciaAnnua, rinunce.deltaTfr + rinunce.deltaMontante, 0.01),
+        `${euro(rinunce.rinunciaAnnua)} l'anno di accantonamenti differiti`);
+
+  // Sotto una soglia a gradino il recupero è reale e misurabile
+  const sopraSoglia = { ...scenarioBase, anno: 2026, ral: 26500 };
+  const occasione = opportunitaSoglia(sopraSoglia, 6200);
+  check('Soglie: individua il gradino raggiungibile e lo quantifica',
+        occasione !== null && occasione.imponibileDopo < occasione.valore &&
+        occasione.guadagno > 0 && occasione.spostamento <= 6200,
+        occasione ? `${occasione.nome}: ${euro(occasione.guadagno)} recuperati` : 'nessuna occasione');
+
+  // Chi è già sotto tutte le soglie non deve ricevere suggerimenti inutili
+  check('Soglie: nessun suggerimento se l’imponibile è già basso',
+        opportunitaSoglia({ ...scenarioBase, anno: 2026, ral: 12000 }, 6200) === null);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -19921,6 +20035,8 @@ function renderOttimizzazione(modo, importoGrezzo) {
         </tbody>
       </table>
     </div>
+    ${bloccoRinunce(riferimento, migliore, params)}
+    ${bloccoSoglie(params, migliore)}
     <div class="px-6 py-4 border-t border-slate-200">
       <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
         Quanto arriva al lavoratore per ogni euro speso
@@ -19949,6 +20065,82 @@ function renderOttimizzazione(modo, importoGrezzo) {
         <li>Il welfare è <strong>vincolato nell'uso</strong> e non costruisce pensione: non è denaro, e la scelta
             va spiegata al lavoratore.</li>
       </ul>
+    </div>`;
+}
+
+/* Il welfare non e' retribuzione: cio' che il lavoratore non riceve in
+   busta non alimenta pensione ne' TFR. Va detto accanto al risparmio. */
+function bloccoRinunce(riferimento, migliore, params) {
+  if (migliore === riferimento || migliore.welfare <= 0) return '';
+  const a = analisiRinunce(riferimento, migliore);
+
+  return `
+    <div class="px-6 py-4 border-t border-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+        Cosa cambia per il lavoratore
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Guadagna</p>
+          <ul class="mt-2 space-y-1.5 text-sm text-emerald-900">
+            <li class="flex justify-between gap-3"><span>Welfare esente da imposte</span>
+              <span class="num font-semibold">${euro(a.welfare)}</span></li>
+            ${a.deltaValore > 0.5
+              ? `<li class="flex justify-between gap-3"><span>Valore in più a parità di spesa</span>
+                   <span class="num font-semibold">+ ${euro(a.deltaValore)}</span></li>`
+              : `<li class="flex justify-between gap-3"><span>Stesso valore, costo aziendale minore</span>
+                   <span class="num font-semibold">− ${euro(a.deltaCosto)}</span></li>`}
+            <li class="text-xs text-emerald-800/80 pt-1">
+              Il minor costo è il margine su cui l'azienda può trattare l'offerta.
+            </li>
+          </ul>
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-xs font-bold text-amber-800 uppercase tracking-wider">Rinuncia</p>
+          <ul class="mt-2 space-y-1.5 text-sm text-amber-900">
+            <li class="flex justify-between gap-3"><span>Retribuzione lorda dichiarata</span>
+              <span class="num font-semibold">− ${euro(a.deltaRal)}</span></li>
+            <li class="flex justify-between gap-3"><span>TFR maturato nell'anno</span>
+              <span class="num font-semibold">− ${euro(a.deltaTfr)}</span></li>
+            <li class="flex justify-between gap-3"><span>Accantonamento pensionistico</span>
+              <span class="num font-semibold">− ${euro(a.deltaMontante)}</span></li>
+            <li class="text-xs text-amber-800/90 pt-1">
+              In tutto <strong>${euro(a.rinunciaAnnua)}</strong> l'anno di accantonamenti differiti.
+              Cala anche la base per NASpI, malattia e maternità, e il reddito che le banche
+              leggono per un mutuo. Il welfare inoltre è vincolato nell'uso.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Alcune soglie sono gradini veri: superarle di un euro fa perdere un
+   importo intero. Spostare retribuzione su welfare puo' riportare
+   l'imponibile sotto il gradino. */
+function bloccoSoglie(params, migliore) {
+  const tetti = tettiEsenti(params);
+  const capienza = tetti.fringe + tetti.buoni + tetti.premio;
+  const occasione = opportunitaSoglia({ ...params, ral: params.ral || migliore.ral }, capienza);
+  if (!occasione) return '';
+
+  return `
+    <div class="px-6 py-4 border-t border-slate-200 bg-brand-50/50">
+      <p class="text-xs font-semibold uppercase tracking-wider text-brand-700 mb-2">
+        Soglia raggiungibile
+      </p>
+      <p class="text-sm text-slate-700">
+        L'imponibile attuale supera di poco la soglia <strong>${occasione.nome}</strong>
+        (${euro(occasione.valore)}). Spostando <strong>${euro(occasione.spostamento)}</strong>
+        dalla retribuzione al welfare, l'imponibile scende a ${euro(occasione.imponibileDopo)} e
+        il lavoratore recupera <strong class="text-emerald-700">${euro(occasione.guadagno)}</strong> l'anno,
+        oltre al vantaggio già calcolato sopra.
+      </p>
+      <p class="text-[11px] text-slate-500 mt-1.5">
+        ${occasione.gradino
+          ? 'È un gradino: superata la soglia il beneficio si perde per intero, non in proporzione.'
+          : 'È un cambio di aliquota marginale: il vantaggio riguarda solo la quota eccedente.'}
+      </p>
     </div>`;
 }
 
