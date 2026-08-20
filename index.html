@@ -17175,6 +17175,7 @@ const ANNI = {
     buonoElettronico: 8,
     buonoCartaceo: 4,
     premiAliquota: 0.05,
+    accessoriAgevolati: false,
     note: 'Aliquote IRPEF 23% / 35% / 43% (L. 207/2024).'
   },
   2026: {
@@ -17186,6 +17187,7 @@ const ANNI = {
     buonoElettronico: 10,
     buonoCartaceo: 4,
     premiAliquota: 0.01,
+    accessoriAgevolati: true,
     note: 'Seconda aliquota ridotta al 33% dalla Legge di Bilancio 2026.'
   }
 };
@@ -17463,7 +17465,9 @@ function calcolaPremium(params) {
   const premioWelfare = p.premioInWelfare ? premioAmmesso : 0;
   const premioSostitutiva = p.premioInWelfare ? 0 : premioAmmesso;
 
-  const accessoriAmmessi = ralContrattuale <= PREMIUM.ACCESSORI_REDDITO_MAX
+  // L'imposta sostitutiva su straordinari, notturni e festivi esiste dalla
+  // Legge di Bilancio 2026: nel 2025 questi compensi seguono l'IRPEF ordinaria.
+  const accessoriAmmessi = (A.accessoriAgevolati && ralContrattuale <= PREMIUM.ACCESSORI_REDDITO_MAX)
     ? Math.max(0, p.compensiAccessori)
     : 0;
   const accessoriOrdinari = Math.max(0, p.compensiAccessori) - accessoriAmmessi;
@@ -17490,19 +17494,25 @@ function calcolaPremium(params) {
 
   const regime = applicaRegimeAgevolato(imponibileLordo, p.regime, p);
   const fondoPensioneDeducibile = Math.min(Math.max(0, p.fondoPensione), PREMIUM.FONDO_PENSIONE_DEDUCIBILE);
-  const imponibile = Math.max(0, regime.imponibile - fondoPensioneDeducibile);
+
+  // Il reddito complessivo e' al lordo degli oneri deducibili: detrazioni,
+  // cuneo e trattamento integrativo si parametrano a questo valore. La
+  // previdenza complementare abbassa l'imposta, non deve far salire le
+  // detrazioni ne' far rientrare in una fascia agevolata piu' favorevole.
+  const redditoComplessivo = regime.imponibile;
+  const imponibile = Math.max(0, redditoComplessivo - fondoPensioneDeducibile);
 
   /* --- IRPEF e detrazioni --------------------------------------------- */
   const irpefLorda = calcolaIrpefLordaAnno(imponibile, p.anno);
 
   // Le detrazioni e i benefici del cuneo sono rapportati al periodo di lavoro
-  const detrazioniBase = calcolaDetrazioniBase(imponibile) * quotaAnno;
-  const bonusCuneo = calcolaBonusCuneo(imponibile) * quotaAnno;
-  const ulterioreDetrazione = calcolaUlterioreDetrazione(imponibile) * quotaAnno;
+  const detrazioniBase = calcolaDetrazioniBase(redditoComplessivo) * quotaAnno;
+  const bonusCuneo = calcolaBonusCuneo(redditoComplessivo) * quotaAnno;
+  const ulterioreDetrazione = calcolaUlterioreDetrazione(redditoComplessivo) * quotaAnno;
 
-  const detrConiuge = p.coniugeACarico ? detrazioneConiuge(imponibile) * quotaAnno : 0;
-  const detrFigli = detrazioneFigli(imponibile, p.figli) * quotaAnno;
-  const detrAltri = detrazioneAltriFamiliari(imponibile, p.altriFamiliari) * quotaAnno;
+  const detrConiuge = p.coniugeACarico ? detrazioneConiuge(redditoComplessivo) * quotaAnno : 0;
+  const detrFigli = detrazioneFigli(redditoComplessivo, p.figli) * quotaAnno;
+  const detrAltri = detrazioneAltriFamiliari(redditoComplessivo, p.altriFamiliari) * quotaAnno;
   const detrFamiliari = detrConiuge + detrFigli + detrAltri;
 
   const totDetrazioni = detrazioniBase + ulterioreDetrazione + detrFamiliari;
@@ -17511,7 +17521,7 @@ function calcolaPremium(params) {
   const irpefNetta = Math.max(0, irpefLorda - detrazioneEffettiva);
 
   const trattamentoIntegrativo =
-    calcolaTrattamentoIntegrativo(imponibile, irpefLorda, detrazioniBase, totDetrazioni) * quotaAnno;
+    calcolaTrattamentoIntegrativo(redditoComplessivo, irpefLorda, detrazioniBase, totDetrazioni) * quotaAnno;
 
   /* --- Imposta sostitutiva su premi e compensi accessori --------------- */
   const impostaPremio = premioSostitutiva * A.premiAliquota;
@@ -17565,7 +17575,8 @@ function calcolaPremium(params) {
     contributoAggiuntivo: contributi.aggiuntivo, contributoFondo: contributi.fondo,
     massimaleRaggiunto: contributi.massimaleRaggiunto, baseContributiva,
     baseContributivaApplicata: contributi.baseApplicata,
-    imponibileLordo, imponibile, regimeAbbattuto: regime.abbattuto, regimeNome: REGIMI[p.regime].nome,
+    imponibileLordo, imponibile, redditoComplessivo,
+    regimeAbbattuto: regime.abbattuto, regimeNome: REGIMI[p.regime].nome,
     fondoPensioneDeducibile,
     irpefLorda, detrazioniBase, ulterioreDetrazione,
     detrConiuge, detrFigli, detrAltri, detrFamiliari,
@@ -18420,6 +18431,23 @@ function eseguiTest() {
   check('Fringe benefit: superata la soglia è tassato tutto',
         fringeSotto.fringeImponibile === 0 && fringeSopra.fringeImponibile === 1001 &&
         fringeSopra.nettoAnnuo < fringeSotto.nettoAnnuo);
+
+  // La previdenza complementare è un onere deducibile: abbassa l'imposta ma
+  // non il reddito complessivo, quindi non deve gonfiare detrazioni e cuneo.
+  const senzaFondo = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000 });
+  const conFondo = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000, fondoPensione: 5000 });
+  check('Fondo pensione: deduce l’imposta, non gonfia le detrazioni',
+        vicino(senzaFondo.detrazioniBase, conFondo.detrazioniBase, 0.001) &&
+        vicino(senzaFondo.ulterioreDetrazione, conFondo.ulterioreDetrazione, 0.001) &&
+        conFondo.imponibile < senzaFondo.imponibile,
+        `detrazione ${euro2(conFondo.detrazioniBase)} in entrambi i casi`);
+
+  // La detassazione di straordinari, notturni e festivi nasce nel 2026
+  const acc25 = calcolaPremium({ ...scenarioBase, anno: 2025, ral: 28000, compensiAccessori: 2000 });
+  const acc26 = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 28000, compensiAccessori: 2000 });
+  check('Compensi accessori: imposta sostitutiva solo dal 2026',
+        acc25.accessoriAmmessi === 0 && acc25.impostaAccessori === 0 && acc26.accessoriAmmessi === 2000,
+        `2025 ordinari · 2026 agevolati ${euro2(acc26.impostaAccessori)}`);
 
   // Integrità del dataset ufficiale
   const milano = COMUNI_PER_CODICE.get('F205');
