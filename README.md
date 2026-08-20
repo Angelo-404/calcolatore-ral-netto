@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 33 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 37 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -216,9 +216,13 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Inversione: dichiara le richieste fuori scala | Robustezza |
 | Senza retribuzione il netto resta a zero, non va sotto | Caso limite |
 | Sweep su tutte le combinazioni di contratto e regime (400) | Copertura combinatoria |
+| Fondo: il contributo del datore spetta solo a chi versa | Regola dei fondi negoziali |
+| Fondo: tetto di deducibilità condiviso fra lavoratore e datore | Confine del tetto unico |
+| Fondo: il contributo aziendale oltre il tetto torna imponibile | Trattamento dell'eccedenza |
+| TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia | Destinazione del TFR |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**33 test su 33 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**37 test su 37 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **21.458 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -303,7 +307,7 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 | Premio di risultato | Imposta sostitutiva 5% (2025) o 1% (2026), entro 3.000 € e per redditi fino a 80.000 €; l'eccedenza torna a tassazione ordinaria |
 | Conversione del premio in welfare | Esente da imposte e contributi: alternativa esplicita, con confronto immediato sul netto |
 | Straordinari, notturni e festivi | Imposta sostitutiva 5% per redditi fino a 33.000 € |
-| Previdenza complementare | Contributo del lavoratore deducibile fino a 5.164,57 €: riduce l'imponibile IRPEF ma non la base contributiva |
+| Previdenza complementare | Contributo del lavoratore, contributo del datore in percentuale, destinazione del TFR. Vedi §6.14 |
 | TFR maturato | RAL / 13,5 al netto del contributo dello 0,50% al Fondo di garanzia |
 
 ### 6.5 Regimi fiscali agevolati
@@ -377,6 +381,28 @@ Servono a portare il contenuto di questo documento dentro l'interfaccia, dove vi
 - **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
 - **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
+
+### 6.14 Fondi pensione di settore
+
+I fondi negoziali sono modellati **per parametri, non per catalogo**: le percentuali variano per CCNL e nessun ente le pubblica in forma interrogabile, quindi inserirle a memoria significherebbe ripetere l'errore corretto al §8. Chi usa lo strumento indica il contributo del proprio fondo; il motore applica le tre regole che contano.
+
+**Il contributo del datore spetta solo a chi versa.** È la regola dei fondi negoziali: chi non aderisce rinuncia al denaro dell'azienda. Il motore azzera il contributo aziendale quando il versamento del lavoratore è nullo, e l'interfaccia lo dichiara.
+
+**Il tetto di deducibilità è unico.** I 5.164,57 € annui valgono per la somma dei versamenti del lavoratore e del datore: se l'azienda versa consuma capienza, e la quota del lavoratore è deducibile solo per la parte restante. La porzione di contributo aziendale che eccede il tetto **torna a essere reddito imponibile** per il lavoratore.
+
+**Il TFR cambia natura.** Conferito al fondo non si accantona più in azienda e non sconta il contributo dello 0,50% al Fondo di garanzia, che riguarda l'accantonamento interno. La card del TFR dichiara la destinazione invece di mostrare un numero ambiguo.
+
+Un esempio prodotto dal motore — operaio metalmeccanico a 32.000 €, versamento di 384 € l'anno, contributo aziendale al 2%, TFR conferito:
+
+| | |
+|---|---:|
+| Netto annuo a cui rinuncia | −247,60 € |
+| Versamento proprio | 384,00 € |
+| Contributo dell'azienda | 640,00 € |
+| TFR conferito | 2.370,37 € |
+| **Accantonato nell'anno** | **3.394,37 €** |
+
+Rinuncia a 247,60 € di netto e accumula 3.394,37 €. È il conto che un HR fa a voce davanti a un neoassunto, e che il calcolatore ora sa mostrare.
 
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 
