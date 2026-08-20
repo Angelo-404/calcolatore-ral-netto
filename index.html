@@ -41,6 +41,50 @@
   }
   .fade-in { animation: fade .35s ease both; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* --- Spiegazioni contestuali --- */
+  .spiega {
+    display: inline-grid; place-items: center; vertical-align: middle;
+    width: 16px; height: 16px; margin-left: 4px;
+    border-radius: 9999px; border: 1px solid #cbd5e1;
+    background: #fff; color: #64748b;
+    font-size: 10px; font-weight: 700; font-style: italic; line-height: 1;
+    cursor: help; transition: background-color .15s, color .15s, border-color .15s;
+  }
+  .spiega:hover, .spiega[aria-expanded="true"] {
+    background: #2148e3; border-color: #2148e3; color: #fff;
+  }
+  .spiega:focus-visible { outline: 2px solid #2148e3; outline-offset: 2px; }
+
+  #popover-spiega {
+    position: fixed; z-index: 60; width: min(22rem, calc(100vw - 2rem));
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, .16);
+    padding: 16px; font-size: 13px; line-height: 1.5; color: #334155;
+  }
+  #popover-spiega[hidden] { display: none; }
+  #popover-spiega .sp-titolo { font-weight: 700; color: #0f172a; font-size: 13px; }
+  #popover-spiega .sp-corpo { margin-top: 6px; }
+  #popover-spiega .sp-fonte {
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;
+    font-size: 11px; color: #94a3b8;
+  }
+  .sp-formula {
+    margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px;
+    background: #f8fafc; overflow: hidden;
+  }
+  .sp-passo {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 6px 10px; font-size: 12px;
+  }
+  .sp-passo + .sp-passo { border-top: 1px solid #eef2f7; }
+  .sp-passo span:first-child { color: #64748b; }
+  .sp-passo span:last-child { font-variant-numeric: tabular-nums; color: #334155; }
+  .sp-totale { background: #eef4ff; }
+  .sp-totale span { color: #1b39c0 !important; font-weight: 700; }
+  @media (prefers-reduced-motion: no-preference) {
+    #popover-spiega { animation: fade .14s ease both; }
+  }
   @media print { .no-print { display: none !important; } body { background: #fff !important; } }
 </style>
 </head>
@@ -135,7 +179,7 @@
             <p id="out-netto-anno" class="num text-xl font-bold mt-0.5">&euro; 0</p>
           </div>
           <div>
-            <p class="text-brand-100 text-xs font-semibold uppercase tracking-wider">Pressione fiscale</p>
+            <p class="text-brand-100 text-xs font-semibold uppercase tracking-wider">Pressione fiscale<span id="tip-pressione"></span></p>
             <p id="out-pressione" class="num text-xl font-bold mt-0.5">0,0 %</p>
           </div>
         </div>
@@ -143,7 +187,7 @@
 
       <!-- Quanto paga il dipendente: tasse e contributi -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <p class="text-sm font-semibold text-slate-700">Tasse e contributi a carico del dipendente</p>
+        <p class="text-sm font-semibold text-slate-700">Tasse e contributi a carico del dipendente<span id="tip-tasse"></span></p>
         <p id="out-totale-trattenute" class="num text-3xl font-extrabold text-rose-600 mt-1">&euro; 0</p>
         <p id="out-quota-trattenute" class="text-xs text-slate-500 mt-1">&mdash;</p>
         <div class="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-100">
@@ -17537,6 +17581,52 @@ const perc = (n) => fmtPerc.format(n || 0) + ' %';
 
 const el = (id) => document.getElementById(id);
 
+/* ====================================================================
+   SPIEGAZIONI CONTESTUALI
+   ----------------------------------------------------------------------
+   Ogni voce che nasconde una regola porta una spiegazione con la
+   derivazione sui numeri del calcolo corrente, non un testo di aiuto
+   generico. Il registro viene ricostruito a ogni render.
+   ==================================================================== */
+
+const SPIEGAZIONI = new Map();
+let spazioSpiegazioni = 'b';
+let contatoreSpiegazioni = 0;
+
+/* I due pannelli si ridisegnano in modo indipendente: ognuno ripulisce solo
+   le proprie voci, altrimenti un render invaliderebbe i pulsanti dell'altro. */
+function apriRegistroSpiegazioni(spazio) {
+  for (const chiave of SPIEGAZIONI.keys()) {
+    if (chiave.startsWith(spazio + '-')) SPIEGAZIONI.delete(chiave);
+  }
+  spazioSpiegazioni = spazio;
+  contatoreSpiegazioni = 0;
+}
+
+function registraSpiegazione(spiegazione) {
+  const chiave = spazioSpiegazioni + '-' + (++contatoreSpiegazioni);
+  SPIEGAZIONI.set(chiave, spiegazione);
+  return chiave;
+}
+
+/* Pulsante informativo: attivabile con clic, tastiera e tocco, non solo
+   in hover, altrimenti resterebbe inaccessibile da mobile. */
+function bottoneSpiegazione(spiegazione) {
+  if (!spiegazione) return '';
+  const chiave = registraSpiegazione(spiegazione);
+  return ` <button type="button" class="spiega no-print" data-spiega="${chiave}"
+      aria-label="Come è stato calcolato: ${spiegazione.titolo.replace(/"/g, '')}"
+      aria-expanded="false">i</button>`;
+}
+
+/* Riga di formula: operazione a sinistra, risultato a destra */
+function formula(passi, risultato) {
+  return `<div class="sp-formula">
+      ${passi.map((p) => `<div class="sp-passo"><span>${p[0]}</span><span class="num">${p[1]}</span></div>`).join('')}
+      ${risultato ? `<div class="sp-passo sp-totale"><span>${risultato[0]}</span><span class="num">${risultato[1]}</span></div>` : ''}
+    </div>`;
+}
+
 function rigaCascata(voce, nota, annuo, mensilita, opts = {}) {
   const tipo = opts.tipo || 'neutro';
   const colore = tipo === 'negativo' ? 'text-rose-600'
@@ -17552,7 +17642,7 @@ function rigaCascata(voce, nota, annuo, mensilita, opts = {}) {
   return `
     <tr class="${sfondo}">
       <td class="${indent} py-3 ${opts.indent ? 'pr-6' : ''}">
-        <span class="${opts.forte ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">${voce}</span>
+        <span class="${opts.forte ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">${voce}</span>${bottoneSpiegazione(opts.spiega)}
         ${nota ? `<span class="block text-xs text-slate-400 mt-0.5">${nota}</span>` : ''}
       </td>
       <td class="num px-4 py-3 text-right ${peso} ${colore}">${segno}${euro2(Math.abs(annuo))}</td>
@@ -17576,42 +17666,63 @@ function renderBase(r) {
   el('box-bonus').classList.toggle('hidden', r.totaleBonus <= 0);
   el('out-tot-bonus').textContent = '+ ' + euro(r.totaleBonus);
 
+  apriRegistroSpiegazioni('b');
+  el('tip-pressione').innerHTML = bottoneSpiegazione({
+    titolo: 'Pressione fiscale',
+    corpo: 'Quanto della RAL non arriva in busta: comprende contributi previdenziali e imposte, al netto dei bonus che non concorrono al reddito. A redditi bassi può risultare negativa, perché il cuneo fiscale restituisce più di quanto il prelievo sottrae.',
+    html: formula([
+      ['RAL', euro2(r.ral)],
+      ['− netto annuo', euro2(r.nettoAnnuo)]
+    ], ['Prelievo sulla RAL', perc(r.pressioneFiscale)])
+  });
+  el('tip-tasse').innerHTML = bottoneSpiegazione({
+    titolo: 'Tasse e contributi',
+    corpo: 'I contributi finanziano la pensione del lavoratore, le imposte finanziano lo Stato e gli enti locali. Sono voci di natura diversa che vale la pena leggere separate: la prima costruisce un diritto, la seconda no.',
+    html: formula([
+      ['Contributi INPS', euro2(r.inps)],
+      ['IRPEF netta', euro2(r.irpefNetta)],
+      ['Addizionale regionale', euro2(r.addReg)],
+      ['Addizionale comunale', euro2(r.addCom)]
+    ], ['Totale a carico', euro2(r.totaleTrattenute)])
+  });
+
   const M = r.mensilita;
+  const S = spiegazioniBase(r);
   let html = '';
 
   html += rigaCascata('RAL &mdash; Retribuzione Annua Lorda', 'Base di partenza', r.ral, M, { forte: true, evidenzia: true });
-  html += rigaCascata('Contributi INPS', 'Aliquota 9,19% a carico del lavoratore', r.inps, M, { tipo: 'negativo' });
-  html += rigaCascata('Imponibile fiscale', 'RAL al netto dei contributi', r.imponibile, M, { forte: true, evidenzia: true });
-  html += rigaCascata('IRPEF lorda', 'Scaglioni 23% / 35% / 43%', r.irpefLorda, M, { tipo: 'negativo' });
-  html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR, correttivo di fascia incluso', r.detrazioniBase, M, { tipo: 'positivo', indent: true });
+  html += rigaCascata('Contributi INPS', 'Aliquota 9,19% a carico del lavoratore', r.inps, M, { tipo: 'negativo', spiega: S.inps });
+  html += rigaCascata('Imponibile fiscale', 'RAL al netto dei contributi', r.imponibile, M, { forte: true, evidenzia: true, spiega: S.imponibile });
+  html += rigaCascata('IRPEF lorda', 'Scaglioni 23% / 35% / 43%', r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
+  html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR, correttivo di fascia incluso', r.detrazioniBase, M, { tipo: 'positivo', indent: true, spiega: S.detrazioni });
 
   if (r.ulterioreDetrazione > 0) {
-    html += rigaCascata('Ulteriore detrazione (cuneo fiscale)', 'Imponibile tra 20.000 e 40.000 &euro;', r.ulterioreDetrazione, M, { tipo: 'positivo', indent: true });
+    html += rigaCascata('Ulteriore detrazione (cuneo fiscale)', 'Imponibile tra 20.000 e 40.000 &euro;', r.ulterioreDetrazione, M, { tipo: 'positivo', indent: true, spiega: S.ulteriore });
   }
   if (r.detrazioneNonGoduta > 0.005) {
-    html += rigaCascata('Detrazioni non godute', 'Eccedenti la capienza dell&rsquo;IRPEF lorda', r.detrazioneNonGoduta, M, { tipo: 'neutro', indent: true });
+    html += rigaCascata('Detrazioni non godute', 'Eccedenti la capienza dell&rsquo;IRPEF lorda', r.detrazioneNonGoduta, M, { tipo: 'neutro', indent: true, spiega: S.capienza });
   }
 
-  html += rigaCascata('IRPEF netta', 'Imposta effettivamente dovuta', r.irpefNetta, M, { tipo: 'negativo', forte: true, evidenzia: true });
-  html += rigaCascata('Addizionale regionale Lombardia', 'A regime, per competenza', r.addReg, M, { tipo: 'negativo' });
+  html += rigaCascata('IRPEF netta', 'Imposta effettivamente dovuta', r.irpefNetta, M, { tipo: 'negativo', forte: true, evidenzia: true, spiega: S.irpefNetta });
+  html += rigaCascata('Addizionale regionale Lombardia', 'A regime, per competenza', r.addReg, M, { tipo: 'negativo', spiega: S.addReg });
   html += rigaCascata(
     'Addizionale comunale Milano',
     r.imponibile <= COSTANTI.ADD_COMUNALE_MILANO.esenzione
       ? 'Esente: imponibile sotto 23.000 &euro;'
       : '0,80% sull&rsquo;intero imponibile (effetto scalino)',
-    r.addCom, M, { tipo: 'negativo' }
+    r.addCom, M, { tipo: 'negativo', spiega: S.addCom }
   );
 
   if (r.bonusCuneo > 0) {
-    html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse, non erode l&rsquo;IRPEF', r.bonusCuneo, M, { tipo: 'positivo' });
+    html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse, non erode l&rsquo;IRPEF', r.bonusCuneo, M, { tipo: 'positivo', spiega: S.cuneo });
   }
   if (r.trattamentoIntegrativo > 0) {
-    html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi, 1.200 &euro; annui', r.trattamentoIntegrativo, M, { tipo: 'positivo' });
+    html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi, 1.200 &euro; annui', r.trattamentoIntegrativo, M, { tipo: 'positivo', spiega: S.trattamento });
   }
 
   html += `
     <tr class="bg-brand-50">
-      <td class="px-6 py-4"><span class="font-extrabold text-brand-900">Netto annuo</span>
+      <td class="px-6 py-4"><span class="font-extrabold text-brand-900">Netto annuo</span>${bottoneSpiegazione(S.netto)}
         <span class="block text-xs text-brand-700/70 mt-0.5">Su ${M} mensilit&agrave;</span></td>
       <td class="num px-4 py-4 text-right font-extrabold text-brand-900">${euro2(r.nettoAnnuo)}</td>
       <td class="num px-6 py-4 text-right font-extrabold text-brand-900">${euro2(r.nettoMensile)}</td>
@@ -17619,6 +17730,134 @@ function renderBase(r) {
 
   el('tbody-cascata').innerHTML = html;
   renderComposizione(r);
+}
+
+/* Derivazioni della sezione Base, calcolate sui valori correnti */
+function spiegazioniBase(r) {
+  const K = COSTANTI.IRPEF;
+  const M = COSTANTI.ADD_COMUNALE_MILANO;
+
+  // Scomposizione dell'IRPEF lorda scaglione per scaglione
+  const passiIrpef = [];
+  let residuo = r.imponibile, precedente = 0;
+  for (const s of [{ fino: K.SOGLIA_1, a: K.ALIQUOTA_1 }, { fino: K.SOGLIA_2, a: K.ALIQUOTA_2 }, { fino: Infinity, a: K.ALIQUOTA_3 }]) {
+    if (residuo <= 0) break;
+    const quota = Math.min(r.imponibile, s.fino) - precedente;
+    if (quota <= 0) { precedente = s.fino; continue; }
+    passiIrpef.push([`${euro2(quota)} × ${fmtPerc.format(s.a * 100)}%`, euro2(quota * s.a)]);
+    residuo -= quota;
+    precedente = s.fino;
+  }
+
+  // Scomposizione dell'addizionale regionale
+  const passiReg = [];
+  let prec = 0;
+  for (const s of COSTANTI.ADD_REGIONALE_LOMBARDIA) {
+    if (r.imponibile <= prec) break;
+    const quota = Math.min(r.imponibile, s.fino) - prec;
+    passiReg.push([`${euro2(quota)} × ${fmtPerc2.format(s.aliquota * 100)}%`, euro2(quota * s.aliquota)]);
+    prec = s.fino;
+  }
+
+  const fasciaDetrazione = r.imponibile <= 15000
+    ? 'Fino a 15.000 € spetta la detrazione minima di 1.955 €.'
+    : r.imponibile <= 28000
+      ? 'Fra 15.000 e 28.000 €: 1.910 € più una quota decrescente di 1.190 €.'
+      : r.imponibile <= 50000
+        ? 'Fra 28.000 e 50.000 €: 1.910 € che si azzerano linearmente a 50.000 €.'
+        : 'Oltre 50.000 € di imponibile la detrazione non spetta più.';
+
+  const correttivo = r.imponibile > 25000 && r.imponibile <= 35000;
+
+  return {
+    inps: {
+      titolo: 'Contributi previdenziali',
+      corpo: 'La quota a carico del lavoratore si calcola sull\'intera RAL, prima di qualsiasi imposta. È ciò che rende l\'imponibile fiscale più basso del lordo contrattuale.',
+      fonte: 'Aliquota FPLD per il settore privato — circolari INPS',
+      html: formula([[`${euro2(r.ral)} × 9,19%`, euro2(r.inps)]])
+    },
+    imponibile: {
+      titolo: 'Imponibile fiscale',
+      corpo: 'La base su cui si calcolano IRPEF e addizionali: non è la RAL, ma la RAL al netto dei contributi. Tutte le soglie normative che seguono si confrontano con questo valore, non con il lordo.',
+      html: formula([[euro2(r.ral), ''], [`− ${euro2(r.inps)} di contributi`, '']], ['Imponibile', euro2(r.imponibile)])
+    },
+    irpefLorda: {
+      titolo: 'IRPEF lorda a scaglioni',
+      corpo: 'Ogni scaglione tassa solo la parte di reddito che vi ricade: passare di scaglione non ritassa quanto sta sotto.',
+      fonte: 'TUIR art. 11 — tre scaglioni dal 2024',
+      html: formula(passiIrpef, ['IRPEF lorda', euro2(r.irpefLorda)])
+    },
+    detrazioni: {
+      titolo: 'Detrazione per lavoro dipendente',
+      corpo: fasciaDetrazione + (correttivo ? ' Fra 25.000 e 35.000 € si aggiunge il correttivo di fascia di 65 €.' : ''),
+      fonte: 'TUIR art. 13',
+      html: correttivo
+        ? formula([['Detrazione di fascia', euro2(r.detrazioniBase - 65)], ['Correttivo', euro2(65)]], ['Totale', euro2(r.detrazioniBase)])
+        : formula([], ['Detrazione spettante', euro2(r.detrazioniBase)])
+    },
+    ulteriore: {
+      titolo: 'Ulteriore detrazione del cuneo fiscale',
+      corpo: 'Sopra i 20.000 € di imponibile il taglio del cuneo cambia natura: non è più una somma esentasse ma una detrazione d\'imposta, quindi soggetta a capienza. Vale 1.000 € fino a 32.000 € e si azzera progressivamente a 40.000 €.',
+      fonte: 'L. 207/2024',
+      html: formula([], ['Detrazione spettante', euro2(r.ulterioreDetrazione)])
+    },
+    capienza: {
+      titolo: 'Detrazioni perse per incapienza',
+      corpo: 'Le detrazioni riducono l\'imposta ma non generano credito: la parte che eccede l\'IRPEF lorda va persa. È il motivo per cui, a redditi bassi, un aumento di RAL può rendere meno del previsto.',
+      html: formula([
+        ['Detrazioni spettanti', euro2(r.totDetrazioni)],
+        ['IRPEF lorda disponibile', euro2(r.irpefLorda)]
+      ], ['Quota persa', euro2(r.detrazioneNonGoduta)])
+    },
+    irpefNetta: {
+      titolo: 'IRPEF netta',
+      corpo: 'L\'imposta effettivamente dovuta, dopo aver sottratto le detrazioni entro il limite di capienza.',
+      html: formula([
+        ['IRPEF lorda', euro2(r.irpefLorda)],
+        ['− detrazioni applicate', euro2(r.detrazioneEffettiva)]
+      ], ['IRPEF netta', euro2(r.irpefNetta)])
+    },
+    addReg: {
+      titolo: 'Addizionale regionale Lombardia',
+      corpo: 'Progressiva a scaglioni, come l\'IRPEF: ogni fascia colpisce solo la quota di imponibile che vi ricade.',
+      fonte: 'Aliquote deliberate — anagrafe MEF, Dipartimento delle Finanze',
+      html: formula(passiReg, ['Addizionale regionale', euro2(r.addReg)])
+    },
+    addCom: {
+      titolo: 'Addizionale comunale di Milano — effetto scalino',
+      corpo: r.imponibile <= M.esenzione
+        ? `Sotto i ${euro(M.esenzione)} di imponibile l'addizionale non è dovuta. Attenzione: è una soglia di esenzione, non una franchigia — superandola si paga sull'intero imponibile, non sulla sola eccedenza.`
+        : `Superata la soglia di ${euro(M.esenzione)}, lo 0,80% colpisce l'intero imponibile e non la sola quota eccedente. È il motivo per cui a 23.001 € di imponibile si pagano 184 € che a 23.000 € non si pagavano affatto.`,
+      fonte: 'Delibera comunale di Milano — anagrafe MEF',
+      html: r.imponibile <= M.esenzione
+        ? formula([['Imponibile', euro2(r.imponibile)], [`Soglia di esenzione`, euro2(M.esenzione)]], ['Dovuto', euro2(0)])
+        : formula([[`${euro2(r.imponibile)} × 0,80%`, euro2(r.addCom)]], ['Dovuto sull\'intero imponibile', euro2(r.addCom)])
+    },
+    cuneo: {
+      titolo: 'Bonus del cuneo fiscale',
+      corpo: 'Fino a 20.000 € di imponibile il beneficio è una somma esentasse che non concorre al reddito: si somma al netto e non erode l\'IRPEF. Le percentuali sono 7,1% fino a 8.500 €, 5,3% fino a 15.000 €, 4,8% fino a 20.000 €.',
+      fonte: 'L. 207/2024',
+      html: formula([[`${euro2(r.imponibile)} × ${fmtPerc.format((r.bonusCuneo / r.imponibile) * 100)}%`, euro2(r.bonusCuneo)]])
+    },
+    trattamento: {
+      titolo: 'Trattamento integrativo',
+      corpo: 'I 1.200 € annui dell\'ex bonus Renzi spettano solo se l\'imposta lorda supera la detrazione da lavoro dipendente. Il punto di pareggio cade a 8.500 € di imponibile: sotto, il contribuente è incapiente e il bonus non spetta.',
+      fonte: 'D.L. 3/2020 conv. L. 21/2020',
+      html: formula([
+        ['IRPEF lorda', euro2(r.irpefLorda)],
+        ['Detrazione da lavoro', euro2(r.detrazioniBase)]
+      ], ['Trattamento integrativo', euro2(r.trattamentoIntegrativo)])
+    },
+    netto: {
+      titolo: 'Come si arriva al netto',
+      corpo: 'Le trattenute si sottraggono al lordo, i bonus si sommano dopo le imposte perché non concorrono al reddito imponibile.',
+      html: formula([
+        ['RAL', euro2(r.ral)],
+        ['− contributi e imposte', euro2(r.totaleTrattenute)],
+        ['+ bonus e integrazioni', euro2(r.totaleBonus)]
+      ], [`Netto annuo su ${r.mensilita} mensilità`, euro2(r.nettoAnnuo)])
+    }
+  };
 }
 
 function renderComposizione(r) {
@@ -17657,6 +17896,8 @@ let comuneCorrente = 'F205';
 
 function renderPremium(r, baseline) {
   const M = r.mensilita;
+  apriRegistroSpiegazioni('p');
+  const S = spiegazioniPremium(r);
 
   el('pm-netto-mese').textContent = euro(r.nettoMensile);
   el('pm-netto-anno').textContent = euro(r.nettoAnnuo);
@@ -17689,34 +17930,34 @@ function renderPremium(r, baseline) {
     const causa = [];
     if (r.quotaPartTime < 1) causa.push(`part-time ${Math.round(r.quotaPartTime * 100)}%`);
     if (r.giorni < 365) causa.push(`${r.giorni} giorni su 365`);
-    html += rigaCascata('Retribuzione maturata', causa.join(' · '), r.ral, M, { forte: true, evidenzia: true });
+    html += rigaCascata('Retribuzione maturata', causa.join(' · '), r.ral, M, { forte: true, evidenzia: true, spiega: S.maturata });
   }
 
-  if (r.premioSostitutiva > 0) html += rigaCascata('Premio di risultato agevolato', `Imposta sostitutiva ${fmtPerc.format(ANNI[r.anno].premiAliquota * 100)}%`, r.premioSostitutiva, M, { tipo: 'neutro', indent: true });
+  if (r.premioSostitutiva > 0) html += rigaCascata('Premio di risultato agevolato', `Imposta sostitutiva ${fmtPerc.format(ANNI[r.anno].premiAliquota * 100)}%`, r.premioSostitutiva, M, { tipo: 'neutro', indent: true, spiega: S.premio });
   if (r.premioOrdinario > 0) html += rigaCascata('Premio eccedente il limite', 'Tassazione ordinaria IRPEF', r.premioOrdinario, M, { tipo: 'neutro', indent: true });
   if (r.accessoriAmmessi > 0) html += rigaCascata('Straordinari e notturni agevolati', 'Imposta sostitutiva 5%', r.accessoriAmmessi, M, { tipo: 'neutro', indent: true });
   if (r.accessoriOrdinari > 0) html += rigaCascata('Compensi accessori ordinari', 'Oltre la soglia di reddito', r.accessoriOrdinari, M, { tipo: 'neutro', indent: true });
-  if (r.fringeImponibile > 0) html += rigaCascata('Fringe benefit imponibili', 'Soglia superata: intero valore tassato', r.fringeImponibile, M, { tipo: 'neutro', indent: true });
+  if (r.fringeImponibile > 0) html += rigaCascata('Fringe benefit imponibili', 'Soglia superata: intero valore tassato', r.fringeImponibile, M, { tipo: 'neutro', indent: true, spiega: S.fringe });
   if (r.buoniEccedenza > 0) html += rigaCascata('Buoni pasto &mdash; quota eccedente', 'Oltre il limite giornaliero esente', r.buoniEccedenza, M, { tipo: 'neutro', indent: true });
 
-  html += rigaCascata('Contributi INPS ordinari', `Aliquota ${aliq(r.profilo.lavoratore)} a carico del lavoratore`, r.contributiOrdinari, M, { tipo: 'negativo' });
-  if (r.contributoAggiuntivo > 0) html += rigaCascata('Aliquota aggiuntiva 1%', `Quota oltre ${euro(ANNI[r.anno].soglia1pc)} &mdash; art. 3-ter L. 438/1992`, r.contributoAggiuntivo, M, { tipo: 'negativo', indent: true });
+  html += rigaCascata('Contributi INPS ordinari', `Aliquota ${aliq(r.profilo.lavoratore)} a carico del lavoratore`, r.contributiOrdinari, M, { tipo: 'negativo', spiega: S.contributi });
+  if (r.contributoAggiuntivo > 0) html += rigaCascata('Aliquota aggiuntiva 1%', `Quota oltre ${euro(ANNI[r.anno].soglia1pc)} &mdash; art. 3-ter L. 438/1992`, r.contributoAggiuntivo, M, { tipo: 'negativo', indent: true, spiega: S.aggiuntivo });
   if (r.contributoFondo > 0) html += rigaCascata(`Fondo ${r.profilo.fondoNome || 'di categoria'}`, 'Quota a carico del dirigente', r.contributoFondo, M, { tipo: 'negativo', indent: true });
 
   html += rigaCascata('Imponibile fiscale lordo', 'Base al netto dei contributi', r.imponibileLordo, M, { forte: true, evidenzia: true });
 
-  if (r.regimeAbbattuto > 0) html += rigaCascata(`Abbattimento &mdash; ${r.regimeNome}`, 'Quota di reddito esclusa da tassazione', r.regimeAbbattuto, M, { tipo: 'positivo', indent: true });
+  if (r.regimeAbbattuto > 0) html += rigaCascata(`Abbattimento &mdash; ${r.regimeNome}`, 'Quota di reddito esclusa da tassazione', r.regimeAbbattuto, M, { tipo: 'positivo', indent: true, spiega: S.regime });
   if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Previdenza complementare dedotta', 'Deducibile fino a 5.164,57 &euro;', r.fondoPensioneDeducibile, M, { tipo: 'positivo', indent: true });
   if (r.regimeAbbattuto > 0 || r.fondoPensioneDeducibile > 0) html += rigaCascata('Imponibile IRPEF', 'Base imponibile effettiva', r.imponibile, M, { forte: true, evidenzia: true });
 
-  html += rigaCascata('IRPEF lorda', descrizioneScaglioni(r.anno), r.irpefLorda, M, { tipo: 'negativo' });
-  html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR' + (r.quotaAnno < 1 ? ', ragguagliata ai giorni' : ''), r.detrazioniBase, M, { tipo: 'positivo', indent: true });
+  html += rigaCascata('IRPEF lorda', descrizioneScaglioni(r.anno), r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
+  html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR' + (r.quotaAnno < 1 ? ', ragguagliata ai giorni' : ''), r.detrazioniBase, M, { tipo: 'positivo', indent: true, spiega: S.detrazioni });
 
   if (r.ulterioreDetrazione > 0) html += rigaCascata('Ulteriore detrazione (cuneo)', 'Imponibile tra 20.000 e 40.000 &euro;', r.ulterioreDetrazione, M, { tipo: 'positivo', indent: true });
   if (r.detrConiuge > 0) html += rigaCascata('Detrazione coniuge a carico', 'Art. 12 TUIR', r.detrConiuge, M, { tipo: 'positivo', indent: true });
   if (r.detrFigli > 0) html += rigaCascata('Detrazione figli 21+', 'Art. 12 TUIR', r.detrFigli, M, { tipo: 'positivo', indent: true });
   if (r.detrAltri > 0) html += rigaCascata('Detrazione altri familiari', 'Art. 12 TUIR', r.detrAltri, M, { tipo: 'positivo', indent: true });
-  if (r.detrazioneNonGoduta > 0.005) html += rigaCascata('Detrazioni non godute', 'Eccedenti la capienza IRPEF', r.detrazioneNonGoduta, M, { tipo: 'neutro', indent: true });
+  if (r.detrazioneNonGoduta > 0.005) html += rigaCascata('Detrazioni non godute', 'Eccedenti la capienza IRPEF', r.detrazioneNonGoduta, M, { tipo: 'neutro', indent: true, spiega: S.capienza });
 
   html += rigaCascata('IRPEF netta', 'Imposta dovuta', r.irpefNetta, M, { tipo: 'negativo', forte: true, evidenzia: true });
   html += rigaCascata(`Addizionale regionale ${r.regioneNome}`, 'A regime, per competenza', r.addReg, M, { tipo: 'negativo' });
@@ -17725,7 +17966,7 @@ function renderPremium(r, baseline) {
     r.addCom > 0
       ? 'Delibera comunale &mdash; anagrafe MEF'
       : (r.comuneEsenzione > 0 ? `Esente: imponibile sotto ${euro(r.comuneEsenzione)}` : 'Nessuna aliquota deliberata'),
-    r.addCom, M, { tipo: 'negativo' }
+    r.addCom, M, { tipo: 'negativo', spiega: S.addCom }
   );
 
   if (r.impostaPremio > 0) html += rigaCascata('Imposta sostitutiva sul premio', `Aliquota ${fmtPerc.format(ANNI[r.anno].premiAliquota * 100)}%`, r.impostaPremio, M, { tipo: 'negativo' });
@@ -17761,6 +18002,133 @@ function renderPremium(r, baseline) {
 
 function descrizioneScaglioni(anno) {
   return ANNI[anno].irpef.map((s) => fmtPerc.format(s.aliquota * 100) + '%').join(' / ');
+}
+
+/* Derivazioni della sezione Premium, calcolate sui valori correnti */
+function spiegazioniPremium(r) {
+  const A = ANNI[r.anno];
+  const altroAnno = r.anno === 2026 ? 2025 : 2026;
+
+  const passiIrpef = [];
+  let precedente = 0;
+  for (const s of A.irpef) {
+    if (r.imponibile <= precedente) break;
+    const quota = Math.min(r.imponibile, s.fino) - precedente;
+    passiIrpef.push([`${euro2(quota)} × ${fmtPerc.format(s.aliquota * 100)}%`, euro2(quota * s.aliquota)]);
+    precedente = s.fino;
+  }
+
+  const comune = COMUNI_PER_CODICE.get(comuneCorrente);
+  const regola = comune ? comune[r.anno] : null;
+  const passiCom = [];
+  if (regola && regola.scaglioni.length) {
+    if (regola.scaglioni.length === 1 && regola.scaglioni[0].fino === Infinity) {
+      passiCom.push([`${euro2(r.imponibile)} × ${fmtPerc2.format(regola.scaglioni[0].aliquota * 100)}%`, euro2(r.addCom)]);
+    } else {
+      let prec = 0;
+      for (const s of regola.scaglioni) {
+        if (r.imponibile <= prec) break;
+        const quota = Math.min(r.imponibile, s.fino) - prec;
+        passiCom.push([`${euro2(quota)} × ${fmtPerc2.format(s.aliquota * 100)}%`, euro2(quota * s.aliquota)]);
+        prec = s.fino;
+      }
+    }
+  }
+
+  return {
+    maturata: {
+      titolo: 'Retribuzione effettivamente maturata',
+      corpo: 'La RAL contrattuale vale per un anno intero a tempo pieno. Part-time e giorni lavorati la riducono in proporzione — e con essa detrazioni e cuneo, che sono ragguagliati al periodo. Le soglie di reddito invece restano quelle annue: non si ragguagliano.',
+      html: formula([
+        ['RAL contrattuale', euro2(r.ralContrattuale)],
+        ['× part-time', Math.round(r.quotaPartTime * 100) + '%'],
+        ['× giorni', `${r.giorni} / 365`]
+      ], ['Retribuzione maturata', euro2(r.ral)])
+    },
+    contributi: {
+      titolo: `Contributi — ${r.profiloNome}`,
+      corpo: 'L\'aliquota a carico del lavoratore dipende da inquadramento e settore: un apprendista versa il 5,84%, un impiegato il 9,19%, un\'azienda con CIGS il 9,49%.'
+        + (r.massimaleRaggiunto ? ` Qui la base è limitata al massimale di ${euro(A.massimale)}: oltre quella soglia non si versano più contributi, e il netto marginale sale.` : ''),
+      fonte: `Circolari INPS — valori ${r.anno}`,
+      html: formula([[`${euro2(r.baseContributivaApplicata)} × ${aliq(r.profilo.lavoratore)}`, euro2(r.contributiOrdinari)]])
+    },
+    aggiuntivo: {
+      titolo: 'Aliquota aggiuntiva dell\'1%',
+      corpo: `Sulla quota di retribuzione che supera la prima fascia pensionabile si versa un ulteriore 1%. È dovuta solo quando l'aliquota a carico del lavoratore è inferiore al 10%, e nel ${r.anno} la soglia è ${euro(A.soglia1pc)}. Quasi nessun calcolatore online la applica: è la ragione per cui su retribuzioni alte molte stime risultano ottimistiche.`,
+      fonte: 'Art. 3-ter D.L. 384/1992, conv. L. 438/1992',
+      html: formula([
+        ['Base contributiva', euro2(r.baseContributivaApplicata)],
+        ['− prima fascia', euro2(A.soglia1pc)],
+        ['× 1%', euro2(r.contributoAggiuntivo)]
+      ])
+    },
+    irpefLorda: {
+      titolo: `IRPEF lorda ${r.anno}`,
+      corpo: r.anno === 2026
+        ? 'Dal 2026 la seconda aliquota scende dal 35% al 33% sullo scaglione 28.000–50.000 €. Cambia solo quella: la prima resta al 23% e la terza al 43%.'
+        : 'Nel 2025 lo scaglione 28.000–50.000 € è tassato al 35%. Dal 2026 la stessa fascia scende al 33%.',
+      fonte: r.anno === 2026 ? 'Legge di Bilancio 2026' : 'TUIR art. 11 — L. 207/2024',
+      html: formula(passiIrpef, ['IRPEF lorda', euro2(r.irpefLorda)])
+        + `<p class="sp-fonte">Con le aliquote ${altroAnno}: ${euro2(calcolaIrpefLordaAnno(r.imponibile, altroAnno))}</p>`
+    },
+    detrazioni: {
+      titolo: 'Detrazione per lavoro dipendente',
+      corpo: r.quotaAnno < 1
+        ? `La detrazione annua piena viene ragguagliata ai ${r.giorni} giorni di lavoro: è il criterio usato in busta paga quando il rapporto non copre l'intero anno.`
+        : 'Decresce all\'aumentare del reddito e si azzera a 50.000 € di imponibile.',
+      fonte: 'TUIR art. 13',
+      html: r.quotaAnno < 1
+        ? formula([['Detrazione annua piena', euro2(r.detrazioniBase / r.quotaAnno)], ['× giorni', `${r.giorni} / 365`]], ['Spettante', euro2(r.detrazioniBase)])
+        : formula([], ['Detrazione spettante', euro2(r.detrazioniBase)])
+    },
+    regime: {
+      titolo: r.regimeNome,
+      corpo: 'I regimi agevolati abbattono la base imponibile IRPEF ma non toccano la base contributiva: i contributi restano dovuti sull\'intera retribuzione. È una distinzione che cambia il risultato in modo sostanziale.',
+      fonte: 'D.Lgs. 209/2023 per gli impatriati; art. 44 D.L. 78/2010 per docenti e ricercatori',
+      html: formula([
+        ['Imponibile prima del regime', euro2(r.imponibileLordo)],
+        ['− quota esclusa', euro2(r.regimeAbbattuto)]
+      ], ['Imponibile tassato', euro2(r.imponibile)])
+    },
+    capienza: {
+      titolo: 'Detrazioni perse per incapienza',
+      corpo: 'Le detrazioni non generano credito d\'imposta: la parte eccedente l\'IRPEF lorda si perde. Con un regime agevolato attivo il fenomeno si accentua, perché l\'imposta lorda su cui applicarle è più bassa.',
+      html: formula([
+        ['Detrazioni spettanti', euro2(r.totDetrazioni)],
+        ['IRPEF lorda disponibile', euro2(r.irpefLorda)]
+      ], ['Quota persa', euro2(r.detrazioneNonGoduta)])
+    },
+    addCom: {
+      titolo: `Addizionale comunale — ${r.comuneNome}`,
+      corpo: (regola && regola.esenzione > 0
+        ? `Questo comune esenta i redditi fino a ${euro(regola.esenzione)}. La soglia non è una franchigia: superandola si paga sull'intero imponibile. `
+        : 'Questo comune non prevede soglia di esenzione. ')
+        + 'Ogni comune delibera in autonomia aliquota, soglia ed eventuali scaglioni: i valori arrivano dall\'anagrafe ufficiale del MEF.'
+        + (r.anno === 2026 && !r.comuneDeliberato2026 ? ' Per il 2026 non risulta ancora una delibera pubblicata, quindi resta in vigore l\'aliquota 2025.' : ''),
+      fonte: 'MEF — Dipartimento delle Finanze, anagrafe delle delibere comunali',
+      html: passiCom.length
+        ? formula(passiCom, ['Addizionale comunale', euro2(r.addCom)])
+        : formula([], ['Nessuna addizionale dovuta', euro2(0)])
+    },
+    fringe: {
+      titolo: 'Fringe benefit oltre soglia',
+      corpo: `La soglia annua è ${euro(PREMIUM.FRINGE_SOGLIA)}, che sale a ${euro(PREMIUM.FRINGE_SOGLIA_CON_FIGLI)} con figli a carico. Superarla anche di un euro rende imponibile l'intero valore, non la sola eccedenza: è l'errore più frequente nei calcolatori, che la trattano come franchigia.`,
+      fonte: 'TUIR art. 51, comma 3',
+      html: formula([
+        ['Valore dei benefit', euro2(r.fringeImponibile)],
+        ['Soglia applicabile', euro2(r.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA)]
+      ], ['Interamente imponibile', euro2(r.fringeImponibile)])
+    },
+    premio: {
+      titolo: 'Premio di risultato',
+      corpo: `Entro ${euro(PREMIUM.PREMIO_LIMITE)} annui e per redditi fino a ${euro(PREMIUM.PREMIO_REDDITO_MAX)}, il premio sconta un'imposta sostitutiva al posto dell'IRPEF: ${fmtPerc.format(A.premiAliquota * 100)}% nel ${r.anno}. Resta però soggetto a contribuzione. Convertirlo in welfare aziendale lo rende esente sia da imposte sia da contributi.`,
+      fonte: 'L. 208/2015; Legge di Bilancio 2026',
+      html: formula([
+        ['Premio agevolato', euro2(r.premioSostitutiva)],
+        [`× ${fmtPerc.format(A.premiAliquota * 100)}%`, euro2(r.impostaPremio)]
+      ], ['Imposta sostitutiva', euro2(r.impostaPremio)])
+    }
+  };
 }
 
 /* Avvisi contestuali: situazioni che un HR deve vedere esplicitamente */
@@ -18310,6 +18678,81 @@ el('btn-csv').addEventListener('click', async () => {
 
 el('btn-test').addEventListener('click', eseguiTest);
 
+
+/* ------------------------------------------ Popover delle spiegazioni */
+const popover = document.createElement('div');
+popover.id = 'popover-spiega';
+popover.setAttribute('role', 'dialog');
+popover.hidden = true;
+document.body.appendChild(popover);
+
+let trigger = null;
+
+function chiudiSpiegazione() {
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  trigger = null;
+  popover.hidden = true;
+}
+
+function apriSpiegazione(bottone) {
+  const spiegazione = SPIEGAZIONI.get(bottone.dataset.spiega);
+  if (!spiegazione) return;
+
+  if (trigger && trigger !== bottone) trigger.setAttribute('aria-expanded', 'false');
+  trigger = bottone;
+  bottone.setAttribute('aria-expanded', 'true');
+
+  popover.innerHTML = `
+    <p class="sp-titolo">${spiegazione.titolo}</p>
+    <div class="sp-corpo">${spiegazione.corpo}</div>
+    ${spiegazione.html || ''}
+    ${spiegazione.fonte ? `<p class="sp-fonte">${spiegazione.fonte}</p>` : ''}`;
+  popover.hidden = false;
+
+  // Posizionamento: sotto il pulsante, ribaltato sopra se non c'è spazio,
+  // e sempre contenuto nella finestra.
+  const b = bottone.getBoundingClientRect();
+  const p = popover.getBoundingClientRect();
+  const margine = 8;
+
+  let sinistra = b.left + b.width / 2 - p.width / 2;
+  sinistra = Math.max(margine, Math.min(sinistra, window.innerWidth - p.width - margine));
+
+  let alto = b.bottom + margine;
+  if (alto + p.height > window.innerHeight - margine) {
+    alto = Math.max(margine, b.top - p.height - margine);
+  }
+
+  popover.style.left = sinistra + 'px';
+  popover.style.top = alto + 'px';
+}
+
+document.addEventListener('click', (e) => {
+  const bottone = e.target.closest('.spiega');
+  if (bottone) {
+    e.preventDefault();
+    if (trigger === bottone) chiudiSpiegazione();
+    else apriSpiegazione(bottone);
+    return;
+  }
+  if (!popover.contains(e.target)) chiudiSpiegazione();
+});
+
+// In hover l'apertura è immediata su desktop, ma il clic resta la via
+// principale: senza, il contenuto sarebbe irraggiungibile da tocco.
+document.addEventListener('mouseover', (e) => {
+  const bottone = e.target.closest('.spiega');
+  if (bottone && bottone !== trigger) apriSpiegazione(bottone);
+});
+document.addEventListener('focusin', (e) => {
+  const bottone = e.target.closest('.spiega');
+  if (bottone) apriSpiegazione(bottone);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') chiudiSpiegazione();
+});
+window.addEventListener('scroll', chiudiSpiegazione, true);
+window.addEventListener('resize', chiudiSpiegazione);
 
 /* ------------------------------------------------------------ Tabs */
 const tabBase = el('tab-base');
