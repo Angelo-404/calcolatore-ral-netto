@@ -715,6 +715,7 @@
               Calcola
             </button>
           </div>
+          <p id="ott-budget-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
         </div>
 
         <div id="ott-esito">
@@ -20001,6 +20002,22 @@ function renderOttimizzazione(modo, importoGrezzo) {
   const guadagno = modalitaOttimizzazione === 'netto'
     ? riferimento.costoAzienda - migliore.costoAzienda
     : migliore.valoreTotale - riferimento.valoreTotale;
+
+  /* Le due direzioni restano allineate: partendo dal netto, il budget si
+     compila con la spesa che quel pacchetto comporta; partendo dal budget,
+     l'obiettivo netto si compila con quanto quel budget riesce a
+     consegnare. Cosi' l'utente puo' proseguire nell'altra direzione senza
+     ricopiare un numero a mano, e senza trovarne uno vecchio. */
+  if (modo === 'netto') {
+    el('ott-budget').value = Math.round(migliore.costoAzienda);
+    el('ott-budget-nota').textContent =
+      `Compilato con il costo del pacchetto migliore: ${euro(migliore.costoAzienda)}.`;
+  } else {
+    el('p-netto-obiettivo').value = Math.round(migliore.valoreTotale / params.mensilita);
+    el('p-netto-periodo').value = 'mese';
+    el('ott-budget-nota').textContent =
+      `Obiettivo netto aggiornato a ${euro(migliore.valoreTotale / params.mensilita)} al mese.`;
+  }
 
   esito.innerHTML = `
     <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
