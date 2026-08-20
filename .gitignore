@@ -1,0 +1,14 @@
+# File scaricati dal MEF e dataset generato: rigenerabili con build/build_dataset.py
+build/*.csv
+build/reg_*.html
+build/dataset.js
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Materiale di lavoro, non fa parte della consegna
+# prompt di generazione
+PROJECT.md
+# brief interno di Jet HR
+TASKJETHR.md
