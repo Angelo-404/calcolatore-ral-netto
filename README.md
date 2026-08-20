@@ -68,9 +68,9 @@ MotoreFiscale.calcolaBase(30000)
 
 Il file è organizzato in strati nettamente distinti, nell'ordine:
 
-1. **Costanti normative** (`COSTANTI`, `REGIONI`, `COMUNI`, `PREMIUM`) — ogni soglia e ogni aliquota è una costante nominata, mai un numero magico inline. L'aggiornamento a una nuova legge di bilancio si riduce a modificare questo blocco.
+1. **Costanti normative** (`COSTANTI`, `ANNI`, `PROFILI_CONTRIBUTIVI`, `REGIMI`, `REGIONI`, `COMUNI`, `PROVINCE_REGIONE`, `PREMIUM`) — ogni soglia e ogni aliquota è una costante nominata, mai un numero magico inline. L'aggiornamento a una nuova legge di bilancio si riduce a modificare questo blocco.
 2. **Funzioni pure di dominio** — `calcolaInps`, `calcolaIrpefLorda`, `calcolaDetrazioniBase`, `calcolaBonusCuneo`, `calcolaUlterioreDetrazione`, `calcolaTrattamentoIntegrativo`, `calcolaAddizionaleScaglioni`, `calcolaAddizionaleComunale`. Nessuna tocca il DOM, ognuna è testabile in isolamento.
-3. **Orchestratori** — `calcolaBase(ral)` e `calcolaPremium(params)` compongono le funzioni pure e restituiscono un oggetto risultato completo, che include tutti i valori intermedi e non solo il netto finale.
+3. **Orchestratori** — `calcolaBase(ral)` e `calcolaPremium(params)` compongono le funzioni pure e restituiscono un oggetto risultato completo, che include tutti i valori intermedi e non solo il netto finale. `invertiNetto(netto, params)` percorre la strada opposta, invertendo il motore per bisezione.
 4. **Rendering** — `renderBase`, `renderPremium`, `renderComposizione`, `renderGrafico` consumano l'oggetto risultato. Il calcolo non sa nulla della presentazione.
 5. **Binding UI** — listener, validazione dell'input, gestione delle sezioni.
 
@@ -214,7 +214,7 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Inversione: la RAL trovata riproduce il netto richiesto | Correttezza dell'inversione |
 | Inversione: più RAL per lo stesso netto, sceglie la meno costosa | Effetto delle discontinuità |
 | Inversione: dichiara le richieste fuori scala | Robustezza |
-| Input 0 e input negativo senza `NaN`, anche in Premium | Robustezza |
+| Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
 **31 test su 31 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
@@ -333,6 +333,33 @@ Selezionare un comune **allinea automaticamente la regione**: senza questo vinco
 
 L'interfaccia segnala automaticamente le situazioni che un HR deve vedere e spiegare al dipendente: massimale raggiunto, aliquota aggiuntiva attiva, retribuzione sotto il minimale, detrazioni perse per incapienza, delibera comunale 2026 non ancora pubblicata.
 
+### 6.11 Spiegazioni contestuali
+
+Ogni voce che nasconde una regola porta un pulsante informativo che apre **la derivazione sui numeri del calcolo corrente**, non un testo di aiuto generico. A 30.000 € di RAL, la detrazione da lavoro dipendente si apre così:
+
+> **Detrazione per lavoro dipendente**
+> Fra 15.000 e 28.000 €: 1.910 € più una quota decrescente di 1.190 €. Fra 25.000 e 35.000 € si aggiunge il correttivo di fascia di 65 €.
+>
+> | | |
+> |---|---:|
+> | Detrazione di fascia | 1.979,29 € |
+> | Correttivo | 65,00 € |
+> | **Totale** | **2.044,29 €** |
+>
+> *TUIR art. 13*
+
+Sono **24 in tutto**: 12 nella cascata della sezione Base, 10 in quella Premium, 2 sulle card di sintesi. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
+
+Alcune si adattano al contesto: l'IRPEF lorda mostra anche quanto sarebbe con le aliquote dell'altro anno d'imposta; l'addizionale comunale cambia testo se il comune è esente, se ha scaglioni o se non ha ancora deliberato.
+
+Servono a portare il contenuto di questo documento dentro l'interfaccia, dove viene effettivamente letto.
+
+### 6.12 Uso quotidiano
+
+- **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
+- **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
+- **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
+
 ### Limiti dichiarati
 
 Dichiarati anche nell'interfaccia, non solo qui:
@@ -417,7 +444,7 @@ CSV MEF addizionali comunali 2026  ─┼─→  build_dataset.py  ─→  datas
 2. Interpreta le coppie *(aliquota, fascia di applicazione)* — fino a 12 per comune — distinguendo i quattro formati presenti nella fonte: esenzione, aliquota unica, scaglione chiuso, scaglione aperto.
 3. Normalizza i decimali: il CSV comunale usa la virgola e omette lo zero iniziale (`,8`), le tabelle regionali usano il punto (`1.23`). Due parser distinti, perché unificarli produceva aliquote del 123%.
 4. Applica la regola di vigenza: **la delibera 2026 prevale; in sua assenza resta in vigore quella 2025**. Su 7.897 comuni, 3.028 hanno deliberato per il 2026, 3.984 ereditano il 2025 e 885 non hanno alcuna delibera.
-5. Comprime il risultato: anagrafe scritta una sola volta, tariffe posizionali, 2026 come diff sul 2025 (solo 509 comuni differiscono). Da 495 KB a **267 KB**, mantenendo la proprietà di file unico.
+5. Comprime il risultato: anagrafe scritta una sola volta, tariffe posizionali, 2026 come diff sul 2025 (solo 509 comuni differiscono). Il `dataset.js` prodotto scende da 495 KB a **267 KB**, che incorporati in `index.html` diventano 252 KB al netto dell'intestazione. La proprietà di file unico resta intatta.
 
 Il dataset resta rigenerabile: rilanciando lo script su una nuova annualità, il calcolatore si aggiorna senza toccare una riga del motore.
 
@@ -465,7 +492,7 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
     └── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
 ```
 
-`index.html` pesa circa 350 KB, di cui 267 KB sono il dataset ufficiale delle aliquote territoriali. Il motore di calcolo e l'interfaccia occupano gli 80 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
+`index.html` pesa circa **425 KB**, di cui **252 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 173 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
 
 **Riproducibilità.** Lo script scarica da solo le fonti mancanti dal Dipartimento delle Finanze:
 
