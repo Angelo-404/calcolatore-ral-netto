@@ -537,6 +537,20 @@
           <p id="p-fondo-datore-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
 
+        <div>
+          <label for="p-trattenute" class="block text-sm font-semibold text-slate-700 mb-1.5">Altre trattenute annue</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <input id="p-trattenute" type="number" min="0" max="100000" step="50" value="0"
+                   class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa.
+            Escono dal netto gi&agrave; tassato: non sono n&eacute; deducibili n&eacute; detraibili.
+          </p>
+          <p id="p-trattenute-nota" class="text-[11px] text-amber-700 mt-1 hidden"></p>
+        </div>
+
         <label class="flex items-start gap-3 cursor-pointer">
           <input id="p-tfr-fondo" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
           <span class="text-sm">
@@ -700,6 +714,8 @@
                   <td class="px-6 py-3">Fissato allo 0,50%, valore da lavoro d'ufficio. La tariffa reale dipende dalla lavorazione e <strong>varia dallo 0,4% a oltre il 13%</strong>: su attivit&agrave; industriali il costo azienda mostrato &egrave; sensibilmente sottostimato.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Minimale contributivo</td>
                   <td class="px-6 py-3">Quando la retribuzione mensile scende sotto il minimale INPS, la situazione viene segnalata ma i contributi <strong>non</strong> vengono ricalcolati sul minimale come avverrebbe in busta paga.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Altre trattenute</td>
+                  <td class="px-6 py-3">Sono applicate come importo netto indicato dall'utente. Il calcolatore non verifica il limite di legge della cessione del quinto: lo <strong>segnala</strong> quando l'importo lo supera.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Rivalutazione del TFR</td>
                   <td class="px-6 py-3">&Egrave; mostrata la sola quota che matura nell'anno. Manca la rivalutazione annua dell'1,5% pi&ugrave; il 75% dell'indice ISTAT, e la base di calcolo pu&ograve; differire dalla RAL secondo il CCNL.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Detrazione figli 21+</td>
@@ -17557,6 +17573,7 @@ function calcolaPremium(params) {
     fondoPensione: 0,
     contributoDatoreFondo: 0,
     tfrAlFondo: false,
+    altreTrattenute: 0,
     regime: 'nessuno',
     impatriatiFigliMinori: false,
     ...params
@@ -17706,19 +17723,30 @@ function calcolaPremium(params) {
   const addCom = calcolaAddizionaleComunaleDataset(imponibile, comune, p.anno);
 
   /* --- Netto ----------------------------------------------------------- */
-  const nettoAnnuo = ral
+  let nettoAnnuo = ral
     + premioSostitutiva + premioOrdinario + accessoriAmmessi + accessoriOrdinari
     - inps - irpefNetta - addReg - addCom
     - impostaPremio - impostaAccessori
     - versamentoLavoratore
     + bonusCuneo + trattamentoIntegrativo;
 
+  /* Trattenute prive di effetto fiscale: quota sindacale, cessione del
+     quinto, pignoramenti, prestiti aziendali. Non sono oneri deducibili
+     ne' detraibili, quindi non toccano imponibile, imposte o contributi:
+     escono dal netto gia' tassato. Non possono eccedere il netto
+     disponibile, perche' quello e' tutto cio' che la busta contiene. */
+  const altreTrattenuteRichieste = Math.max(0, p.altreTrattenute);
+  const altreTrattenute = Math.min(altreTrattenuteRichieste, Math.max(0, nettoAnnuo));
+  const altreTrattenuteNonCapienti = altreTrattenuteRichieste - altreTrattenute;
+  const nettoPrimaTrattenute = nettoAnnuo;
+  nettoAnnuo -= altreTrattenute;
+
   const nettoMensile = nettoAnnuo / p.mensilita;
   const welfareEsente = fringeEsente + buoniEsente + premioWelfare;
   const valoreTotale = nettoAnnuo + welfareEsente;
   const lordoDiRiferimento = ral + premioLordo + Math.max(0, p.compensiAccessori);
   const pressioneFiscale = lordoDiRiferimento > 0
-    ? ((lordoDiRiferimento - nettoAnnuo) / lordoDiRiferimento) * 100
+    ? ((lordoDiRiferimento - nettoPrimaTrattenute) / lordoDiRiferimento) * 100
     : 0;
 
   /* --- TFR e costo azienda --------------------------------------------- */
@@ -17737,7 +17765,8 @@ function calcolaPremium(params) {
     + contributiDatore + fondoDatore + contributoDatoreFondo + inail + tfrLordo
     + p.fringeBenefit + buoniTotale;
   // Senza un netto positivo il rapporto non ha significato
-  const efficienza = costoAzienda > 0 && nettoAnnuo > 0 ? (nettoAnnuo / costoAzienda) * 100 : 0;
+  const efficienza = costoAzienda > 0 && nettoPrimaTrattenute > 0
+    ? (nettoPrimaTrattenute / costoAzienda) * 100 : 0;
 
   /* --- Controllo del minimale contributivo ----------------------------- */
   const retribuzioneMese = p.mensilita > 0 ? ral / p.mensilita : 0;
@@ -17769,6 +17798,7 @@ function calcolaPremium(params) {
     buoniElettronici: p.buoniElettronici,
     welfareEsente, valoreTotale,
     nettoAnnuo, nettoMensile, pressioneFiscale, mensilita: p.mensilita,
+    altreTrattenute, altreTrattenuteRichieste, altreTrattenuteNonCapienti, nettoPrimaTrattenute,
     tfr, contributiDatore, fondoDatore, inail, costoAzienda, efficienza,
     sottoMinimale, minimaleMese: A.minimaleMese,
     totaleTrattenute: inps + irpefNetta + addReg + addCom + impostaPremio + impostaAccessori,
@@ -18368,6 +18398,11 @@ function renderPremium(r, baseline) {
   if (r.bonusCuneo > 0) html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse', r.bonusCuneo, M, { tipo: 'positivo' });
   if (r.trattamentoIntegrativo > 0) html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi', r.trattamentoIntegrativo, M, { tipo: 'positivo' });
 
+  if (r.altreTrattenute > 0) {
+    html += rigaCascata('Altre trattenute', 'Sindacato, cessione del quinto, pignoramenti: nessun effetto fiscale',
+                        r.altreTrattenute, M, { tipo: 'negativo', spiega: S.trattenute });
+  }
+
   html += `
     <tr class="bg-slate-100">
       <td class="px-6 py-4"><span class="font-extrabold text-slate-900">Netto annuo</span>
@@ -18512,6 +18547,20 @@ function spiegazioniPremium(r) {
         ['Soglia applicabile', euro2(r.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA)]
       ], ['Interamente imponibile', euro2(r.fringeImponibile)])
     },
+    trattenute: {
+      titolo: 'Altre trattenute',
+      corpo: 'Quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa: '
+        + 'escono dal netto già tassato. Non sono oneri deducibili né detraibili, '
+        + 'quindi non toccano imponibile, imposte o contributi. '
+        + 'La pressione fiscale mostrata sopra le ignora, perché misura il prelievo dello Stato, non le spese personali.'
+        + (r.altreTrattenute > r.nettoPrimaTrattenute / 5
+            ? ' Attenzione: superano un quinto del netto, soglia che la legge pone alla cessione del quinto.'
+            : ''),
+      html: formula([
+        ['Netto prima delle trattenute', euro2(r.nettoPrimaTrattenute)],
+        ['Trattenute', euro2(r.altreTrattenute)]
+      ], ['Netto che arriva sul conto', euro2(r.nettoAnnuo)])
+    },
     fondo: {
       titolo: 'Previdenza complementare',
       corpo: 'Il versamento esce interamente dal netto, ma riduce l’imponibile fino a 5.164,57 € l’anno. '
@@ -18562,6 +18611,10 @@ function renderAvvisi(r) {
     avvisi.push(`Retribuzione mensile sotto il minimale contributivo INPS (${euro2(r.minimaleMese)}). `
       + 'In busta paga i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva: '
       + 'il motore <strong>non</strong> applica questa correzione, quindi qui i contributi sono sottostimati.');
+  }
+  if (r.altreTrattenuteNonCapienti > 0.01) {
+    avvisi.push(`Le trattenute richieste superano il netto disponibile: `
+      + `applicati ${euro(r.altreTrattenute)} invece di ${euro(r.altreTrattenuteRichieste)}.`);
   }
   if (r.versamentoNonCapiente > 0.01) {
     avvisi.push(`Il versamento richiesto al fondo supera quanto la busta paga contiene: `
@@ -18851,6 +18904,26 @@ function eseguiTest() {
   check('Sweep sulle combinazioni di previdenza complementare',
         anomalieFondo === 0, `${combinazioniFondo} combinazioni, ${anomalieFondo} anomalie`);
 
+  // Le trattenute nette non hanno effetto fiscale: quota sindacale,
+  // cessione del quinto e pignoramenti non sono deducibili ne' detraibili.
+  const senzaTrattenute = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000 });
+  const conTrattenute = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000, altreTrattenute: 320 });
+  check('Altre trattenute: escono dal netto senza toccare le imposte',
+        vicino(conTrattenute.imponibile, senzaTrattenute.imponibile, 0.001) &&
+        vicino(conTrattenute.irpefNetta, senzaTrattenute.irpefNetta, 0.001) &&
+        vicino(conTrattenute.nettoAnnuo, senzaTrattenute.nettoAnnuo - 320, 0.01) &&
+        vicino(conTrattenute.pressioneFiscale, senzaTrattenute.pressioneFiscale, 0.001),
+        `netto ${euro2(conTrattenute.nettoAnnuo)}, pressione invariata`);
+
+  // Non si puo' trattenere piu' di quanto la busta contiene
+  const trattenutaEccessiva = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 12000,
+                                               giorniLavorati: 5, altreTrattenute: 50000 });
+  check('Altre trattenute: non superano il netto disponibile',
+        trattenutaEccessiva.nettoAnnuo >= -0.005 &&
+        trattenutaEccessiva.altreTrattenute < trattenutaEccessiva.altreTrattenuteRichieste &&
+        trattenutaEccessiva.altreTrattenuteNonCapienti > 0,
+        `richiesti ${euro(trattenutaEccessiva.altreTrattenuteRichieste)}, applicati ${euro2(trattenutaEccessiva.altreTrattenute)}`);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -18869,7 +18942,8 @@ function eseguiTest() {
     combinazioni++;
     const x = calcolaPremium({ ...scenarioBase, anno, ral, profilo, regime, massimaleAttivo: ral > 120000 });
     const identita = x.ral + x.premioSostitutiva + x.premioOrdinario + x.accessoriAmmessi
-                   + x.accessoriOrdinari - x.totaleTrattenute - x.fondoPensioneDeducibile + x.totaleBonus;
+                   + x.accessoriOrdinari - x.totaleTrattenute - x.versamentoLavoratore
+                   - x.altreTrattenute + x.totaleBonus;
     const sano = Object.values(x).every((v) => typeof v !== 'number' || Number.isFinite(v))
               && x.nettoAnnuo >= -0.01 && Math.abs(identita - x.nettoAnnuo) <= 0.02;
     if (!sano) anomalie++;
@@ -19083,6 +19157,7 @@ function leggiParametriPremium() {
     fondoPensione: Math.max(0, parseFloat(el('p-fondo').value) || 0),
     contributoDatoreFondo: Math.max(0, parseFloat(el('p-fondo-datore').value) || 0),
     tfrAlFondo: el('p-tfr-fondo').checked,
+    altreTrattenute: Math.max(0, parseFloat(el('p-trattenute').value) || 0),
     regime: el('p-regime').value,
     impatriatiFigliMinori: el('p-impatriati-figli').checked
   };
@@ -19132,6 +19207,16 @@ function aggiornaNoteContestuali(p) {
     el('p-comune-nota').textContent = descrizione +
       (regola.esenzione > 0 ? ` · esenzione fino a ${euro(regola.esenzione)}` : '') +
       (p.anno === 2026 && !com.deliberato2026 ? ' · delibera 2026 non ancora pubblicata' : '');
+  }
+
+  const notaTrattenute = el('p-trattenute-nota');
+  const rTrattenute = calcolaPremium(p);
+  if (rTrattenute.altreTrattenute > rTrattenute.nettoPrimaTrattenute / 5 && rTrattenute.altreTrattenute > 0) {
+    notaTrattenute.classList.remove('hidden');
+    notaTrattenute.textContent = 'Supera un quinto del netto: se si tratta di cessione del quinto, '
+      + 'la legge non consente di andare oltre ' + euro(rTrattenute.nettoPrimaTrattenute / 5) + ' l’anno.';
+  } else {
+    notaTrattenute.classList.add('hidden');
   }
 
   el('p-fondo-datore-nota').textContent = p.fondoPensione > 0
@@ -19294,7 +19379,7 @@ document.querySelectorAll('.anno-btn').forEach((b) => {
 ['p-ral', 'p-mensilita', 'p-profilo', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
  'p-premio', 'p-premio-welfare', 'p-accessori', 'p-fondo', 'p-fondo-datore', 'p-tfr-fondo',
- 'p-regime', 'p-impatriati-figli']
+ 'p-trattenute', 'p-regime', 'p-impatriati-figli']
   .forEach((id) => {
     const nodo = el(id);
     nodo.addEventListener('input', aggiornaPremium);
@@ -19462,7 +19547,8 @@ const CAMPI_URL = {
   figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
   buoni: ['p-buoni', '0'], buonigiorni: ['p-buoni-giorni', '220'], premio: ['p-premio', '0'],
   accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'],
-  fondodatore: ['p-fondo-datore', '0'], regime: ['p-regime', 'nessuno']
+  fondodatore: ['p-fondo-datore', '0'], trattenute: ['p-trattenute', '0'],
+  regime: ['p-regime', 'nessuno']
 };
 const INTERRUTTORI_URL = {
   massimale: ['p-massimale', false], coniuge: ['p-coniuge', false], elettronici: ['p-buoni-el', true],

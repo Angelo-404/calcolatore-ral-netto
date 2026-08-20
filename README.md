@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 39 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 41 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -222,9 +222,11 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia | Destinazione del TFR |
 | Fondo: il versamento non supera quanto la busta contiene | Capienza della busta paga |
 | Sweep sulle combinazioni di previdenza complementare (96) | Copertura combinatoria |
+| Altre trattenute: escono dal netto senza toccare le imposte | Assenza di effetto fiscale |
+| Altre trattenute: non superano il netto disponibile | Capienza della busta paga |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**39 test su 39 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**41 test su 41 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -313,6 +315,7 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 | Straordinari, notturni e festivi | Imposta sostitutiva 5% per redditi fino a 33.000 € |
 | Previdenza complementare | Contributo del lavoratore, contributo del datore in percentuale, destinazione del TFR. Vedi §6.14 |
 | TFR maturato | RAL / 13,5 al netto del contributo dello 0,50% al Fondo di garanzia |
+| **Altre trattenute** | Quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa: un campo unico, perché si comportano tutte allo stesso modo. Vedi §6.15 |
 
 ### 6.5 Regimi fiscali agevolati
 
@@ -408,6 +411,19 @@ Un esempio prodotto dal motore — operaio metalmeccanico a 32.000 €, versamen
 
 Rinuncia a 247,60 € di netto e accumula 3.394,37 €. È il conto che un HR fa a voce davanti a un neoassunto, e che il calcolatore ora sa mostrare.
 
+### 6.15 Altre trattenute
+
+Un campo unico raccoglie le trattenute che escono dal netto **già tassato**: quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa. Si comportano tutte allo stesso modo, quindi un solo parametro le copre.
+
+Fiscalmente sono la voce più semplice del cedolino: **non sono oneri deducibili né detraibili**. Non toccano imponibile, imposte né contributi. È però la differenza fra il netto teorico e quello che arriva sul conto — la cifra che un dipendente contesta all'HR.
+
+Due conseguenze che il motore rispetta:
+
+- **La pressione fiscale le ignora.** Misura il prelievo dello Stato, non le spese personali del lavoratore: una quota sindacale non è un'imposta e non deve far salire quell'indicatore. Stesso criterio per il rapporto netto/costo azienda.
+- **Non possono eccedere il netto disponibile.** Qui il limite è semplice, perché non hanno effetto fiscale: nessuna ricerca per approssimazioni, a differenza dei versamenti al fondo.
+
+Il **limite del quinto** non viene imposto: il campo raccoglie voci diverse e solo la cessione del quinto vi è soggetta. Quando l'importo supera un quinto del netto, l'interfaccia lo segnala indicando il tetto di legge, lasciando all'utente il giudizio su quale voce stia inserendo.
+
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 
 Un calcolatore che presenta come esatto un numero che nessuno può conoscere perde credibilità presso chi il mestiere lo fa. Tre voci della sezione Premium hanno un margine di incertezza che non dipende dall'implementazione, e sono marcate come tali nell'interfaccia:
@@ -439,7 +455,6 @@ Fuori scope, in modo deliberato:
 - Tassazione separata di arretrati e TFR liquidato
 - Detrazioni per oneri (spese sanitarie, interessi passivi, ristrutturazioni) e relativo taglio forfettario oltre 200.000 €
 - Minimi tabellari, scatti di anzianità e superminimi previsti dai singoli CCNL
-- Trattenute sindacali, cessioni del quinto, pignoramenti
 - Assegno Unico Universale, che non transita dalla busta paga fiscale
 
 Il prototipo è una **stima previsionale a fini illustrativi** e non sostituisce il cedolino elaborato dal consulente del lavoro.
