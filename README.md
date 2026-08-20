@@ -444,6 +444,8 @@ Un euro di RAL e un euro di welfare non costano uguale all'azienda, perché non 
 | Dal netto desiderato | Il candidato chiede 2.000 € netti al mese: qual è il pacchetto che glieli consegna al minor costo? | Tre pacchetti a parità di valore, con il costo aziendale decrescente |
 | Dal budget aziendale | Ho 50.000 € l'anno da spendere: qual è il valore massimo che posso consegnare? | Tre pacchetti a parità di spesa, con il valore crescente |
 
+**Un solo punto d'ingresso per l'obiettivo netto.** La cifra che il candidato chiede si scrive una volta sola, nel riquadro *Dal netto alla RAL*, e da lì partono due azioni: **Trova la RAL** cerca la retribuzione che produce quella cifra, **Ottimizza** cerca il modo meno costoso di consegnarla. Duplicare il campo in due riquadri diversi avrebbe significato chiedere due volte la stessa cosa. Il budget, che non è un netto, resta l'ingresso speculare accanto ai risultati.
+
 **L'efficienza è misurata, non dichiarata.** A ciascuno strumento viene aggiunta una quota e si osserva la variazione reale di costo aziendale e di valore ricevuto. Nessun coefficiente scritto a mano che poi invecchia:
 
 | Strumento | Ricevuto per ogni euro speso |

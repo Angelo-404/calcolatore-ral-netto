@@ -330,10 +330,20 @@
             <option value="anno">all'anno</option>
           </select>
         </div>
-        <button id="btn-inverti"
-                class="w-full py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition">
-          Trova la RAL
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-inverti"
+                  class="py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition">
+            Trova la RAL
+          </button>
+          <button id="btn-ottimizza"
+                  class="py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition">
+            Ottimizza
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          <strong class="text-slate-300">Trova la RAL</strong> cerca la retribuzione che produce quella cifra.
+          <strong class="text-slate-300">Ottimizza</strong> cerca il modo meno costoso per l'azienda di consegnarla.
+        </p>
         <p id="p-netto-esito" class="hidden text-xs leading-relaxed"></p>
       </div>
 
@@ -677,38 +687,41 @@
           </p>
         </div>
 
-        <div class="px-6 py-4 space-y-4 no-print">
-          <div class="flex p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1">
-            <button data-modo="netto" class="ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition">
-              Dal netto desiderato
-            </button>
-            <button data-modo="budget" class="ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition">
-              Dal budget aziendale
-            </button>
-          </div>
+        <div class="px-6 py-4 text-sm text-slate-600 space-y-2 border-b border-slate-200">
+          <p>
+            Un euro di RAL e un euro di welfare non arrivano al lavoratore nella stessa misura, perch&eacute;
+            non subiscono lo stesso prelievo. La retribuzione ordinaria sconta contributi di entrambe le parti,
+            IRPEF marginale e addizionali: <strong>di ogni euro speso dall'azienda ne arrivano circa 0,37</strong>.
+            Fringe benefit, buoni pasto e premi convertiti in welfare, entro i limiti di legge, arrivano interi.
+          </p>
+          <p>
+            Il calcolo costruisce tre pacchetti che consegnano lo <strong>stesso valore</strong> al lavoratore
+            riempiendo prima gli strumenti esenti, e mostra quanto cambia il costo per l'azienda.
+            Le percentuali non sono scritte a mano: vengono misurate sul motore.
+          </p>
+        </div>
 
-          <div>
-            <label for="ott-importo" id="ott-titolo-campo" class="block text-sm font-semibold text-slate-700 mb-1.5">Valore netto desiderato</label>
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
-                <input id="ott-importo" type="number" min="0" max="1000000" step="100" placeholder="2.000"
-                       class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500" />
-              </div>
-              <select id="ott-periodo" class="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="mese" selected>al mese</option>
-                <option value="anno">all'anno</option>
-              </select>
-              <button id="btn-ottimizza" class="px-4 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 transition">
-                Confronta
-              </button>
+        <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 no-print">
+          <label for="ott-budget" class="block text-xs font-semibold text-slate-600 mb-1.5">
+            Oppure parti dal budget: quanto valore riesco a consegnare con questa spesa?
+          </label>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+              <input id="ott-budget" type="number" min="0" max="1000000" step="500" placeholder="50.000"
+                     class="num w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
-            <p id="ott-spiegazione" class="text-[11px] text-slate-500 mt-1.5"></p>
+            <button id="btn-ottimizza-budget" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-white transition">
+              Calcola
+            </button>
           </div>
         </div>
 
-        <div id="ott-esito" class="border-t border-slate-200">
-          <p class="px-6 py-8 text-center text-sm text-slate-500">Indica quanto deve ricevere il lavoratore.</p>
+        <div id="ott-esito">
+          <p class="px-6 py-8 text-center text-sm text-slate-500">
+            Indica un netto desiderato nel riquadro <strong>Dal netto alla RAL</strong> e premi <strong>Ottimizza</strong>,
+            oppure parti da un budget qui sopra.
+          </p>
         </div>
       </div>
 
@@ -19815,34 +19828,26 @@ el('btn-inverti').addEventListener('click', () => {
 /* ------------------------------------------- Ottimizzazione del costo */
 let modalitaOttimizzazione = 'netto';
 
-function aggiornaEtichetteOttimizzatore() {
-  const daNetto = modalitaOttimizzazione === 'netto';
-  el('ott-titolo-campo').textContent = daNetto ? 'Valore netto desiderato' : 'Budget annuo dell’azienda';
-  el('ott-periodo').classList.toggle('hidden', !daNetto);
-  el('ott-spiegazione').textContent = daNetto
-    ? 'Quanto deve ricevere il lavoratore. Il calcolo cerca il pacchetto che glielo consegna al minor costo per l’azienda.'
-    : 'Quanto l’azienda vuole spendere in tutto. Il calcolo cerca il pacchetto che ne consegna al lavoratore il valore maggiore.';
-
-  document.querySelectorAll('.ott-modo').forEach((b) => {
-    const attivo = b.dataset.modo === modalitaOttimizzazione;
-    b.className = attivo
-      ? 'ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition'
-      : 'ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition';
-  });
-}
-
-function renderOttimizzazione() {
-  const grezzo = parseFloat(el('ott-importo').value);
+/* L'obiettivo netto si indica una volta sola, nel riquadro in cima:
+   da li' si puo' cercare la RAL corrispondente oppure il pacchetto che
+   quella cifra la consegna al minor costo. Il budget e' l'ingresso
+   speculare, e vive accanto ai risultati. */
+function renderOttimizzazione(modo, importoGrezzo) {
+  modalitaOttimizzazione = modo;
   const esito = el('ott-esito');
+  const grezzo = parseFloat(importoGrezzo);
 
   if (!Number.isFinite(grezzo) || grezzo <= 0) {
-    esito.innerHTML = '<p class="px-6 py-8 text-center text-sm text-slate-500">'
-      + 'Indica un importo per confrontare i pacchetti.</p>';
+    esito.innerHTML = '<p class="px-6 py-8 text-center text-sm text-amber-700">'
+      + (modo === 'netto'
+          ? 'Indica prima la cifra netta nel riquadro <strong>Dal netto alla RAL</strong>.'
+          : 'Indica il budget annuo che l’azienda vuole spendere.')
+      + '</p>';
     return;
   }
 
   const params = leggiParametriPremium();
-  const perMese = modalitaOttimizzazione === 'netto' && el('ott-periodo').value === 'mese';
+  const perMese = modo === 'netto' && el('p-netto-periodo').value === 'mese';
   const valore = perMese ? grezzo * params.mensilita : grezzo;
 
   const pacchetti = pacchettiOttimizzati({ tipo: modalitaOttimizzazione, valore }, params);
@@ -19947,23 +19952,15 @@ function renderOttimizzazione() {
     </div>`;
 }
 
-document.querySelectorAll('.ott-modo').forEach((b) => {
-  b.addEventListener('click', () => {
-    modalitaOttimizzazione = b.dataset.modo;
-    aggiornaEtichetteOttimizzatore();
-    el('ott-importo').value = '';
-    el('ott-esito').innerHTML = '<p class="px-6 py-8 text-center text-sm text-slate-500">'
-      + (modalitaOttimizzazione === 'netto'
-          ? 'Indica quanto deve ricevere il lavoratore.'
-          : 'Indica quanto l’azienda vuole spendere.') + '</p>';
-  });
+el('btn-ottimizza').addEventListener('click', () => {
+  renderOttimizzazione('netto', el('p-netto-obiettivo').value);
+  el('ott-esito').closest('.bg-white').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
-el('btn-ottimizza').addEventListener('click', renderOttimizzazione);
-el('ott-importo').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); renderOttimizzazione(); }
+el('btn-ottimizza-budget').addEventListener('click', () => renderOttimizzazione('budget', el('ott-budget').value));
+el('ott-budget').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); renderOttimizzazione('budget', el('ott-budget').value); }
 });
-aggiornaEtichetteOttimizzatore();
 
 /* ------------------------------------------- Confronto fra scenari */
 let scenarioBloccato = null;
