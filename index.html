@@ -300,7 +300,9 @@
     <p class="text-slate-600 mt-2 max-w-3xl">
       Rimuove tutte le assunzioni fisse della sezione Base. Aliquote territoriali per
       <strong id="stat-comuni">7.897</strong> comuni e <strong>21</strong> regioni e province autonome,
-      importate dall'anagrafe del Dipartimento delle Finanze. Il motore Base resta invariato.
+      importate dall'anagrafe del Dipartimento delle Finanze e verificate al
+      <span id="data-dataset-premium" class="font-semibold">&mdash;</span>.
+      Il motore Base resta invariato.
     </p>
   </div>
 
@@ -618,7 +620,11 @@
 <footer class="border-t border-slate-200 bg-white mt-8">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-xs text-slate-500 flex flex-wrap gap-2 justify-between">
     <p>Prototipo tecnico &middot; Single Page Application zero dependencies &middot; Motore fiscale 2025/2026</p>
-    <p>Stima previsionale, non sostituisce il cedolino paga.</p>
+    <p>
+      Aliquote territoriali dall'anagrafe MEF, aggiornate al
+      <span id="data-dataset" class="font-semibold text-slate-600">&mdash;</span>
+      &middot; stima previsionale, non sostituisce il cedolino paga.
+    </p>
   </div>
 </footer>
 
@@ -854,7 +860,10 @@ function calcolaBase(ral) {
    - Aliquote e istituti IRPEF: TUIR, L. 207/2024, Legge di Bilancio 2026.
    ====================================================================== */
 
-/* Fonte: MEF - Dipartimento delle Finanze. Generato da build_dataset.py */
+/* === INIZIO DATI MEF: rigenerato da build/aggiorna_index.py === */
+const DATASET_AGGIORNATO = "2026-08-20";
+
+/* Fonte: MEF - Dipartimento delle Finanze, anagrafe delle delibere. */
 const ADD_REGIONALI = {"Abruzzo":[[1.67,28000],[2.87,50000],[3.33,null]],"Basilicata":[[1.23,null]],"Bolzano":[[1.23,28000],[1.23,50000],[1.73,null]],"Calabria":[[1.73,null]],"Campania":[[1.73,15000],[2.96,28000],[3.2,50000],[3.33,null]],"Emilia-Romagna":[[1.33,15000],[1.93,28000],[2.78,50000],[3.33,null]],"Friuli-Venezia Giulia":[[0.7,15000],[1.23,28000],[1.23,50000],[1.23,null]],"Lazio":[[1.73,15000],[3.33,28000],[3.33,50000],[3.33,null]],"Liguria":[[1.23,28000],[3.18,50000],[3.23,null]],"Lombardia":[[1.23,15000],[1.58,28000],[1.72,50000],[1.73,null]],"Marche":[[1.23,15000],[1.53,28000],[1.7,50000],[1.73,null]],"Molise":[[2.03,15000],[2.23,28000],[3.63,50000],[3.63,null]],"Piemonte":[[1.62,15000],[2.68,28000],[3.31,50000],[3.33,null]],"Puglia":[[1.33,15000],[2.13,28000],[3.23,50000],[3.33,null]],"Sardegna":[[1.23,null]],"Sicilia":[[1.23,null]],"Toscana":[[1.42,15000],[1.43,28000],[3.32,50000],[3.33,null]],"Trento":[[1.23,15000],[1.23,28000],[1.23,50000],[1.73,null]],"Umbria":[[1.73,15000],[3.02,28000],[3.12,50000],[3.33,null]],"Valle d'Aosta":[[1.23,null]],"Veneto":[[1.23,null]]};
 
 const COMUNI_ANAGRAFE = `A001|ABANO TERME|PD
@@ -17162,6 +17171,7 @@ const COMUNI_DIFF_2026 = `66=10000;0.63:15000,0.76:28000,0.79:50000,0.8
 7876=7499;0.7
 7887=15000;0.6
 7888=0;0.8`;
+/* === FINE DATI MEF === */
 
 
 /* ------------------------------------------- Parametri per anno d'imposta */
@@ -18919,6 +18929,13 @@ tabPremium.addEventListener('click', () => mostraSezione('premium'));
 
 /* ------------------------------------------------------ Bootstrap */
 el('engine-version').textContent = ENGINE_VERSION;
+
+// La data del dataset viene scritta dallo script di aggiornamento: dice al
+// lettore quanto sono recenti le delibere comunali incorporate.
+const dataLeggibile = new Date(DATASET_AGGIORNATO)
+  .toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+el('data-dataset').textContent = dataLeggibile;
+el('data-dataset-premium').textContent = dataLeggibile;
 popolaSelect();
 aggiornaBase();
 aggiornaPremium();

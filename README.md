@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 25 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 27 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -208,9 +208,11 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Dataset: Milano 0,80% con esenzione 23.000 € | Integrità del dataset |
 | Dataset: Lombardia allineata alla specifica del motore Base | Riconciliazione fonte/spec |
 | Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
+| Fondo pensione: deduce l'imposta, non gonfia le detrazioni | Confine fra reddito complessivo e imponibile |
+| Compensi accessori: imposta sostitutiva solo dal 2026 | Vigenza temporale dell'agevolazione |
 | Input 0 e input negativo senza `NaN`, anche in Premium | Robustezza |
 
-**25 test su 25 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**27 test su 27 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 55.448 € di retribuzione, e questo è corretto. La specifica del motore Base fissa l'INPS al 9,19% puro; il motore Premium applica anche l'aliquota aggiuntiva dell'1% prevista dall'art. 3-ter del D.L. 384/1992. Il test non nasconde la divergenza: la misura e verifica che sia esattamente pari a quel contributo.
 
@@ -391,16 +393,48 @@ CSV MEF addizionali comunali 2026  ─┼─→  build_dataset.py  ─→  datas
 
 Il dataset resta rigenerabile: rilanciando lo script su una nuova annualità, il calcolatore si aggiorna senza toccare una riga del motore.
 
+### 9.1 Aggiornamento automatico
+
+I dati territoriali si aggiornano da soli. Un workflow GitHub Actions gira il 1° e il 15 di ogni mese:
+
+1. Riscarica i CSV dal Dipartimento delle Finanze.
+2. Ricostruisce il dataset e lo reinserisce in `index.html`.
+3. Esegue `build/verifica_dataset.py`: 21 regioni, oltre 7.500 comuni, anagrafe e tariffe allineate, nessuna aliquota oltre il tetto di legge, Milano ancora allo 0,80% con esenzione a 23.000 €.
+4. Apre una pull request **solo se qualcosa è cambiato davvero**, allegando il report della ricostruzione.
+
+Il controllo di integrità è verificato al contrario: alterando l'aliquota di Milano lo script fallisce con codice 1 e blocca la pull request. Un controllo che non fallisce mai non protegge nulla.
+
+La data dell'ultima verifica è scritta nel dataset e mostrata in pagina, nel piè di pagina e nell'intestazione della sezione Premium: chi legge sa quanto sono recenti le delibere incorporate.
+
+### 9.2 Cosa l'automazione non può fare
+
+Va detto con precisione, perché la differenza è sostanziale.
+
+| Tipo di dato | Aggiornabile in automatico | Perché |
+|---|---|---|
+| Aliquote comunali e regionali | **Sì** | Il MEF le pubblica in CSV, leggibile da una macchina |
+| Aliquote IRPEF, cuneo, detrazioni, soglie contributive | **No** | Nascono da un testo di legge, non da un dataset. Nessuna fonte italiana le espone in formato interrogabile |
+
+Nessun ente pubblica la Legge di Bilancio come API. Quando cambia un'aliquota IRPEF, qualcuno deve leggere la norma e capirla: è esattamente ciò che ho fatto scoprendo che dal 2026 la seconda aliquota scende al 33%.
+
+Quello che l'architettura garantisce è che quel lavoro umano costi il minimo possibile: ogni parametro normativo è una costante nominata dentro `ANNI` e `COSTANTI`. Aggiungere l'anno d'imposta 2027 significa aggiungere un blocco di una dozzina di righe, senza toccare una sola formula. I 27 test dicono subito se qualcosa si è rotto.
+
+È la distinzione fra un software che si aggiorna da solo dove è possibile, e uno che promette di farlo dove non lo è.
+
 ---
 
 ## 10. Struttura dei file
 
 ```
 .
-├── index.html                 # SPA completa: motore, dataset MEF incorporato, UI, suite di test
-├── README.md                  # Questo documento
-└── build/
-    └── build_dataset.py       # Rigenera il dataset territoriale dalle fonti MEF
+├── index.html                      # SPA completa: motore, dataset MEF incorporato, UI, suite di test
+├── README.md                       # Questo documento
+├── build/
+│   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
+│   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
+│   └── verifica_dataset.py         # Controlli di integrita', gira in CI
+└── .github/workflows/
+    └── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
 ```
 
 `index.html` pesa circa 350 KB, di cui 267 KB sono il dataset ufficiale delle aliquote territoriali. Il motore di calcolo e l'interfaccia occupano gli 80 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.

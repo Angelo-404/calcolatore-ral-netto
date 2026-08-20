@@ -1,0 +1,54 @@
+name: Aggiorna aliquote territoriali
+
+# I comuni deliberano tutto l'anno e il Dipartimento delle Finanze pubblica
+# l'anagrafe aggiornata quotidianamente. Questo workflow riscarica le fonti,
+# ricostruisce il dataset e apre una pull request solo se qualcosa e'
+# cambiato davvero: nessun commit rumoroso quando non ci sono novita'.
+on:
+  schedule:
+    - cron: '0 5 1,15 * *'   # il 1 e il 15 di ogni mese, alle 05:00 UTC
+  workflow_dispatch:          # eseguibile a mano dalla tab Actions
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il repository
+        uses: actions/checkout@v4
+
+      - name: Prepara Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Riscarica le fonti MEF e ricostruisci il dataset
+        id: dataset
+        run: |
+          python build/aggiorna_index.py | tee report.txt
+          if git diff --quiet -- index.html; then
+            echo "cambiato=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "cambiato=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verifica che il motore regga il nuovo dataset
+        if: steps.dataset.outputs.cambiato == 'si'
+        run: python build/verifica_dataset.py
+
+      - name: Apri la pull request con le delibere aggiornate
+        if: steps.dataset.outputs.cambiato == 'si'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: dati/aggiornamento-aliquote
+          title: 'chore: aggiornamento delle aliquote territoriali MEF'
+          commit-message: 'chore: aggiornamento delle aliquote territoriali MEF'
+          body-path: report.txt
+          delete-branch: true
+
+      - name: Nessuna novita'
+        if: steps.dataset.outputs.cambiato == 'no'
+        run: echo "Nessuna delibera nuova rispetto alla versione pubblicata."
