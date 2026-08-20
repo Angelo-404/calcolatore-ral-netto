@@ -526,6 +526,24 @@
           </div>
           <p class="text-[11px] text-slate-500 mt-1">Contributo del lavoratore, deducibile fino a 5.164,57 &euro;</p>
         </div>
+
+        <div>
+          <label for="p-fondo-datore" class="block text-sm font-semibold text-slate-700 mb-1.5">Contributo del datore al fondo</label>
+          <div class="relative">
+            <input id="p-fondo-datore" type="number" min="0" max="20" step="0.05" value="0"
+                   class="num w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">%</span>
+          </div>
+          <p id="p-fondo-datore-nota" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="p-tfr-fondo" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+          <span class="text-sm">
+            <span class="font-semibold text-slate-700">TFR destinato al fondo pensione</span>
+            <span class="block text-xs text-slate-500">Non si accantona pi&ugrave; in azienda</span>
+          </span>
+        </label>
       </div>
 
       <!-- Regimi agevolati -->
@@ -574,6 +592,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">TFR / anno</p>
           <p id="pm-tfr" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
+          <p id="pm-tfr-dove" class="text-[11px] text-slate-400 mt-0.5">accantonato in azienda</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">
@@ -17536,6 +17555,8 @@ function calcolaPremium(params) {
     premioInWelfare: false,
     compensiAccessori: 0,
     fondoPensione: 0,
+    contributoDatoreFondo: 0,
+    tfrAlFondo: false,
     regime: 'nessuno',
     impatriatiFigliMinori: false,
     ...params
@@ -17610,13 +17631,27 @@ function calcolaPremium(params) {
   );
 
   const regime = applicaRegimeAgevolato(imponibileLordo, p.regime, p);
-  const fondoPensioneDeducibile = Math.min(Math.max(0, p.fondoPensione), PREMIUM.FONDO_PENSIONE_DEDUCIBILE);
+
+  /* --- Previdenza complementare ---------------------------------------
+     Il contributo del datore ai fondi negoziali spetta solo se il
+     lavoratore versa la propria quota: chi non aderisce lo lascia sul
+     tavolo. Il tetto di deducibilita' di 5.164,57 euro e' unico per i
+     due versamenti, e la parte di contributo aziendale che lo supera
+     torna a essere reddito imponibile per il lavoratore. */
+  const versamentoLavoratore = Math.max(0, p.fondoPensione);
+  const contributoDatoreFondo = versamentoLavoratore > 0
+    ? ral * Math.min(Math.max(0, p.contributoDatoreFondo), 100) / 100
+    : 0;
+  const fondoDatoreEccedente = Math.max(0, contributoDatoreFondo - PREMIUM.FONDO_PENSIONE_DEDUCIBILE);
+  const capienzaDeduzione = Math.max(0, PREMIUM.FONDO_PENSIONE_DEDUCIBILE - contributoDatoreFondo);
+  const fondoPensioneDeducibile = Math.min(versamentoLavoratore, capienzaDeduzione);
+  const fondoLavoratoreNonDedotto = versamentoLavoratore - fondoPensioneDeducibile;
 
   // Il reddito complessivo e' al lordo degli oneri deducibili: detrazioni,
   // cuneo e trattamento integrativo si parametrano a questo valore. La
   // previdenza complementare abbassa l'imposta, non deve far salire le
   // detrazioni ne' far rientrare in una fascia agevolata piu' favorevole.
-  const redditoComplessivo = regime.imponibile;
+  const redditoComplessivo = regime.imponibile + fondoDatoreEccedente;
   const imponibile = Math.max(0, redditoComplessivo - fondoPensioneDeducibile);
 
   /* --- IRPEF e detrazioni --------------------------------------------- */
@@ -17655,7 +17690,7 @@ function calcolaPremium(params) {
     + premioSostitutiva + premioOrdinario + accessoriAmmessi + accessoriOrdinari
     - inps - irpefNetta - addReg - addCom
     - impostaPremio - impostaAccessori
-    - fondoPensioneDeducibile
+    - versamentoLavoratore
     + bonusCuneo + trattamentoIntegrativo;
 
   const nettoMensile = nettoAnnuo / p.mensilita;
@@ -17669,7 +17704,9 @@ function calcolaPremium(params) {
   /* --- TFR e costo azienda --------------------------------------------- */
   const baseTfr = ral + premioLordo;
   const tfrLordo = baseTfr / PREMIUM.TFR_DIVISORE;
-  const tfr = tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO;
+  // Conferito al fondo il TFR non subisce il contributo dello 0,50% al
+  // Fondo di garanzia, che riguarda l'accantonamento in azienda.
+  const tfr = p.tfrAlFondo ? tfrLordo : tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO;
 
   const contributiDatore = contributi.baseApplicata * profilo.datore;
   const fondoDatore = profilo.fondoDatore
@@ -17677,7 +17714,7 @@ function calcolaPremium(params) {
     : 0;
   const inail = ral * PREMIUM.DATORE_INAIL;
   const costoAzienda = ral + premioLordo + Math.max(0, p.compensiAccessori)
-    + contributiDatore + fondoDatore + inail + tfrLordo
+    + contributiDatore + fondoDatore + contributoDatoreFondo + inail + tfrLordo
     + p.fringeBenefit + buoniTotale;
   const efficienza = costoAzienda > 0 ? (nettoAnnuo / costoAzienda) * 100 : 0;
 
@@ -17694,7 +17731,8 @@ function calcolaPremium(params) {
     baseContributivaApplicata: contributi.baseApplicata,
     imponibileLordo, imponibile, redditoComplessivo,
     regimeAbbattuto: regime.abbattuto, regimeNome: REGIMI[p.regime].nome,
-    fondoPensioneDeducibile,
+    fondoPensioneDeducibile, versamentoLavoratore, fondoLavoratoreNonDedotto,
+    contributoDatoreFondo, fondoDatoreEccedente, tfrAlFondo: !!p.tfrAlFondo,
     irpefLorda, detrazioniBase, ulterioreDetrazione,
     detrConiuge, detrFigli, detrAltri, detrFamiliari,
     totDetrazioni, detrazioneEffettiva, detrazioneNonGoduta, irpefNetta,
@@ -18202,6 +18240,9 @@ function renderPremium(r, baseline) {
   el('pm-mensilita-label').textContent = `su ${M} mensilità`;
   el('pm-valore').textContent = euro(r.valoreTotale);
   el('pm-tfr').textContent = euro(r.tfr);
+  el('pm-tfr-dove').textContent = r.tfrAlFondo
+    ? 'versato al fondo pensione'
+    : 'accantonato in azienda';
   el('pm-costo').textContent = euro(r.costoAzienda);
   el('pm-efficienza').textContent = perc(r.efficienza);
 
@@ -18273,7 +18314,8 @@ function renderPremium(r, baseline) {
   html += rigaCascata('Imponibile fiscale lordo', 'Base al netto dei contributi', r.imponibileLordo, M, { forte: true, evidenzia: true });
 
   if (r.regimeAbbattuto > 0) html += rigaCascata(`Abbattimento &mdash; ${r.regimeNome}`, 'Quota di reddito esclusa da tassazione', r.regimeAbbattuto, M, { tipo: 'positivo', indent: true, spiega: S.regime });
-  if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Previdenza complementare dedotta', 'Deducibile fino a 5.164,57 &euro;', r.fondoPensioneDeducibile, M, { tipo: 'positivo', indent: true });
+  if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Previdenza complementare dedotta', 'Deducibile fino a 5.164,57 &euro;, tetto condiviso con il datore', r.fondoPensioneDeducibile, M, { tipo: 'positivo', indent: true });
+  if (r.fondoDatoreEccedente > 0) html += rigaCascata('Contributo aziendale oltre il tetto', 'Torna a essere reddito imponibile', r.fondoDatoreEccedente, M, { tipo: 'neutro', indent: true });
   if (r.regimeAbbattuto > 0 || r.fondoPensioneDeducibile > 0) html += rigaCascata('Imponibile IRPEF', 'Base imponibile effettiva', r.imponibile, M, { forte: true, evidenzia: true });
 
   html += rigaCascata('IRPEF lorda', descrizioneScaglioni(r.anno), r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
@@ -18297,7 +18339,10 @@ function renderPremium(r, baseline) {
 
   if (r.impostaPremio > 0) html += rigaCascata('Imposta sostitutiva sul premio', `Aliquota ${fmtPerc.format(ANNI[r.anno].premiAliquota * 100)}%`, r.impostaPremio, M, { tipo: 'negativo' });
   if (r.impostaAccessori > 0) html += rigaCascata('Imposta sostitutiva su accessori', 'Aliquota 5%', r.impostaAccessori, M, { tipo: 'negativo' });
-  if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Versamento al fondo pensione', 'Trattenuto in busta paga', r.fondoPensioneDeducibile, M, { tipo: 'negativo' });
+  if (r.versamentoLavoratore > 0) html += rigaCascata('Versamento al fondo pensione', r.fondoLavoratoreNonDedotto > 0
+      ? `Trattenuto in busta paga, di cui ${euro(r.fondoLavoratoreNonDedotto)} non deducibile`
+      : 'Trattenuto in busta paga', r.versamentoLavoratore, M, { tipo: 'negativo', spiega: S.fondo });
+  if (r.contributoDatoreFondo > 0) html += rigaCascata('Contributo del datore al fondo', 'Non transita dalla busta: si accumula nel fondo', r.contributoDatoreFondo, M, { tipo: 'neutro' });
   if (r.bonusCuneo > 0) html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse', r.bonusCuneo, M, { tipo: 'positivo' });
   if (r.trattamentoIntegrativo > 0) html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi', r.trattamentoIntegrativo, M, { tipo: 'positivo' });
 
@@ -18444,6 +18489,20 @@ function spiegazioniPremium(r) {
         ['Valore dei benefit', euro2(r.fringeImponibile)],
         ['Soglia applicabile', euro2(r.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA)]
       ], ['Interamente imponibile', euro2(r.fringeImponibile)])
+    },
+    fondo: {
+      titolo: 'Previdenza complementare',
+      corpo: 'Il versamento esce interamente dal netto, ma riduce l’imponibile fino a 5.164,57 € l’anno. '
+        + 'Il tetto è <strong>unico</strong> per il lavoratore e per il datore: se l’azienda versa al fondo, '
+        + 'consuma capienza e la quota del lavoratore diventa deducibile solo per la parte restante. '
+        + 'Nei fondi negoziali il contributo aziendale spetta soltanto a chi versa la propria quota: '
+        + 'chi non aderisce rinuncia a quel denaro.',
+      fonte: 'D.Lgs. 252/2005, art. 8',
+      html: formula([
+        ['Versamento del lavoratore', euro2(r.versamentoLavoratore)],
+        ['Contributo del datore', euro2(r.contributoDatoreFondo)],
+        ['Quota dedotta dall’imponibile', euro2(r.fondoPensioneDeducibile)]
+      ], ['Totale accantonato nel fondo', euro2(r.versamentoLavoratore + r.contributoDatoreFondo + (r.tfrAlFondo ? r.tfr : 0))])
     },
     premio: {
       titolo: 'Premio di risultato',
@@ -18704,6 +18763,39 @@ function eseguiTest() {
         acc25.accessoriAmmessi === 0 && acc25.impostaAccessori === 0 && acc26.accessoriAmmessi === 2000,
         `2025 ordinari · 2026 agevolati ${euro2(acc26.impostaAccessori)}`);
 
+  // Nei fondi negoziali il contributo del datore spetta solo a chi versa
+  const senzaAdesione = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 35000, contributoDatoreFondo: 2 });
+  const conAdesione = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 35000, contributoDatoreFondo: 2, fondoPensione: 500 });
+  check('Fondo: il contributo del datore spetta solo a chi versa',
+        senzaAdesione.contributoDatoreFondo === 0 &&
+        vicino(conAdesione.contributoDatoreFondo, 700, 0.01),
+        `chi non aderisce rinuncia a ${euro(conAdesione.contributoDatoreFondo)}`);
+
+  // Il tetto di deducibilità è unico per lavoratore e datore
+  const tettoCondiviso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 100000,
+                                          contributoDatoreFondo: 4, fondoPensione: 4000 });
+  check('Fondo: tetto di deducibilità condiviso fra lavoratore e datore',
+        vicino(tettoCondiviso.fondoPensioneDeducibile + tettoCondiviso.contributoDatoreFondo,
+               PREMIUM.FONDO_PENSIONE_DEDUCIBILE, 0.01) &&
+        tettoCondiviso.fondoLavoratoreNonDedotto > 0,
+        `dedotti ${euro2(tettoCondiviso.fondoPensioneDeducibile)} su ${euro2(tettoCondiviso.versamentoLavoratore)} versati`);
+
+  // Il contributo aziendale oltre il tetto torna imponibile
+  const oltreTetto = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 200000,
+                                      contributoDatoreFondo: 4, fondoPensione: 100 });
+  check('Fondo: il contributo aziendale oltre il tetto torna imponibile',
+        oltreTetto.fondoDatoreEccedente > 0 &&
+        oltreTetto.redditoComplessivo > oltreTetto.imponibileLordo,
+        euro2(oltreTetto.fondoDatoreEccedente));
+
+  // Conferendo il TFR al fondo non si paga il contributo al Fondo di garanzia
+  const tfrInAzienda = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000 });
+  const tfrAlFondo = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000, tfrAlFondo: true });
+  check('TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia',
+        tfrAlFondo.tfr > tfrInAzienda.tfr &&
+        vicino(tfrAlFondo.tfr - tfrInAzienda.tfr, 30000 * 0.005, 0.01),
+        `+${euro2(tfrAlFondo.tfr - tfrInAzienda.tfr)}`);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -18934,6 +19026,8 @@ function leggiParametriPremium() {
     premioInWelfare: el('p-premio-welfare').checked,
     compensiAccessori: Math.max(0, parseFloat(el('p-accessori').value) || 0),
     fondoPensione: Math.max(0, parseFloat(el('p-fondo').value) || 0),
+    contributoDatoreFondo: Math.max(0, parseFloat(el('p-fondo-datore').value) || 0),
+    tfrAlFondo: el('p-tfr-fondo').checked,
     regime: el('p-regime').value,
     impatriatiFigliMinori: el('p-impatriati-figli').checked
   };
@@ -18984,6 +19078,10 @@ function aggiornaNoteContestuali(p) {
       (regola.esenzione > 0 ? ` · esenzione fino a ${euro(regola.esenzione)}` : '') +
       (p.anno === 2026 && !com.deliberato2026 ? ' · delibera 2026 non ancora pubblicata' : '');
   }
+
+  el('p-fondo-datore-nota').textContent = p.fondoPensione > 0
+    ? `Spetta perché il lavoratore versa: ${euro(p.ral * p.contributoDatoreFondo / 100)} l'anno a carico azienda.`
+    : 'Nei fondi negoziali il contributo aziendale spetta solo se il lavoratore versa la propria quota.';
 
   el('p-impatriati-box').className = p.regime === 'impatriati'
     ? 'flex items-center gap-3 cursor-pointer'
@@ -19140,7 +19238,8 @@ document.querySelectorAll('.anno-btn').forEach((b) => {
 
 ['p-ral', 'p-mensilita', 'p-profilo', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
- 'p-premio', 'p-premio-welfare', 'p-accessori', 'p-fondo', 'p-regime', 'p-impatriati-figli']
+ 'p-premio', 'p-premio-welfare', 'p-accessori', 'p-fondo', 'p-fondo-datore', 'p-tfr-fondo',
+ 'p-regime', 'p-impatriati-figli']
   .forEach((id) => {
     const nodo = el(id);
     nodo.addEventListener('input', aggiornaPremium);
@@ -19307,11 +19406,13 @@ const CAMPI_URL = {
   regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
   figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
   buoni: ['p-buoni', '0'], buonigiorni: ['p-buoni-giorni', '220'], premio: ['p-premio', '0'],
-  accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'], regime: ['p-regime', 'nessuno']
+  accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'],
+  fondodatore: ['p-fondo-datore', '0'], regime: ['p-regime', 'nessuno']
 };
 const INTERRUTTORI_URL = {
   massimale: ['p-massimale', false], coniuge: ['p-coniuge', false], elettronici: ['p-buoni-el', true],
-  welfare: ['p-premio-welfare', false], impatriatifigli: ['p-impatriati-figli', false]
+  welfare: ['p-premio-welfare', false], impatriatifigli: ['p-impatriati-figli', false],
+  tfrfondo: ['p-tfr-fondo', false]
 };
 
 let ripristinoInCorso = false;
