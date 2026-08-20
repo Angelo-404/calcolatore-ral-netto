@@ -42,6 +42,13 @@
   .fade-in { animation: fade .35s ease both; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+  /* I figli di una griglia hanno min-width:auto e non si restringono sotto la
+     larghezza minima del contenuto: su schermi stretti la tabella del dettaglio
+     dilatava la colonna e faceva scorrere l'intera pagina in orizzontale.
+     Con min-width:0 la colonna si restringe e lo scorrimento resta confinato
+     al contenitore .overflow-x-auto della tabella, dove deve stare. */
+  .grid > * { min-width: 0; }
+
   /* --- Spiegazioni contestuali --- */
   .spiega {
     display: inline-grid; place-items: center; vertical-align: middle;
@@ -57,12 +64,31 @@
   .spiega:focus-visible { outline: 2px solid #2148e3; outline-offset: 2px; }
 
   #popover-spiega {
-    position: fixed; z-index: 60; width: min(22rem, calc(100vw - 2rem));
+    position: fixed; z-index: 60; width: min(22rem, calc(100% - 2rem));
     background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, .16);
     padding: 16px; font-size: 13px; line-height: 1.5; color: #334155;
   }
   #popover-spiega[hidden] { display: none; }
+  #popover-spiega .sp-chiudi { display: none; }
+
+  /* Su schermo stretto il posizionamento accanto al pulsante lascia poco
+     spazio e finisce sotto il dito: la spiegazione diventa un pannello
+     ancorato in basso, con chiusura esplicita. */
+  @media (max-width: 640px) {
+    #popover-spiega {
+      left: 8px !important; right: 8px; top: auto !important; bottom: 8px;
+      width: auto; max-height: 70vh; overflow-y: auto;
+      border-radius: 16px; padding: 18px;
+      box-shadow: 0 -8px 40px rgba(15, 23, 42, .22);
+    }
+    #popover-spiega .sp-chiudi {
+      display: block; width: 100%; margin-top: 14px; padding: 10px;
+      border: 0; border-radius: 10px; background: #f1f5f9;
+      color: #334155; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .spiega { width: 20px; height: 20px; font-size: 11px; }
+  }
   #popover-spiega .sp-titolo { font-weight: 700; color: #0f172a; font-size: 13px; }
   #popover-spiega .sp-corpo { margin-top: 6px; }
   #popover-spiega .sp-fonte {
@@ -18687,6 +18713,8 @@ popover.hidden = true;
 document.body.appendChild(popover);
 
 let trigger = null;
+let appenaAperto = false;
+let timerApertura = null;
 
 function chiudiSpiegazione() {
   if (trigger) trigger.setAttribute('aria-expanded', 'false');
@@ -18702,14 +18730,27 @@ function apriSpiegazione(bottone) {
   trigger = bottone;
   bottone.setAttribute('aria-expanded', 'true');
 
+  appenaAperto = true;
+  clearTimeout(timerApertura);
+  timerApertura = setTimeout(() => { appenaAperto = false; }, 400);
+
   popover.innerHTML = `
     <p class="sp-titolo">${spiegazione.titolo}</p>
     <div class="sp-corpo">${spiegazione.corpo}</div>
     ${spiegazione.html || ''}
-    ${spiegazione.fonte ? `<p class="sp-fonte">${spiegazione.fonte}</p>` : ''}`;
+    ${spiegazione.fonte ? `<p class="sp-fonte">${spiegazione.fonte}</p>` : ''}
+    <button type="button" class="sp-chiudi">Chiudi</button>`;
   popover.hidden = false;
 
-  // Posizionamento: sotto il pulsante, ribaltato sopra se non c'è spazio,
+  // Su schermo stretto la posizione è fissata dal CSS: il pannello occupa il
+  // fondo dello schermo e non va calcolato nulla.
+  if (schermoStretto()) {
+    popover.style.left = '';
+    popover.style.top = '';
+    return;
+  }
+
+  // Altrimenti: sotto il pulsante, ribaltato sopra se non c'è spazio,
   // e sempre contenuto nella finestra.
   const b = bottone.getBoundingClientRect();
   const p = popover.getBoundingClientRect();
@@ -18727,20 +18768,30 @@ function apriSpiegazione(bottone) {
   popover.style.top = alto + 'px';
 }
 
+const schermoStretto = () => window.matchMedia('(max-width: 640px)').matches;
+// L'apertura in hover vale solo dove esiste un vero puntatore: su touch il
+// browser emette mouseover e subito dopo click, e la spiegazione si
+// richiuderebbe da sola nello stesso tocco.
+const puntatoreFine = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 document.addEventListener('click', (e) => {
+  if (e.target.closest('.sp-chiudi')) { chiudiSpiegazione(); return; }
+
   const bottone = e.target.closest('.spiega');
   if (bottone) {
     e.preventDefault();
-    if (trigger === bottone) chiudiSpiegazione();
+    // Su touch il precedente mouseover ha già aperto questa spiegazione:
+    // il clic non deve interpretarla come una richiesta di chiusura.
+    if (trigger === bottone && !appenaAperto) chiudiSpiegazione();
     else apriSpiegazione(bottone);
     return;
   }
   if (!popover.contains(e.target)) chiudiSpiegazione();
 });
 
-// In hover l'apertura è immediata su desktop, ma il clic resta la via
-// principale: senza, il contenuto sarebbe irraggiungibile da tocco.
+// In hover l'apertura è immediata, ma solo con un puntatore vero.
 document.addEventListener('mouseover', (e) => {
+  if (!puntatoreFine()) return;
   const bottone = e.target.closest('.spiega');
   if (bottone && bottone !== trigger) apriSpiegazione(bottone);
 });
@@ -18751,7 +18802,12 @@ document.addEventListener('focusin', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') chiudiSpiegazione();
 });
-window.addEventListener('scroll', chiudiSpiegazione, true);
+// Lo scorrimento sposta il pulsante e la spiegazione resterebbe orfana: la
+// si chiude. Non quando è il pannello ancorato in basso, che resta valido, e
+// mai nell'istante in cui è appena stata aperta da un tocco.
+window.addEventListener('scroll', () => {
+  if (!schermoStretto() && !appenaAperto) chiudiSpiegazione();
+}, true);
 window.addEventListener('resize', chiudiSpiegazione);
 
 /* ------------------------------------------------------------ Tabs */
