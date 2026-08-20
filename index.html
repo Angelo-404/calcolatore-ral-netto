@@ -662,6 +662,50 @@
         <div id="test-output" class="mt-4 hidden"></div>
       </div>
 
+      <!-- Ottimizzazione del costo aziendale -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+          <h3 class="font-bold text-slate-900">Ottimizzazione del costo</h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Un euro di welfare esente costa all'azienda meno di un euro di RAL, a parit&agrave; di valore ricevuto
+          </p>
+        </div>
+
+        <div class="px-6 py-4 space-y-4 no-print">
+          <div class="flex p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1">
+            <button data-modo="netto" class="ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition">
+              Dal netto desiderato
+            </button>
+            <button data-modo="budget" class="ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition">
+              Dal budget aziendale
+            </button>
+          </div>
+
+          <div>
+            <label for="ott-importo" id="ott-titolo-campo" class="block text-sm font-semibold text-slate-700 mb-1.5">Valore netto desiderato</label>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+                <input id="ott-importo" type="number" min="0" max="1000000" step="100" placeholder="2.000"
+                       class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <select id="ott-periodo" class="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="mese" selected>al mese</option>
+                <option value="anno">all'anno</option>
+              </select>
+              <button id="btn-ottimizza" class="px-4 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 transition">
+                Confronta
+              </button>
+            </div>
+            <p id="ott-spiegazione" class="text-[11px] text-slate-500 mt-1.5"></p>
+          </div>
+        </div>
+
+        <div id="ott-esito" class="border-t border-slate-200">
+          <p class="px-6 py-8 text-center text-sm text-slate-500">Indica quanto deve ricevere il lavoratore.</p>
+        </div>
+      </div>
+
       <!-- Confronto fra due scenari -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
@@ -17750,7 +17794,8 @@ function calcolaPremium(params) {
     : 0;
 
   /* --- TFR e costo azienda --------------------------------------------- */
-  const baseTfr = ral + premioLordo;
+  // Il premio convertito in welfare non e' retribuzione: non matura TFR.
+  const baseTfr = ral + premioSostitutiva + premioOrdinario;
   const tfrLordo = baseTfr / PREMIUM.TFR_DIVISORE;
   // Conferito al fondo il TFR non subisce il contributo dello 0,50% al
   // Fondo di garanzia, che riguarda l'accantonamento in azienda.
@@ -17900,6 +17945,144 @@ function invertiNetto(nettoRichiesto, params) {
     sopra: vicinoSopra,
     salto: vicinoSopra ? vicinoSopra.netto - vicinoSotto.netto : 0
   };
+}
+
+/* ====================================================================
+   OTTIMIZZAZIONE DEL COSTO AZIENDALE
+   ----------------------------------------------------------------------
+   Un euro di RAL e un euro di welfare non costano uguale all'azienda,
+   perche' non subiscono lo stesso prelievo. Dare valore al lavoratore
+   attraverso gli strumenti esenti costa circa la meta'.
+
+   Due direzioni, stessa macchina:
+     - dal netto desiderato  -> qual e' il pacchetto che lo consegna al
+       costo aziendale minore;
+     - dal budget aziendale  -> qual e' il valore massimo consegnabile
+       con quella spesa.
+
+   L'efficienza di ogni strumento non e' scritta a mano: viene misurata
+   perturbando il motore e osservando quanto valore arriva al lavoratore
+   per ogni euro speso dall'azienda.
+   ==================================================================== */
+
+/* Tetti di legge degli strumenti esenti, per lo scenario corrente */
+function tettiEsenti(params) {
+  const A = ANNI[params.anno] || ANNI[2026];
+  const limiteBuono = params.buoniElettronici === false ? A.buonoCartaceo : A.buonoElettronico;
+  return {
+    fringe: params.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA,
+    buoni: limiteBuono * (params.buoniGiorni || PREMIUM.BUONI_GIORNI_ANNO),
+    premio: PREMIUM.PREMIO_LIMITE,
+    limiteBuono
+  };
+}
+
+/* Quanto valore riceve il lavoratore per ogni euro speso dall'azienda.
+   Misurato, non dichiarato: si aggiunge una quota a ciascuno strumento
+   e si osserva la variazione reale di valore e di costo. */
+function efficienzaStrumenti(params) {
+  const neutro = { ...params, fringeBenefit: 0, buoniPastoGiorno: 0, premioRisultato: 0,
+                   premioInWelfare: false, compensiAccessori: 0 };
+  const base = calcolaPremium(neutro);
+  const valore = (r) => r.nettoAnnuo + r.welfareEsente;
+  const tetti = tettiEsenti(params);
+  const passo = 100;
+
+  const misura = (modifica) => {
+    const r = calcolaPremium({ ...neutro, ...modifica });
+    const deltaCosto = r.costoAzienda - base.costoAzienda;
+    const deltaValore = valore(r) - valore(base);
+    return deltaCosto > 0.01 ? deltaValore / deltaCosto : 0;
+  };
+
+  return {
+    ral: misura({ ral: neutro.ral + passo }),
+    fringe: tetti.fringe >= passo ? misura({ fringeBenefit: passo }) : 0,
+    buoni: tetti.limiteBuono > 0 ? misura({ buoniPastoGiorno: Math.min(tetti.limiteBuono, 4) }) : 0,
+    premioWelfare: misura({ premioRisultato: passo, premioInWelfare: true }),
+    premioDenaro: misura({ premioRisultato: passo, premioInWelfare: false })
+  };
+}
+
+/* Inversione sul costo: quale RAL porta il costo aziendale al valore dato.
+   Il costo cresce con la RAL senza salti, quindi la bisezione basta. */
+function invertiCosto(costoObiettivo, params) {
+  const costo = (ral) => calcolaPremium({ ...params, ral }).costoAzienda;
+  if (costoObiettivo <= costo(0)) return 0;
+
+  let basso = 0, alto = 1000000;
+  if (costo(alto) < costoObiettivo) return alto;
+  for (let i = 0; i < 60 && alto - basso > 0.5; i++) {
+    const mezzo = (basso + alto) / 2;
+    if (costo(mezzo) < costoObiettivo) basso = mezzo;
+    else alto = mezzo;
+  }
+  return basso;
+}
+
+/* Costruisce un pacchetto: welfare fino ai tetti indicati, poi la RAL
+   necessaria a coprire il resto. */
+function componiPacchetto(nome, descrizione, params, quote, obiettivo) {
+  const tetti = tettiEsenti(params);
+
+  const fringe = Math.min(quote.fringe || 0, tetti.fringe);
+  const buoniGiorno = quote.buoni ? Math.min(quote.buoni / (params.buoniGiorni || PREMIUM.BUONI_GIORNI_ANNO), tetti.limiteBuono) : 0;
+  const buoni = buoniGiorno * (params.buoniGiorni || PREMIUM.BUONI_GIORNI_ANNO);
+  const premio = Math.min(quote.premio || 0, tetti.premio);
+  const welfare = fringe + buoni + premio;
+
+  const comune = { ...params, fringeBenefit: fringe, buoniPastoGiorno: buoniGiorno,
+                   premioRisultato: premio, premioInWelfare: premio > 0 };
+
+  let ral;
+  if (obiettivo.tipo === 'netto') {
+    const cassaNecessaria = Math.max(0, obiettivo.valore - welfare);
+    const inversione = invertiNetto(cassaNecessaria, comune);
+    ral = inversione.esito === 'esatto' ? inversione.ral
+        : inversione.esito === 'irraggiungibile' ? inversione.sopra.ral
+        : 0;
+  } else {
+    // Dal budget: il costo restituito dal motore comprende gia' il welfare,
+    // quindi l'obiettivo e' l'intero budget e non il budget al netto di esso.
+    ral = invertiCosto(obiettivo.valore, comune);
+  }
+
+  const r = calcolaPremium({ ...comune, ral });
+  return {
+    nome, descrizione, ral,
+    fringe, buoni, premio, welfare: r.welfareEsente,
+    nettoCassa: r.nettoAnnuo,
+    valoreTotale: r.nettoAnnuo + r.welfareEsente,
+    costoAzienda: r.costoAzienda,
+    quotaContante: (r.nettoAnnuo + r.welfareEsente) > 0 ? r.nettoAnnuo / (r.nettoAnnuo + r.welfareEsente) : 1,
+    premioOltreSoglia: premio > 0 && ral > PREMIUM.PREMIO_REDDITO_MAX,
+    risultato: r
+  };
+}
+
+/* I tre pacchetti, dalla forma piu' semplice alla piu' efficiente */
+function pacchettiOttimizzati(obiettivo, params) {
+  const tetti = tettiEsenti(params);
+  const neutro = { ...params, fringeBenefit: 0, buoniPastoGiorno: 0,
+                   premioRisultato: 0, premioInWelfare: false };
+
+  // Il welfare non puo' superare il valore che si vuole consegnare
+  const spazio = obiettivo.tipo === 'netto' ? obiettivo.valore : Infinity;
+  const fringe = Math.min(tetti.fringe, spazio);
+  const buoni = Math.min(tetti.buoni, Math.max(0, spazio - fringe));
+  const premio = Math.min(tetti.premio, Math.max(0, spazio - fringe - buoni));
+
+  return [
+    componiPacchetto('Solo retribuzione',
+      'Tutto il valore passa dalla busta paga',
+      neutro, {}, obiettivo),
+    componiPacchetto('Con welfare esente',
+      'Fringe benefit e buoni pasto entro le soglie di esenzione',
+      neutro, { fringe, buoni }, obiettivo),
+    componiPacchetto('Con premio convertito',
+      'Aggiunge il premio di risultato erogato in welfare aziendale',
+      neutro, { fringe, buoni, premio }, obiettivo)
+  ];
 }
 
 /* ====================================================================
@@ -18924,6 +19107,39 @@ function eseguiTest() {
         trattenutaEccessiva.altreTrattenuteNonCapienti > 0,
         `richiesti ${euro(trattenutaEccessiva.altreTrattenuteRichieste)}, applicati ${euro2(trattenutaEccessiva.altreTrattenute)}`);
 
+  // Ottimizzazione dal netto: ogni pacchetto consegna lo stesso valore,
+  // e il costo per l'azienda scende man mano che si usa il welfare esente.
+  const daNetto = pacchettiOttimizzati({ tipo: 'netto', valore: 26000 }, { ...scenarioBase, anno: 2026 });
+  check('Ottimizzazione dal netto: stesso valore, costo decrescente',
+        daNetto.every((p) => vicino(p.valoreTotale, 26000, 2)) &&
+        daNetto[1].costoAzienda < daNetto[0].costoAzienda &&
+        daNetto[2].costoAzienda < daNetto[1].costoAzienda,
+        `risparmio ${euro(daNetto[0].costoAzienda - daNetto[2].costoAzienda)}`);
+
+  // Ottimizzazione dal budget: stessa spesa, valore consegnato crescente
+  const daBudget = pacchettiOttimizzati({ tipo: 'budget', valore: 50000 }, { ...scenarioBase, anno: 2026 });
+  check('Ottimizzazione dal budget: stessa spesa, valore crescente',
+        daBudget.every((p) => vicino(p.costoAzienda, 50000, 2)) &&
+        daBudget[1].valoreTotale > daBudget[0].valoreTotale &&
+        daBudget[2].valoreTotale > daBudget[1].valoreTotale,
+        `+${euro(daBudget[2].valoreTotale - daBudget[0].valoreTotale)} al lavoratore`);
+
+  // L'ottimizzatore non supera mai le soglie di esenzione: oltre la soglia
+  // il fringe benefit diventa imponibile per intero e il vantaggio sparisce
+  const tetti = tettiEsenti({ ...scenarioBase, anno: 2026 });
+  check('Ottimizzazione: il welfare resta entro i tetti di legge',
+        daNetto[2].fringe <= tetti.fringe + 0.01 &&
+        daNetto[2].buoni <= tetti.buoni + 0.01 &&
+        daNetto[2].premio <= PREMIUM.PREMIO_LIMITE + 0.01);
+
+  // L'efficienza degli strumenti è misurata sul motore, non dichiarata:
+  // il welfare esente deve risultare 1 € ricevuto per 1 € speso.
+  const eff = efficienzaStrumenti({ ...scenarioBase, anno: 2026, ral: 35000 });
+  check('Efficienza misurata: welfare esente 1:1, retribuzione molto meno',
+        vicino(eff.fringe, 1, 0.001) && vicino(eff.buoni, 1, 0.001) &&
+        vicino(eff.premioWelfare, 1, 0.001) && eff.ral < 0.6,
+        `retribuzione ${fmtPerc2.format(eff.ral)} € per euro speso`);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -19466,6 +19682,159 @@ el('btn-inverti').addEventListener('click', () => {
         ? 'sopra è ' + euro(r.sopra.netto / params.mensilita) + ' al mese con RAL ' + euro(r.sopra.ral) + '.'
         : 'non esiste un valore superiore raggiungibile.');
 });
+
+/* ------------------------------------------- Ottimizzazione del costo */
+let modalitaOttimizzazione = 'netto';
+
+function aggiornaEtichetteOttimizzatore() {
+  const daNetto = modalitaOttimizzazione === 'netto';
+  el('ott-titolo-campo').textContent = daNetto ? 'Valore netto desiderato' : 'Budget annuo dell’azienda';
+  el('ott-periodo').classList.toggle('hidden', !daNetto);
+  el('ott-spiegazione').textContent = daNetto
+    ? 'Quanto deve ricevere il lavoratore. Il calcolo cerca il pacchetto che glielo consegna al minor costo per l’azienda.'
+    : 'Quanto l’azienda vuole spendere in tutto. Il calcolo cerca il pacchetto che ne consegna al lavoratore il valore maggiore.';
+
+  document.querySelectorAll('.ott-modo').forEach((b) => {
+    const attivo = b.dataset.modo === modalitaOttimizzazione;
+    b.className = attivo
+      ? 'ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition'
+      : 'ott-modo flex-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition';
+  });
+}
+
+function renderOttimizzazione() {
+  const grezzo = parseFloat(el('ott-importo').value);
+  const esito = el('ott-esito');
+
+  if (!Number.isFinite(grezzo) || grezzo <= 0) {
+    esito.innerHTML = '<p class="px-6 py-8 text-center text-sm text-slate-500">'
+      + 'Indica un importo per confrontare i pacchetti.</p>';
+    return;
+  }
+
+  const params = leggiParametriPremium();
+  const perMese = modalitaOttimizzazione === 'netto' && el('ott-periodo').value === 'mese';
+  const valore = perMese ? grezzo * params.mensilita : grezzo;
+
+  const pacchetti = pacchettiOttimizzati({ tipo: modalitaOttimizzazione, valore }, params);
+  const riferimento = pacchetti[0];
+  const efficienza = efficienzaStrumenti(params);
+
+  const colonna = (p, indice) => {
+    const deltaCosto = p.costoAzienda - riferimento.costoAzienda;
+    const deltaValore = p.valoreTotale - riferimento.valoreTotale;
+    const evidenza = indice === 0 ? '' : ' bg-emerald-50/60';
+
+    return `
+      <tr class="${evidenza}">
+        <td class="px-6 py-3">
+          <span class="font-semibold text-slate-800">${p.nome}</span>
+          <span class="block text-xs text-slate-400 mt-0.5">${p.descrizione}</span>
+          ${p.premioOltreSoglia ? '<span class="block text-xs text-amber-700 mt-1">Il premio agevolato non spetta oltre '
+            + euro(PREMIUM.PREMIO_REDDITO_MAX) + ' di reddito: questo pacchetto non è applicabile.</span>' : ''}
+        </td>
+        <td class="num px-4 py-3 text-right font-semibold text-slate-900">${euro(p.ral)}</td>
+        <td class="num px-4 py-3 text-right text-slate-600">${euro(p.nettoCassa)}</td>
+        <td class="num px-4 py-3 text-right text-emerald-700">${p.welfare > 0 ? euro(p.welfare) : '—'}</td>
+        <td class="num px-4 py-3 text-right font-bold text-slate-900">${euro(p.costoAzienda)}</td>
+        <td class="num px-6 py-3 text-right font-bold ${indice === 0 ? 'text-slate-400' : (modalitaOttimizzazione === 'netto' ? (deltaCosto < -0.5 ? 'text-emerald-600' : 'text-slate-400') : (deltaValore > 0.5 ? 'text-emerald-600' : 'text-slate-400'))}">
+          ${indice === 0 ? 'riferimento'
+            : modalitaOttimizzazione === 'netto'
+              ? (deltaCosto < -0.5 ? '− ' + euro(Math.abs(deltaCosto)) : '—')
+              : (deltaValore > 0.5 ? '+ ' + euro(deltaValore) : '—')}
+        </td>
+      </tr>`;
+  };
+
+  const migliore = modalitaOttimizzazione === 'netto'
+    ? pacchetti.reduce((a, b) => (b.costoAzienda < a.costoAzienda && !b.premioOltreSoglia ? b : a))
+    : pacchetti.reduce((a, b) => (b.valoreTotale > a.valoreTotale && !b.premioOltreSoglia ? b : a));
+
+  const guadagno = modalitaOttimizzazione === 'netto'
+    ? riferimento.costoAzienda - migliore.costoAzienda
+    : migliore.valoreTotale - riferimento.valoreTotale;
+
+  esito.innerHTML = `
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+      <p class="text-sm text-slate-700">
+        ${modalitaOttimizzazione === 'netto'
+          ? `Per consegnare <strong>${euro(valore)}</strong> di valore annuo, il pacchetto migliore costa
+             <strong>${euro(migliore.costoAzienda)}</strong> invece di ${euro(riferimento.costoAzienda)}:
+             <strong class="text-emerald-700">${euro(guadagno)} risparmiati</strong>.`
+          : `Con un budget di <strong>${euro(valore)}</strong>, il pacchetto migliore consegna
+             <strong>${euro(migliore.valoreTotale)}</strong> invece di ${euro(riferimento.valoreTotale)}:
+             <strong class="text-emerald-700">${euro(guadagno)} in più al lavoratore</strong>.`}
+      </p>
+      <p class="text-xs text-slate-500 mt-1">
+        Nel pacchetto migliore ${fmtPerc.format(migliore.quotaContante * 100)}% del valore arriva come denaro in busta,
+        il resto come welfare vincolato nell'uso.
+      </p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-white text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+          <tr>
+            <th class="text-left font-semibold px-6 py-3">Pacchetto</th>
+            <th class="text-right font-semibold px-4 py-3">RAL</th>
+            <th class="text-right font-semibold px-4 py-3">Netto in busta</th>
+            <th class="text-right font-semibold px-4 py-3">Welfare</th>
+            <th class="text-right font-semibold px-4 py-3">Costo azienda</th>
+            <th class="text-right font-semibold px-6 py-3">${modalitaOttimizzazione === 'netto' ? 'Risparmio' : 'Valore in più'}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          ${pacchetti.map(colonna).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-200">
+      <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        Quanto arriva al lavoratore per ogni euro speso
+      </p>
+      <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600">
+        <span>Retribuzione <strong class="num">${fmtPerc2.format(efficienza.ral)} €</strong></span>
+        <span>Fringe benefit <strong class="num text-emerald-700">${fmtPerc2.format(efficienza.fringe)} €</strong></span>
+        <span>Buoni pasto <strong class="num text-emerald-700">${fmtPerc2.format(efficienza.buoni)} €</strong></span>
+        <span>Premio in welfare <strong class="num text-emerald-700">${fmtPerc2.format(efficienza.premioWelfare)} €</strong></span>
+        <span>Premio in denaro <strong class="num">${fmtPerc2.format(efficienza.premioDenaro)} €</strong></span>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-2">
+        Valori misurati sul motore, non stimati: a ogni strumento viene aggiunta una quota e si osserva
+        la variazione reale di costo e di valore ricevuto.
+      </p>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-200 bg-amber-50">
+      <p class="text-xs font-semibold text-amber-900 mb-1.5">Condizioni da verificare prima di proporlo</p>
+      <ul class="text-xs text-amber-900/90 space-y-1 list-disc list-inside">
+        <li>Il <strong>premio di risultato</strong> richiede un contratto aziendale o territoriale depositato, e spetta
+            per redditi fino a ${euro(PREMIUM.PREMIO_REDDITO_MAX)}.</li>
+        <li>I <strong>buoni pasto</strong> presuppongono giornate di presenza effettive: qui ne sono ipotizzate
+            ${params.buoniGiorni} l'anno.</li>
+        <li>La soglia dei <strong>fringe benefit</strong> ha effetto scalino: superarla di un euro rende imponibile
+            l'intero importo, quindi il calcolo non la supera mai.</li>
+        <li>Il welfare è <strong>vincolato nell'uso</strong> e non costruisce pensione: non è denaro, e la scelta
+            va spiegata al lavoratore.</li>
+      </ul>
+    </div>`;
+}
+
+document.querySelectorAll('.ott-modo').forEach((b) => {
+  b.addEventListener('click', () => {
+    modalitaOttimizzazione = b.dataset.modo;
+    aggiornaEtichetteOttimizzatore();
+    el('ott-importo').value = '';
+    el('ott-esito').innerHTML = '<p class="px-6 py-8 text-center text-sm text-slate-500">'
+      + (modalitaOttimizzazione === 'netto'
+          ? 'Indica quanto deve ricevere il lavoratore.'
+          : 'Indica quanto l’azienda vuole spendere.') + '</p>';
+  });
+});
+
+el('btn-ottimizza').addEventListener('click', renderOttimizzazione);
+el('ott-importo').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); renderOttimizzazione(); }
+});
+aggiornaEtichetteOttimizzatore();
 
 /* ------------------------------------------- Confronto fra scenari */
 let scenarioBloccato = null;

@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 41 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 45 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -224,9 +224,13 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Sweep sulle combinazioni di previdenza complementare (96) | Copertura combinatoria |
 | Altre trattenute: escono dal netto senza toccare le imposte | Assenza di effetto fiscale |
 | Altre trattenute: non superano il netto disponibile | Capienza della busta paga |
+| Ottimizzazione dal netto: stesso valore, costo decrescente | Correttezza dell'ottimizzatore |
+| Ottimizzazione dal budget: stessa spesa, valore crescente | Correttezza nella seconda direzione |
+| Ottimizzazione: il welfare resta entro i tetti di legge | Rispetto delle soglie |
+| Efficienza misurata: welfare esente 1:1, retribuzione molto meno | Misura anziché stima |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**41 test su 41 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**45 test su 45 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -423,6 +427,37 @@ Due conseguenze che il motore rispetta:
 - **Non possono eccedere il netto disponibile.** Qui il limite è semplice, perché non hanno effetto fiscale: nessuna ricerca per approssimazioni, a differenza dei versamenti al fondo.
 
 Il **limite del quinto** non viene imposto: il campo raccoglie voci diverse e solo la cessione del quinto vi è soggetta. Quando l'importo supera un quinto del netto, l'interfaccia lo segnala indicando il tetto di legge, lasciando all'utente il giudizio su quale voce stia inserendo.
+
+### 6.16 Ottimizzazione del costo aziendale
+
+Un euro di RAL e un euro di welfare non costano uguale all'azienda, perché non subiscono lo stesso prelievo. È il punto in cui il calcolatore smette di misurare una busta paga e comincia a rispondere a una domanda di impresa.
+
+**Due direzioni, la stessa macchina.**
+
+| Modalità | Domanda | Risposta |
+|---|---|---|
+| Dal netto desiderato | Il candidato chiede 2.000 € netti al mese: qual è il pacchetto che glieli consegna al minor costo? | Tre pacchetti a parità di valore, con il costo aziendale decrescente |
+| Dal budget aziendale | Ho 50.000 € l'anno da spendere: qual è il valore massimo che posso consegnare? | Tre pacchetti a parità di spesa, con il valore crescente |
+
+**L'efficienza è misurata, non dichiarata.** A ciascuno strumento viene aggiunta una quota e si osserva la variazione reale di costo aziendale e di valore ricevuto. Nessun coefficiente scritto a mano che poi invecchia:
+
+| Strumento | Ricevuto per ogni euro speso |
+|---|---:|
+| Fringe benefit entro soglia | 1,00 € |
+| Buoni pasto entro il limite | 1,00 € |
+| Premio convertito in welfare | 1,00 € |
+| Premio in denaro | 0,65 € |
+| Retribuzione ordinaria | 0,37 € |
+
+Il dato sulla retribuzione è marginale: a 45.000 € di RAL, l'euro aggiuntivo sconta contributi del datore e del lavoratore, IRPEF marginale al 33%, addizionali e perdita progressiva delle detrazioni.
+
+**Risultato concreto.** Per consegnare 26.000 € di valore annuo: 48.114 € di costo con la sola retribuzione, **38.868 € con il pacchetto ottimizzato**. Sono 9.246 € risparmiati, il 19%.
+
+**Tre vincoli che l'ottimizzatore rispetta.**
+
+- Non supera mai le soglie di esenzione: oltre la soglia il fringe benefit diventa imponibile per intero e il vantaggio evapora. È l'effetto scalino del §4.2 applicato a un altro istituto.
+- Segnala quando il premio di risultato non spetta, perché il reddito supera gli 80.000 € o manca il contratto aziendale.
+- Dichiara sempre quanta parte del valore arriva come denaro e quanta come welfare vincolato. Non li somma fingendo che siano la stessa cosa: nel pacchetto migliore dell'esempio, il 76,2% è denaro in busta.
 
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 
