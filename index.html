@@ -311,6 +311,32 @@
     <!-- ============================ PARAMETRI ============================ -->
     <div class="lg:col-span-2 space-y-5">
 
+      <!-- Dal netto alla RAL -->
+      <div class="bg-slate-900 text-white rounded-2xl shadow-sm p-6 space-y-4">
+        <div>
+          <h3 class="font-bold">Dal netto alla RAL</h3>
+          <p class="text-xs text-slate-400 mt-1">
+            Il candidato chiede una cifra netta: quale RAL la produce, con i parametri qui sotto?
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
+            <input id="p-netto-obiettivo" type="number" min="0" max="50000" step="50" placeholder="2.500"
+                   class="num w-full pl-8 pr-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <select id="p-netto-periodo" class="px-2 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="mese" selected>al mese</option>
+            <option value="anno">all'anno</option>
+          </select>
+        </div>
+        <button id="btn-inverti"
+                class="w-full py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition">
+          Trova la RAL
+        </button>
+        <p id="p-netto-esito" class="hidden text-xs leading-relaxed"></p>
+      </div>
+
       <!-- Contratto -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
         <h3 class="font-bold text-slate-900 flex items-center gap-2">
@@ -598,6 +624,69 @@
           <button id="btn-test" class="no-print text-xs font-semibold px-3 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition">Esegui test</button>
         </div>
         <div id="test-output" class="mt-4 hidden"></div>
+      </div>
+
+      <!-- Confronto fra due scenari -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-slate-900">Confronto fra scenari</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Blocca uno scenario, cambia i parametri e leggi la differenza</p>
+          </div>
+          <div class="flex gap-2 no-print">
+            <button id="btn-blocca-scenario" class="text-xs font-semibold px-3 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition">Blocca come A</button>
+            <button id="btn-azzera-scenario" class="hidden text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Azzera</button>
+          </div>
+        </div>
+        <div id="confronto-vuoto" class="px-6 py-8 text-center">
+          <p class="text-sm text-slate-500">Nessuno scenario bloccato.</p>
+          <p class="text-xs text-slate-400 mt-1">Utile per confrontare due offerte, due citt&agrave; o i due anni d'imposta.</p>
+        </div>
+        <div id="confronto-tabella" class="hidden overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left font-semibold px-6 py-3">Voce</th>
+                <th class="text-right font-semibold px-4 py-3">Scenario A</th>
+                <th class="text-right font-semibold px-4 py-3">Scenario B</th>
+                <th class="text-right font-semibold px-6 py-3">Differenza</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-confronto" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Approssimazioni dichiarate -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+          <h3 class="font-bold text-slate-900">Approssimazioni residue</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Dove il motore semplifica, e di quanto</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left font-semibold px-6 py-3">Voce</th>
+                <th class="text-left font-semibold px-6 py-3">Semplificazione adottata</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Contributi a carico del datore</td>
+                  <td class="px-6 py-3">Stima parametrica: variano per CCNL, dimensione aziendale e codice ATECO. Le aliquote a carico del lavoratore sono invece valori normativi.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Detrazione figli 21+</td>
+                  <td class="px-6 py-3">La maggiorazione del tetto per i figli successivi al primo &egrave; applicata in forma aggregata anzich&eacute; per singolo figlio.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Soglie di premi e compensi accessori</td>
+                  <td class="px-6 py-3">La legge guarda al reddito dell'<strong>anno precedente</strong>; qui si usa la RAL corrente come approssimazione.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Detrazioni regionali per carichi di famiglia</td>
+                  <td class="px-6 py-3">Alcune regioni ne prevedono di proprie: non sono modellate.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Taglio di 440 &euro; oltre 200.000 &euro;</td>
+                  <td class="px-6 py-3">Colpisce gli oneri detraibili al 19%, che il calcolatore non gestisce: senza oneri non c'&egrave; nulla da tagliare.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Conguaglio e cassa sfalsata</td>
+                  <td class="px-6 py-3">Le addizionali sono calcolate per competenza e ripartite sulle mensilit&agrave;, non secondo acconto e saldo dell'anno successivo.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
@@ -17610,6 +17699,102 @@ function calcolaPremium(params) {
 }
 
 /* ====================================================================
+   INVERSIONE — dalla richiesta netta alla RAL
+   ----------------------------------------------------------------------
+   Il netto non è una funzione monotona della RAL: le tre soglie
+   normative producono salti verso il basso. Un salto verso il basso non
+   lascia buchi nell'insieme dei netti raggiungibili — li attraversa una
+   seconda volta. La conseguenza è che alcune cifre nette corrispondono a
+   PIÙ RAL diverse, e fra queste conviene la più bassa: stesso netto in
+   busta, minor costo per l'azienda. L'inversione le trova tutte e lo dice.
+   Il ramo "irraggiungibile" resta come difesa: un salto verso l'alto, che
+   una normativa futura potrebbe introdurre, produrrebbe un buco vero.
+   ==================================================================== */
+
+const INVERSIONE = { minimo: 0, massimo: 500000, passo: 100, tolleranza: 0.5 };
+
+/* Bisezione su un intervallo dove la funzione attraversa il bersaglio */
+function bisezioneRal(f, basso, alto, bersaglio) {
+  for (let i = 0; i < 60 && alto - basso > INVERSIONE.tolleranza; i++) {
+    const mezzo = (basso + alto) / 2;
+    if (f(mezzo) < bersaglio) basso = mezzo;
+    else alto = mezzo;
+  }
+  return alto;
+}
+
+function invertiNetto(nettoRichiesto, params) {
+  if (!(nettoRichiesto > 0)) return { esito: 'nullo' };
+
+  const f = (ral) => calcolaPremium({ ...params, ral }).nettoAnnuo;
+  const { minimo, massimo, passo } = INVERSIONE;
+
+  const nettoMassimo = f(massimo);
+  if (nettoRichiesto > nettoMassimo) {
+    return { esito: 'fuoriScala', massimoNetto: nettoMassimo, massimoRal: massimo };
+  }
+
+  // Scansione grossolana: individua gli attraversamenti e, allo stesso
+  // tempo, il miglior valore raggiungibile sotto e sopra il bersaglio.
+  const attraversamenti = [];
+  let ralPrecedente = minimo;
+  let nettoPrecedente = f(minimo);
+  let sotto = { ral: minimo, netto: nettoPrecedente };
+  let sopra = null;
+
+  for (let ral = minimo + passo; ral <= massimo; ral += passo) {
+    const netto = f(ral);
+
+    if (netto <= nettoRichiesto && netto >= sotto.netto) sotto = { ral, netto };
+    if (netto >= nettoRichiesto && (!sopra || netto < sopra.netto)) sopra = { ral, netto };
+
+    if ((nettoPrecedente < nettoRichiesto) !== (netto < nettoRichiesto)) {
+      attraversamenti.push([ralPrecedente, ral]);
+    }
+    ralPrecedente = ral;
+    nettoPrecedente = netto;
+  }
+
+  // Raffina ogni attraversamento e tiene solo quelli che centrano davvero
+  // il bersaglio: un salto verso il basso produce un incrocio apparente
+  // che in realtà scavalca il valore richiesto.
+  const soluzioni = [];
+  for (const [basso, alto] of attraversamenti) {
+    const ral = bisezioneRal(f, basso, alto, nettoRichiesto);
+    if (Math.abs(f(ral) - nettoRichiesto) <= 1) soluzioni.push(ral);
+  }
+
+  if (soluzioni.length) {
+    const ral = Math.min(...soluzioni);
+    return {
+      esito: 'esatto',
+      ral,
+      netto: f(ral),
+      altreSoluzioni: soluzioni.filter((r) => r !== ral)
+    };
+  }
+
+  // Nessuna RAL centra il bersaglio: siamo dentro uno dei salti. Si
+  // restringe l'intervallo a passo fine per dare i due estremi reali.
+  let vicinoSotto = sotto;
+  let vicinoSopra = sopra;
+  if (sopra) {
+    for (let ral = Math.max(minimo, sotto.ral); ral <= sopra.ral; ral += 1) {
+      const netto = f(ral);
+      if (netto <= nettoRichiesto && netto >= vicinoSotto.netto) vicinoSotto = { ral, netto };
+      if (netto >= nettoRichiesto && netto <= vicinoSopra.netto) vicinoSopra = { ral, netto };
+    }
+  }
+
+  return {
+    esito: 'irraggiungibile',
+    sotto: vicinoSotto,
+    sopra: vicinoSopra,
+    salto: vicinoSopra ? vicinoSopra.netto - vicinoSotto.netto : 0
+  };
+}
+
+/* ====================================================================
    FORMATTAZIONE
    ==================================================================== */
 
@@ -18459,6 +18644,51 @@ function eseguiTest() {
         acc25.accessoriAmmessi === 0 && acc25.impostaAccessori === 0 && acc26.accessoriAmmessi === 2000,
         `2025 ordinari · 2026 agevolati ${euro2(acc26.impostaAccessori)}`);
 
+  // Ogni provincia del dataset deve ricadere in una regione esistente,
+  // altrimenti si potrebbe calcolare un comune con l'addizionale sbagliata
+  const provinceDataset = new Set(COMUNI.map((c) => c.provincia));
+  const orfane = [...provinceDataset].filter((p) => !PROVINCE_REGIONE[p]);
+  const regioniFantasma = [...new Set(Object.values(PROVINCE_REGIONE))].filter((r) => !REGIONI[r]);
+  check('Ogni provincia è associata a una regione esistente',
+        orfane.length === 0 && regioniFantasma.length === 0,
+        `${provinceDataset.size} province mappate`);
+
+  // Inversione: la RAL trovata deve riprodurre il netto richiesto
+  const scenarioInv = { ...scenarioBase, anno: 2026 };
+  let inversioneCoerente = true, scartoInv = '';
+  for (const bersaglio of [18000, 24000, 31000, 42000, 60000]) {
+    const trovato = invertiNetto(bersaglio, scenarioInv);
+    if (trovato.esito !== 'esatto') { inversioneCoerente = false; scartoInv = `${bersaglio}: ${trovato.esito}`; break; }
+    const verifica = calcolaPremium({ ...scenarioInv, ral: trovato.ral }).nettoAnnuo;
+    if (!vicino(verifica, bersaglio, 1.5)) {
+      inversioneCoerente = false;
+      scartoInv = `${euro2(bersaglio)} → RAL ${euro2(trovato.ral)} → ${euro2(verifica)}`;
+      break;
+    }
+  }
+  check('Inversione: la RAL trovata riproduce il netto richiesto', inversioneCoerente, scartoInv);
+
+  // Un salto verso il basso non lascia buchi: fa attraversare due volte lo
+  // stesso livello di netto. Vicino allo scalino di Milano la stessa cifra
+  // netta deve risultare prodotta da più RAL, e va scelta la più bassa.
+  let picco = { ral: 0, netto: -1 };
+  for (let ral = 25000; ral <= 25500; ral++) {
+    const netto = calcolaBase(ral).nettoAnnuo;
+    if (netto > picco.netto) picco = { ral, netto };
+  }
+  const multiplo = invertiNetto(picco.netto - 30, { ...scenarioBase, anno: 2025 });
+  check('Inversione: più RAL per lo stesso netto, sceglie la meno costosa',
+        multiplo.esito === 'esatto' &&
+        multiplo.altreSoluzioni.length >= 1 &&
+        multiplo.ral < Math.min(...multiplo.altreSoluzioni),
+        multiplo.esito === 'esatto'
+          ? `${1 + multiplo.altreSoluzioni.length} soluzioni, scelta ${euro(multiplo.ral)}`
+          : multiplo.esito);
+
+  // Oltre il massimo rappresentabile deve dirlo, non restituire un numero
+  const fuori = invertiNetto(900000, scenarioInv);
+  check('Inversione: dichiara le richieste fuori scala', fuori.esito === 'fuoriScala');
+
   // Integrità del dataset ufficiale
   const milano = COMUNI_PER_CODICE.get('F205');
   check('Dataset: 7.897 comuni e 21 regioni caricati',
@@ -18627,6 +18857,8 @@ function aggiornaPremium() {
   const params = leggiParametriPremium();
   aggiornaNoteContestuali(params);
   renderPremium(calcolaPremium(params), calcolaBase(params.ral));
+  renderConfronto();
+  scriviUrl();
 }
 
 /* Note dinamiche che spiegano l'effetto del parametro selezionato */
@@ -18698,6 +18930,52 @@ function popolaSelect() {
   el('p-comune-search').value = `${milano.nome} (${milano.provincia})`;
 }
 
+/* Provincia → regione: selezionare un comune deve allineare l'addizionale
+   regionale, altrimenti si producono combinazioni inesistenti come Torino
+   con le aliquote della Lombardia. */
+const PROVINCE_REGIONE = {
+  AQ: 'Abruzzo', CH: 'Abruzzo', PE: 'Abruzzo', TE: 'Abruzzo',
+  MT: 'Basilicata', PZ: 'Basilicata',
+  BZ: 'Bolzano',
+  CS: 'Calabria', CZ: 'Calabria', KR: 'Calabria', RC: 'Calabria', VV: 'Calabria',
+  AV: 'Campania', BN: 'Campania', CE: 'Campania', NA: 'Campania', SA: 'Campania',
+  BO: 'Emilia-Romagna', FC: 'Emilia-Romagna', FE: 'Emilia-Romagna', MO: 'Emilia-Romagna',
+  PC: 'Emilia-Romagna', PR: 'Emilia-Romagna', RA: 'Emilia-Romagna', RE: 'Emilia-Romagna',
+  RN: 'Emilia-Romagna',
+  GO: 'Friuli-Venezia Giulia', PN: 'Friuli-Venezia Giulia', TS: 'Friuli-Venezia Giulia',
+  UD: 'Friuli-Venezia Giulia',
+  FR: 'Lazio', LT: 'Lazio', RI: 'Lazio', RM: 'Lazio', VT: 'Lazio',
+  GE: 'Liguria', IM: 'Liguria', SP: 'Liguria', SV: 'Liguria',
+  BG: 'Lombardia', BS: 'Lombardia', CO: 'Lombardia', CR: 'Lombardia', LC: 'Lombardia',
+  LO: 'Lombardia', MB: 'Lombardia', MI: 'Lombardia', MN: 'Lombardia', PV: 'Lombardia',
+  SO: 'Lombardia', VA: 'Lombardia',
+  AN: 'Marche', AP: 'Marche', FM: 'Marche', MC: 'Marche', PU: 'Marche',
+  CB: 'Molise', IS: 'Molise',
+  AL: 'Piemonte', AT: 'Piemonte', BI: 'Piemonte', CN: 'Piemonte', NO: 'Piemonte',
+  TO: 'Piemonte', VB: 'Piemonte', VC: 'Piemonte',
+  BA: 'Puglia', BR: 'Puglia', BT: 'Puglia', FG: 'Puglia', LE: 'Puglia', TA: 'Puglia',
+  CA: 'Sardegna', NU: 'Sardegna', OR: 'Sardegna', SS: 'Sardegna', SU: 'Sardegna',
+  CI: 'Sardegna', OG: 'Sardegna', OT: 'Sardegna', VS: 'Sardegna',
+  AG: 'Sicilia', CL: 'Sicilia', CT: 'Sicilia', EN: 'Sicilia', ME: 'Sicilia',
+  PA: 'Sicilia', RG: 'Sicilia', SR: 'Sicilia', TP: 'Sicilia',
+  AR: 'Toscana', FI: 'Toscana', GR: 'Toscana', LI: 'Toscana', LU: 'Toscana',
+  MS: 'Toscana', PI: 'Toscana', PO: 'Toscana', PT: 'Toscana', SI: 'Toscana',
+  TN: 'Trento',
+  PG: 'Umbria', TR: 'Umbria',
+  AO: "Valle d'Aosta",
+  BL: 'Veneto', PD: 'Veneto', RO: 'Veneto', TV: 'Veneto', VE: 'Veneto',
+  VI: 'Veneto', VR: 'Veneto'
+};
+
+/* Allinea il selettore della regione al comune scelto. Se la provincia non
+   fosse mappata, la regione resta quella selezionata a mano. */
+function allineaRegioneAlComune(codiceComune) {
+  const comune = COMUNI_PER_CODICE.get(codiceComune);
+  if (!comune) return;
+  const regione = PROVINCE_REGIONE[comune.provincia];
+  if (regione && REGIONI[regione]) el('p-regione').value = regione;
+}
+
 /* ------------------------------------ Ricerca fra i 7.897 comuni */
 const comuneSearch = el('p-comune-search');
 const comuneRisultati = el('p-comune-risultati');
@@ -18751,6 +19029,7 @@ comuneRisultati.addEventListener('click', (e) => {
   const c = COMUNI_PER_CODICE.get(comuneCorrente);
   comuneSearch.value = `${c.nome} (${c.provincia})`;
   comuneRisultati.classList.add('hidden');
+  allineaRegioneAlComune(comuneCorrente);
   aggiornaPremium();
 });
 document.addEventListener('click', (e) => {
@@ -18800,6 +19079,208 @@ el('btn-csv').addEventListener('click', async () => {
 
 el('btn-test').addEventListener('click', eseguiTest);
 
+
+/* ------------------------------------------- Dal netto alla RAL */
+el('btn-inverti').addEventListener('click', () => {
+  const esitoEl = el('p-netto-esito');
+  const grezzo = parseFloat(el('p-netto-obiettivo').value);
+  const perMese = el('p-netto-periodo').value === 'mese';
+
+  esitoEl.classList.remove('hidden');
+
+  if (!Number.isFinite(grezzo) || grezzo <= 0) {
+    esitoEl.className = 'text-xs leading-relaxed text-amber-300';
+    esitoEl.textContent = 'Inserisci la cifra netta che il candidato chiede.';
+    return;
+  }
+
+  const params = leggiParametriPremium();
+  const bersaglio = perMese ? grezzo * params.mensilita : grezzo;
+  const r = invertiNetto(bersaglio, params);
+
+  const applica = (ral) => {
+    el('p-ral').value = Math.round(ral);
+    aggiornaPremium();
+  };
+
+  if (r.esito === 'fuoriScala') {
+    esitoEl.className = 'text-xs leading-relaxed text-amber-300';
+    esitoEl.innerHTML = 'Nemmeno ' + euro(r.massimoRal) + ' di RAL producono quella cifra: il massimo raggiungibile '
+      + 'con questi parametri è ' + euro(r.massimoNetto / params.mensilita) + ' al mese.';
+    return;
+  }
+
+  if (r.esito === 'esatto') {
+    applica(r.ral);
+    esitoEl.className = 'text-xs leading-relaxed text-emerald-300';
+
+    let messaggio = 'Serve una RAL di <strong>' + euro(r.ral) + '</strong>, che produce '
+      + euro(r.netto / params.mensilita) + ' netti al mese su ' + params.mensilita + ' mensilità.';
+
+    if (r.altreSoluzioni.length) {
+      const costoScelto = calcolaPremium({ ...params, ral: r.ral }).costoAzienda;
+      const costoAlto = calcolaPremium({ ...params, ral: Math.max(...r.altreSoluzioni) }).costoAzienda;
+      messaggio += '<br><br>Attenzione: per via dei salti normativi questa cifra netta è prodotta anche da '
+        + r.altreSoluzioni.map((x) => euro(x)).join(' e da ')
+        + '. Ho scelto la più bassa: stesso netto in busta, ma '
+        + euro(costoAlto - costoScelto) + ' in meno di costo azienda.';
+    }
+    esitoEl.innerHTML = messaggio;
+    return;
+  }
+
+  // Il bersaglio cade dentro uno dei salti: nessuna RAL lo produce.
+  applica(r.sopra ? r.sopra.ral : r.sotto.ral);
+  esitoEl.className = 'text-xs leading-relaxed text-amber-300';
+  esitoEl.innerHTML =
+    '<strong>Nessuna RAL produce esattamente questa cifra.</strong> '
+    + 'È uno dei tre salti della normativa: superata la soglia il netto scende di '
+    + euro(Math.abs(r.salto)) + ' l\'anno prima di ricominciare a salire. '
+    + 'Il valore più vicino sotto è ' + euro(r.sotto.netto / params.mensilita) + ' al mese con RAL ' + euro(r.sotto.ral) + '; '
+    + (r.sopra
+        ? 'sopra è ' + euro(r.sopra.netto / params.mensilita) + ' al mese con RAL ' + euro(r.sopra.ral) + '.'
+        : 'non esiste un valore superiore raggiungibile.');
+});
+
+/* ------------------------------------------- Confronto fra scenari */
+let scenarioBloccato = null;
+
+function rigaConfronto(voce, a, b, formatta, invertiColore) {
+  const delta = b - a;
+  const trascurabile = Math.abs(delta) < 0.5;
+  const positivo = invertiColore ? delta < 0 : delta > 0;
+  const colore = trascurabile ? 'text-slate-400' : positivo ? 'text-emerald-600' : 'text-rose-600';
+  const segno = trascurabile ? '' : delta > 0 ? '+ ' : '− ';
+  return '<tr>'
+    + '<td class="px-6 py-3 font-medium text-slate-700">' + voce + '</td>'
+    + '<td class="num px-4 py-3 text-right text-slate-500">' + formatta(a) + '</td>'
+    + '<td class="num px-4 py-3 text-right font-semibold text-slate-900">' + formatta(b) + '</td>'
+    + '<td class="num px-6 py-3 text-right font-bold ' + colore + '">'
+    + (trascurabile ? '—' : segno + formatta(Math.abs(delta))) + '</td>'
+    + '</tr>';
+}
+
+function descriviScenario(p) {
+  const comune = COMUNI_PER_CODICE.get(p.comune);
+  return [euro(p.ral), p.anno, comune ? comune.nome : '—', PROFILI_CONTRIBUTIVI[p.profilo].nome].join(' · ');
+}
+
+function renderConfronto() {
+  const vuoto = el('confronto-vuoto');
+  const tabella = el('confronto-tabella');
+
+  if (!scenarioBloccato) {
+    vuoto.classList.remove('hidden');
+    tabella.classList.add('hidden');
+    el('btn-azzera-scenario').classList.add('hidden');
+    el('btn-blocca-scenario').textContent = 'Blocca come A';
+    return;
+  }
+
+  const paramsB = leggiParametriPremium();
+  const a = scenarioBloccato.risultato;
+  const b = calcolaPremium(paramsB);
+
+  vuoto.classList.add('hidden');
+  tabella.classList.remove('hidden');
+  el('btn-azzera-scenario').classList.remove('hidden');
+  el('btn-blocca-scenario').textContent = 'Aggiorna A';
+
+  el('tbody-confronto').innerHTML =
+      '<tr class="bg-slate-50">'
+    + '<td class="px-6 py-2 text-xs text-slate-400">Parametri</td>'
+    + '<td class="px-4 py-2 text-right text-xs text-slate-500">' + descriviScenario(scenarioBloccato.params) + '</td>'
+    + '<td class="px-4 py-2 text-right text-xs text-slate-500" colspan="2">' + descriviScenario(paramsB) + '</td>'
+    + '</tr>'
+    + rigaConfronto('Netto mensile', a.nettoMensile, b.nettoMensile, euro)
+    + rigaConfronto('Netto annuo', a.nettoAnnuo, b.nettoAnnuo, euro)
+    + rigaConfronto('Valore totale percepito', a.valoreTotale, b.valoreTotale, euro)
+    + rigaConfronto('Tasse e contributi', a.totaleTrattenute, b.totaleTrattenute, euro, true)
+    + rigaConfronto('Pressione fiscale', a.pressioneFiscale, b.pressioneFiscale, perc, true)
+    + rigaConfronto('Costo azienda', a.costoAzienda, b.costoAzienda, euro, true)
+    + rigaConfronto('Netto per euro speso', a.efficienza, b.efficienza, perc);
+}
+
+el('btn-blocca-scenario').addEventListener('click', () => {
+  const params = leggiParametriPremium();
+  scenarioBloccato = { params, risultato: calcolaPremium(params) };
+  renderConfronto();
+});
+
+el('btn-azzera-scenario').addEventListener('click', () => {
+  scenarioBloccato = null;
+  renderConfronto();
+});
+
+/* ------------------------------------------- Stato nell'indirizzo */
+/* Lo scenario vive nell'URL: l'HR configura la simulazione e ne manda il
+   link, che si riapre identico. Solo i parametri diversi dal valore
+   predefinito finiscono nell'indirizzo, per tenerlo leggibile. */
+const CAMPI_URL = {
+  ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', 'terziario_impiegato'],
+  regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
+  figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
+  buoni: ['p-buoni', '0'], buonigiorni: ['p-buoni-giorni', '220'], premio: ['p-premio', '0'],
+  accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'], regime: ['p-regime', 'nessuno']
+};
+const INTERRUTTORI_URL = {
+  massimale: ['p-massimale', false], coniuge: ['p-coniuge', false], elettronici: ['p-buoni-el', true],
+  welfare: ['p-premio-welfare', false], impatriatifigli: ['p-impatriati-figli', false]
+};
+
+let ripristinoInCorso = false;
+
+function scriviUrl() {
+  if (ripristinoInCorso) return;
+  const q = new URLSearchParams();
+  q.set('sezione', el('panel-premium').classList.contains('hidden') ? 'base' : 'premium');
+  q.set('anno', String(annoCorrente));
+  if (comuneCorrente !== 'F205') q.set('comune', comuneCorrente);
+
+  for (const chiave of Object.keys(CAMPI_URL)) {
+    const [id, predefinito] = CAMPI_URL[chiave];
+    const nodo = el(id);
+    if (nodo && nodo.value !== predefinito) q.set(chiave, nodo.value);
+  }
+  for (const chiave of Object.keys(INTERRUTTORI_URL)) {
+    const [id, predefinito] = INTERRUTTORI_URL[chiave];
+    const nodo = el(id);
+    if (nodo && nodo.checked !== predefinito) q.set(chiave, nodo.checked ? '1' : '0');
+  }
+  history.replaceState(null, '', location.pathname + '?' + q.toString());
+}
+
+function leggiUrl() {
+  const q = new URLSearchParams(location.search);
+  if (![...q.keys()].length) return null;
+
+  ripristinoInCorso = true;
+  if (q.has('anno')) annoCorrente = parseInt(q.get('anno'), 10) === 2025 ? 2025 : 2026;
+  if (q.has('comune') && COMUNI_PER_CODICE.has(q.get('comune'))) comuneCorrente = q.get('comune');
+
+  for (const chiave of Object.keys(CAMPI_URL)) {
+    const nodo = el(CAMPI_URL[chiave][0]);
+    if (nodo && q.has(chiave)) nodo.value = q.get(chiave);
+  }
+  for (const chiave of Object.keys(INTERRUTTORI_URL)) {
+    const nodo = el(INTERRUTTORI_URL[chiave][0]);
+    if (nodo && q.has(chiave)) nodo.checked = q.get(chiave) === '1';
+  }
+
+  document.querySelectorAll('.anno-btn').forEach((x) => {
+    const attivo = parseInt(x.dataset.anno, 10) === annoCorrente;
+    x.className = attivo
+      ? 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-brand-600 bg-brand-600 text-white transition'
+      : 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-500 hover:bg-slate-50 transition';
+  });
+
+  const c = COMUNI_PER_CODICE.get(comuneCorrente);
+  if (c) el('p-comune-search').value = c.nome + ' (' + c.provincia + ')';
+  if (!q.has('regione')) allineaRegioneAlComune(comuneCorrente);
+
+  ripristinoInCorso = false;
+  return q.get('sezione') === 'premium' ? 'premium' : q.get('sezione') === 'base' ? 'base' : null;
+}
 
 /* ------------------------------------------ Popover delle spiegazioni */
 const popover = document.createElement('div');
@@ -18921,7 +19402,7 @@ function mostraSezione(nome) {
   tabBase.setAttribute('aria-selected', String(isBase));
   tabPremium.setAttribute('aria-selected', String(!isBase));
   if (!isBase) aggiornaPremium();
-  history.replaceState(null, '', isBase ? '#base' : '#premium');
+  else scriviUrl();
 }
 
 tabBase.addEventListener('click', () => mostraSezione('base'));
@@ -18937,9 +19418,10 @@ const dataLeggibile = new Date(DATASET_AGGIORNATO)
 el('data-dataset').textContent = dataLeggibile;
 el('data-dataset-premium').textContent = dataLeggibile;
 popolaSelect();
+const sezioneRichiesta = leggiUrl();
 aggiornaBase();
 aggiornaPremium();
-mostraSezione(location.hash === '#premium' ? 'premium' : 'base');
+mostraSezione(sezioneRichiesta || (location.hash === '#premium' ? 'premium' : 'base'));
 
 // Espone il motore per ispezione da console (utile in fase di valutazione)
 window.MotoreFiscale = { calcolaBase, calcolaPremium, COSTANTI, REGIONI, COMUNI, ENGINE_VERSION };

@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 27 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 31 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -210,9 +210,13 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
 | Fondo pensione: deduce l'imposta, non gonfia le detrazioni | Confine fra reddito complessivo e imponibile |
 | Compensi accessori: imposta sostitutiva solo dal 2026 | Vigenza temporale dell'agevolazione |
+| Ogni provincia è associata a una regione esistente | Coerenza territoriale |
+| Inversione: la RAL trovata riproduce il netto richiesto | Correttezza dell'inversione |
+| Inversione: più RAL per lo stesso netto, sceglie la meno costosa | Effetto delle discontinuità |
+| Inversione: dichiara le richieste fuori scala | Robustezza |
 | Input 0 e input negativo senza `NaN`, anche in Premium | Robustezza |
 
-**27 test su 27 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**31 test su 31 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 55.448 € di retribuzione, e questo è corretto. La specifica del motore Base fissa l'INPS al 9,19% puro; il motore Premium applica anche l'aliquota aggiuntiva dell'1% prevista dall'art. 3-ter del D.L. 384/1992. Il test non nasconde la divergenza: la misura e verifica che sia esattamente pari a quel contributo.
 
@@ -301,7 +305,31 @@ Tutti e tre riducono l'imponibile IRPEF e **nessuno riduce la base contributiva*
 - Ogni comune conserva la propria struttura: aliquota unica oppure scaglioni cumulativi, con o senza soglia di esenzione.
 - Il motore gestisce entrambi gli anni: dove il comune non ha ancora deliberato per il 2026 resta in vigore l'aliquota 2025, ed è segnalato in interfaccia.
 
-### 6.7 Avvisi contestuali
+### 6.7 Dal netto alla RAL
+
+La domanda che in un'azienda di HR si fa ogni giorno è l'inversa di quella che i calcolatori sanno rispondere: *"il candidato chiede 2.500 € netti al mese, che RAL devo mettere nell'offerta?"*.
+
+L'inversione avviene per bisezione sul motore stesso, ma il caso interessante nasce dalle discontinuità del §4.5. Un salto verso il basso **non** lascia buchi nell'insieme dei netti raggiungibili: fa attraversare due volte lo stesso livello. La conseguenza pratica è che alcune cifre nette corrispondono a **più RAL diverse**.
+
+Esempio reale prodotto dal motore, vicino allo scalino di Milano:
+
+> Serve una RAL di **25.277 €**. Per via dei salti normativi questa cifra netta è prodotta anche da 25.586 €. Ho scelto la più bassa: stesso netto in busta, ma **426 € in meno di costo azienda**.
+
+È l'unico punto in cui il lavoro sulle discontinuità produce un risultato che l'utente usa, invece di una nota nel README. Il ramo che gestisce i valori davvero irraggiungibili resta implementato come difesa: servirebbe un salto verso l'alto, che una normativa futura potrebbe introdurre.
+
+### 6.8 Confronto fra scenari
+
+Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e una tabella di differenze su netto, valore totale percepito, prelievo, costo azienda ed efficienza.
+
+Serve a confrontare due offerte, due città, i due anni d'imposta, oppure più RAL contro meno RAL più welfare.
+
+### 6.9 Scenario condivisibile
+
+Ogni parametro vive nell'indirizzo: `?sezione=premium&anno=2025&comune=L219&ral=62000&profilo=dirigente&massimale=1`. La simulazione si configura e si manda per link, e alla riapertura lo stato è identico. Nell'URL finiscono solo i parametri diversi dal valore predefinito, per tenerlo leggibile.
+
+Selezionare un comune **allinea automaticamente la regione**: senza questo vincolo era possibile calcolare Torino con l'addizionale regionale della Lombardia. Un test verifica che tutte le 107 province del dataset ricadano in una delle 21 regioni.
+
+### 6.10 Avvisi contestuali
 
 L'interfaccia segnala automaticamente le situazioni che un HR deve vedere e spiegare al dipendente: massimale raggiunto, aliquota aggiuntiva attiva, retribuzione sotto il minimale, detrazioni perse per incapienza, delibera comunale 2026 non ancora pubblicata.
 
