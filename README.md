@@ -336,6 +336,10 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 | Fondo di categoria dei dirigenti | Quota a carico del dirigente, con tetto di retribuzione |
 | Contribuzione a carico del datore | Totale di tabella INPS meno la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate agricoltura e lavoro domestico |
 
+**Le aliquote contributive non seguono l'anno d'imposta.** È l'unica cosa in questa sezione che non varia fra 2025 e 2026: le tabelle caricate sono l'edizione 2026, e restano le stesse anche selezionando il 2025. Non è una svista, ed è verificabile — la tabella INPS del gennaio 2023 riporta per l'industria gli stessi identici totali dell'edizione 2026: 39,87% per gli operai fino a 15 dipendenti, 37,65% per gli impiegati, 37,43% per i viaggiatori. Le voci che li compongono — IVS al 33%, NASpI all'1,61%, CUAF allo 0,68%, CIG, fondo di garanzia TFR, malattia e maternità — sono fissate da norme che non si rinnovano ogni anno, a differenza degli scaglioni IRPEF.
+
+Cambia invece con l'anno, ed è modellato, tutto ciò che le circolari INPS aggiornano davvero: **massimale contributivo** (120.607 € nel 2025, 122.295 € nel 2026), **prima fascia pensionabile** oltre la quale scatta l'aliquota aggiuntiva dell'1% (55.448 € e 56.224 €) e **minimale retributivo mensile**.
+
 ### 6.3 Competenza temporale
 
 | Funzionalità | Nota |
