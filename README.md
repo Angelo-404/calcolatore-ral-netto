@@ -259,11 +259,11 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 
 **70 test su 70 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
-**Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
+**Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **36.505 valutazioni**: 24.000 combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; 4.608 combinazioni di welfare, carichi di famiglia e periodo variate sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
 L'interfaccia è stata collaudata a parte su **332 scenari**, pilotando i controlli reali e ispezionando ciò che viene disegnato: nessun `NaN` o valore mancante nel testo, dettaglio e grafico sempre presenti, nessuno scorrimento orizzontale, ogni spiegazione contestuale con un contenuto reale.
 
-Il collaudo ha prodotto tre correzioni, documentate al §5.1.
+Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione, dopo l'estensione a cinquanta combinazioni contributive, ha fatto emergere due difetti nuovi: sono in fondo alla tabella.
 
 ### 5.1 Difetti emersi dal collaudo combinatorio
 
@@ -277,6 +277,8 @@ Il collaudo ha prodotto tre correzioni, documentate al §5.1.
 | Pacchetto che prometteva welfare non erogabile | Oltre 80.000 € di reddito il premio agevolato non spetta, ma il pacchetto continuava a contarlo: prometteva 6.200 € di welfare consegnandone 3.200 | Il pacchetto viene ricostruito senza premio, così i numeri mostrati coincidono con ciò che il lavoratore riceve |
 | Spostamento verso la soglia calcolato con l'aliquota sbagliata | Fra RAL e imponibile non c'è solo l'aliquota del lavoratore: ci sono anche il contributo aggiuntivo dell'1% e i fondi di categoria. Su un dirigente lo spostamento mancava il bersaglio di 128 € e lasciava l'imponibile sopra la soglia | Lo spostamento si misura per bisezione sul motore, quindi vale per qualunque profilo |
 | Obiettivo netto non sempre raggiungibile | I salti normativi rendono certe cifre irraggiungibili, ma l'intestazione dichiarava comunque il valore richiesto | Quando il pacchetto consegna una cifra diversa, lo dichiara esplicitamente |
+| 220 buoni pasto in un rapporto di un giorno | I giorni con buono erano un campo indipendente dalla durata del rapporto. L'eccedenza imponibile dei buoni superava la retribuzione maturata e spingeva il netto sotto zero | I giorni con buono si contano sulle presenze, che non possono superare i giorni in cui il rapporto esiste: il numero viene ridotto e l'interfaccia lo dichiara |
+| Netto negativo con fringe benefit su rapporto brevissimo | Il valore imponibile del welfare può superare la retribuzione maturata: le ritenute non avevano da cosa essere trattenute | Una busta paga non va in rosso: il netto si ferma a zero e la parte scoperta viene dichiarata, come già accadeva per il fondo pensione e per le altre trattenute |
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
 

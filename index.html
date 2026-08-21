@@ -18395,8 +18395,14 @@ function calcolaPremium(params) {
   const fringeEsente = p.fringeBenefit > sogliaFringe ? 0 : p.fringeBenefit;
 
   const limiteBuono = p.buoniElettronici ? A.buonoElettronico : A.buonoCartaceo;
-  const buoniTotale = p.buoniPastoGiorno * p.buoniGiorni;
-  const buoniEccedenza = Math.max(0, p.buoniPastoGiorno - limiteBuono) * p.buoniGiorni;
+  /* I buoni si contano sulle presenze, e le presenze non possono superare i
+     giorni in cui il rapporto esiste: 220 buoni in un rapporto di un mese
+     non sono un caso limite, sono un dato impossibile. Senza questo limite
+     l'eccedenza imponibile poteva superare la retribuzione maturata. */
+  const buoniGiorniEffettivi = Math.min(Math.max(0, p.buoniGiorni), giorni);
+  const buoniRagguagliati = buoniGiorniEffettivi < p.buoniGiorni;
+  const buoniTotale = p.buoniPastoGiorno * buoniGiorniEffettivi;
+  const buoniEccedenza = Math.max(0, p.buoniPastoGiorno - limiteBuono) * buoniGiorniEffettivi;
   const buoniEsente = buoniTotale - buoniEccedenza;
 
   /* --- Premio di risultato e compensi accessori ------------------------ */
@@ -18558,6 +18564,14 @@ function calcolaPremium(params) {
      ne' detraibili, quindi non toccano imponibile, imposte o contributi:
      escono dal netto gia' tassato. Non possono eccedere il netto
      disponibile, perche' quello e' tutto cio' che la busta contiene. */
+  /* Una busta paga non va in rosso. Quando il valore imponibile del welfare
+     supera la retribuzione maturata — succede sui rapporti brevissimi — le
+     ritenute non hanno da cosa essere trattenute: il netto si ferma a zero e
+     la parte scoperta viene dichiarata, come gia' accade per il fondo
+     pensione e per le altre trattenute. */
+  const nettoScoperto = Math.max(0, -nettoAnnuo);
+  if (nettoAnnuo < 0) nettoAnnuo = 0;
+
   const altreTrattenuteRichieste = Math.max(0, p.altreTrattenute);
   const altreTrattenute = Math.min(altreTrattenuteRichieste, Math.max(0, nettoAnnuo));
   const altreTrattenuteNonCapienti = altreTrattenuteRichieste - altreTrattenute;
@@ -18640,6 +18654,7 @@ function calcolaPremium(params) {
     comuneEsenzione: comune ? comune[p.anno].esenzione : 0,
     comuneDeliberato2026: comune ? comune.deliberato2026 : false,
     fringeEsente, fringeImponibile, buoniEsente, buoniEccedenza, buoniTotale,
+    buoniGiorniEffettivi, buoniRagguagliati, nettoScoperto,
     buoniElettronici: p.buoniElettronici,
     welfareEsente, valoreTotale,
     nettoAnnuo, nettoMensile, pressioneFiscale, mensilita,
@@ -20087,6 +20102,16 @@ function renderAvvisi(r) {
       + 'In busta paga i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva: '
       + 'il motore <strong>non</strong> applica questa correzione, quindi qui i contributi sono sottostimati.');
   }
+  if (r.nettoScoperto > 0.01) {
+    avvisi.push(`Il valore imponibile di welfare e compensi supera la retribuzione maturata: `
+      + `mancano ${euro2(r.nettoScoperto)} da cui trattenere imposte e contributi. `
+      + 'Una busta paga non va in rosso, quindi il netto si ferma a zero: in azienda quella parte '
+      + 'verrebbe recuperata a conguaglio. Controlla la durata del rapporto e i giorni con buono.');
+  }
+  if (r.buoniRagguagliati) {
+    avvisi.push(`I giorni con buono sono stati ridotti a ${r.buoniGiorniEffettivi}: non possono superare `
+      + 'i giorni di durata del rapporto.');
+  }
   if (r.altreTrattenuteNonCapienti > 0.01) {
     avvisi.push(`Le trattenute richieste superano il netto disponibile: `
       + `applicati ${euro(r.altreTrattenute)} invece di ${euro(r.altreTrattenuteRichieste)}.`);
@@ -20556,6 +20581,26 @@ function eseguiTest() {
   check('Composizione: le voci della barra sommano esattamente il lordo in busta',
         vicino(sommaVoci, lordoBusta, 0.01),
         `${euro2(sommaVoci)} contro ${euro2(lordoBusta)}`);
+
+  /* I buoni pasto si contano sulle presenze, e le presenze non possono
+     superare i giorni in cui il rapporto esiste. Senza questo limite un
+     rapporto di un giorno accumulava 220 buoni, la cui eccedenza imponibile
+     superava la retribuzione maturata e spingeva il netto sotto zero. */
+  const buoniLunghi = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 45000,
+                                       giorniLavorati: 30, buoniPastoGiorno: 12, buoniGiorni: 220 });
+  check('Buoni pasto: i giorni con buono non superano i giorni di rapporto',
+        buoniLunghi.buoniGiorniEffettivi === 30 && buoniLunghi.buoniRagguagliati === true &&
+        vicino(buoniLunghi.buoniTotale, 12 * 30, 0.01),
+        `${buoniLunghi.buoniGiorniEffettivi} giorni, ${euro2(buoniLunghi.buoniTotale)} di buoni`);
+
+  /* Una busta paga non va in rosso: se l'imponibile del welfare supera la
+     retribuzione maturata, il netto si ferma a zero e la parte scoperta
+     viene dichiarata invece di comparire come numero negativo. */
+  const bustaScoperta = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 45000,
+                                         giorniLavorati: 1, fringeBenefit: 2000 });
+  check('Il netto non scende mai sotto zero, e lo scoperto viene dichiarato',
+        bustaScoperta.nettoAnnuo === 0 && bustaScoperta.nettoScoperto > 0,
+        `scoperto ${euro2(bustaScoperta.nettoScoperto)}`);
 
   // I link condivisi prima della scomposizione devono continuare ad aprirsi
   // sullo stesso calcolo, non su un profilo a caso.
