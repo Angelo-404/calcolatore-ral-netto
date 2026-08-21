@@ -89,7 +89,7 @@ Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenari
 | Inquadramento | Impiegato, tempo indeterminato | Aliquota INPS a carico del lavoratore 9,19%, senza massimale contributivo |
 | Residenza fiscale | Milano (Lombardia) | Addizionale regionale a scaglioni Lombardia + addizionale comunale Milano |
 | Carichi di famiglia | Nessuno | Nessuna detrazione ex art. 12 TUIR: le uniche detrazioni sono quelle da lavoro dipendente |
-| Giorni lavorati | 365 | Le detrazioni sono rapportate all'anno intero, senza ragguaglio |
+| Giorni di rapporto | 365 | Il rapporto copre l'intero anno: le detrazioni non vengono ragguagliate |
 | Mensilità | 13 | Il netto mensile è il netto annuo diviso 13 |
 | Addizionali locali | **A regime, per competenza** | Vedi sotto |
 
@@ -336,7 +336,7 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 
 | Funzionalità | Nota |
 |---|---|
-| Giorni di lavoro nell'anno | Assunzione o cessazione in corso d'anno: **detrazioni, bonus cuneo e trattamento integrativo vengono ragguagliati**, le soglie di reddito no |
+| Giorni di rapporto nell'anno | Giorni di calendario, non presenze: assunzione o cessazione in corso d'anno ragguagliano **detrazioni, bonus cuneo e trattamento integrativo**, le soglie di reddito no |
 | Part-time percentuale | Riduce la retribuzione maturata, non le soglie normative |
 | Mensilità 12 / 13 / 14 | Modifica il divisore del netto mensile |
 
