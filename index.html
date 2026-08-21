@@ -127,17 +127,20 @@
       </div>
     </div>
 
-    <nav class="no-print inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Sezioni">
-      <button id="tab-base" role="tab" aria-selected="true" aria-controls="panel-base"
-              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm">Base</button>
-      <button id="tab-premium" role="tab" aria-selected="false" aria-controls="panel-premium"
-              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">
-        Premium
-        <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MEF</span>
-      </button>
-      <button id="tab-piva" role="tab" aria-selected="false" aria-controls="panel-piva"
-              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">Partita IVA</button>
-    </nav>
+    <div class="no-print flex flex-col items-start sm:items-end gap-1.5">
+      <p class="text-xs font-medium text-slate-500">Scegli dove bere il tuo spritz</p>
+      <nav class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Sezioni">
+        <button id="tab-base" role="tab" aria-selected="true" aria-controls="panel-base"
+                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm">Al banco</button>
+        <button id="tab-premium" role="tab" aria-selected="false" aria-controls="panel-premium"
+                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">
+          Al tavolo
+          <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MEF</span>
+        </button>
+        <button id="tab-piva" role="tab" aria-selected="false" aria-controls="panel-piva"
+                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">Dietro al bancone</button>
+      </nav>
+    </div>
   </div>
 </header>
 
@@ -300,11 +303,11 @@
       <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-emerald-100 text-emerald-700">dati ufficiali MEF</span>
     </div>
     <p class="text-slate-600 mt-2 max-w-3xl">
-      Rimuove tutte le assunzioni fisse della sezione Base. Aliquote territoriali per
+      Rimuove tutte le assunzioni fisse di &laquo;Al banco&raquo;. Aliquote territoriali per
       <strong id="stat-comuni">7.897</strong> comuni e <strong>21</strong> regioni e province autonome,
       importate dall'anagrafe del Dipartimento delle Finanze e verificate al
       <span id="data-dataset-premium" class="font-semibold">&mdash;</span>.
-      Il motore Base resta invariato.
+      Il motore di &laquo;Al banco&raquo; resta invariato.
     </p>
   </div>
 
@@ -21343,7 +21346,7 @@ function aggiornaAutonomo() {
     : '';
   el('a-comune-nota').textContent = forfetario
     ? 'Nel forfetario l’imposta sostitutiva prende il posto delle addizionali: il comune non incide.'
-    : `Addizionale comunale di ${r.comuneNome}, la stessa scelta nella sezione Premium.`;
+    : `Addizionale comunale di ${r.comuneNome}, la stessa scelta di «Al tavolo».`;
   el('a-soglia-nota').textContent = forfetario
     ? `Soglia del regime forfetario: ${euro(FORFETTARIO.soglia)} di ricavi nell’anno precedente.`
     : 'Importo al netto dell’IVA.';
