@@ -29,7 +29,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 70 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 80 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -82,7 +82,7 @@ Questa separazione è la ragione per cui il motore è stato validato in Node.js 
 
 ---
 
-## 3. Assunzioni di dominio (sezione Base)
+## 3. Assunzioni di dominio (scheda Task Jet HR)
 
 Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenario richiesto è uno scenario preciso, e renderlo esplicito nel codice lo rende verificabile.
 
@@ -259,7 +259,7 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Ordinario: i costi abbattono reddito, contributi e imposte | Differenza sostanziale fra i due regimi |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**70 test su 70 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**80 test su 80 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **36.505 valutazioni**: 24.000 combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; 4.608 combinazioni di welfare, carichi di famiglia e periodo variate sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -302,7 +302,7 @@ A 15.000 € di RAL la pressione fiscale è 5,4% e a 10.000 € è **negativa**:
 
 ---
 
-## 6. Sezione Premium
+## 6. La scheda Avanzato
 
 Costruita sopra le stesse funzioni pure del motore Base. Rimuove tutte le assunzioni fisse e copre gli istituti che un HR applica realmente in busta paga.
 
@@ -329,12 +329,12 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 | Funzionalità | Nota |
 |---|---|
 | 50 combinazioni contributive | Nove settori (industria, edilizia, artigianato, commercio a CUAF intera e ridotta, pubblici esercizi, logistica, agricoltura, lavoro domestico) per quattro qualifiche (operaio, impiegato/quadro, viaggiatore, dirigente) e fino a tre scaglioni dimensionali |
-| 4 tipi di rapporto | Indeterminato, determinato, apprendistato, tirocinio. Asse separato dal settore: si combinano fra loro. Vedi §6.17 |
+| 5 tipi di rapporto | Indeterminato, determinato, apprendistato, collaborazione coordinata e continuativa, tirocinio. Asse separato dal settore: si combinano fra loro. Vedi §6.17 |
 | **Aliquota aggiuntiva 1%** | Art. 3-ter D.L. 384/1992: 1% sulla quota oltre la prima fascia di retribuzione pensionabile, dovuta quando l'aliquota a carico del lavoratore è inferiore al 10%. Assente in quasi tutti i calcolatori online |
 | **Massimale contributivo** | Per chi è privo di anzianità al 31/12/1995: oltre il tetto la contribuzione si ferma e il netto marginale sale bruscamente |
 | Minimale retributivo | Segnalato quando la retribuzione mensile scende sotto la soglia INPS |
 | Fondo di categoria dei dirigenti | Quota a carico del dirigente, con tetto di retribuzione |
-| Contribuzione a carico del datore | Differenziata per profilo, dichiarata come stima |
+| Contribuzione a carico del datore | Totale di tabella INPS meno la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate agricoltura e lavoro domestico |
 
 ### 6.3 Competenza temporale
 
@@ -423,7 +423,17 @@ Alcune si adattano al contesto: l'IRPEF lorda mostra anche quanto sarebbe con le
 
 Servono a portare il contenuto di questo documento dentro l'interfaccia, dove viene effettivamente letto.
 
-### 6.12 Uso quotidiano
+### 6.12 Come si legge il risultato
+
+**La composizione del lordo apre la scheda, la curva resta a un clic.** La curva netto/RAL risponde a una domanda che quasi nessuno si fa per prima — come cambierebbe il netto se la RAL fosse un'altra. La domanda che si fa per prima è dove finiscono i soldi di *questa* RAL. La barra scompone il lordo che passa dalla busta in sette voci: netto, contributi INPS, IRPEF netta, addizionali locali, imposte sostitutive su premi e accessori, versamento al fondo pensione, altre trattenute. Le voci sono quelle del calcolo, non una loro approssimazione grafica, e un test verifica che sommate diano esattamente il lordo.
+
+Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il trattamento integrativo si **aggiungono** alla retribuzione anziché uscirne, e il welfare esente non passa nemmeno dalla busta paga.
+
+**«Netto + welfare» non è uno stipendio più alto.** Sommare denaro e benefit produce un numero solo, e un numero solo si legge come stipendio. La card non promette: la cifra non è verde, sotto compare una barra con la proporzione fra le due metà e una riga in ambra dichiara quanta parte è welfare vincolato nell'uso.
+
+**Il delta dichiara con chi si confronta.** La differenza mostrata accanto al netto annuo non è rispetto a una simulazione precedente: è rispetto al profilo fisso della sezione Base, a parità di RAL. Quando i parametri diversi sono più d'uno il testo lo dice, e la spiegazione avverte che il numero li somma tutti e non è attribuibile a nessuno in particolare, rimandando al confronto fra scenari.
+
+### 6.13 Uso quotidiano
 
 - **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
@@ -513,6 +523,10 @@ Il calcolo cerca la soglia più conveniente fra quelle raggiungibili con la capi
 
 Sceglie l'occasione con il recupero maggiore, non la più vicina: l'esenzione comunale di Milano era a soli 1.173 € di distanza, ma vale 192 € contro i 1.937 € del cuneo. E non suggerisce nulla a chi è già sotto tutte le soglie.
 
+**Il pacchetto da analizzare si sceglie.** I due riquadri sotto la tabella — cosa cambia per il lavoratore e soglia raggiungibile — leggevano sempre il pacchetto più conveniente. Era una raccomandazione, non una lettura: chi voleva capire il baratto di un pacchetto diverso non aveva modo di chiederlo. Ogni riga è selezionabile, il consigliato parte già scelto e porta il suo badge, e il pacchetto non applicabile resta visibile ma non selezionabile.
+
+La leva della soglia è il welfare del pacchetto scelto, non la somma dei tetti di legge: con «Solo retribuzione» non c'è nulla da spostare, e il riquadro lo dice invece di sparire in silenzio.
+
 **Tre vincoli che l'ottimizzatore rispetta.**
 
 - Non supera mai le soglie di esenzione: oltre la soglia il fringe benefit diventa imponibile per intero e il vantaggio evapora. È l'effetto scalino del §4.2 applicato a un altro istituto.
@@ -552,7 +566,7 @@ Le ultime due voci sono la ragione per cui questa distinzione andava verificata 
 
 Resta fuori la **somministrazione**, che aggiunge i contributi ai fondi bilaterali.
 
-### 6.20 Partita IVA: un secondo motore, non un ramo
+### 6.18 Partita IVA: un secondo motore, non un ramo
 
 Il lavoro autonomo ha una sezione propria, accanto a Base e Premium, e un motore separato — `calcolaAutonomo` — che non passa da `calcolaPremium`. Non è una scelta estetica: nel lavoro autonomo non c'è una busta paga da ricostruire, non esistono TFR, mensilità aggiuntive, welfare aziendale né un datore che versa due terzi dei contributi, e soprattutto **cambia l'ordine dei fattori**. I contributi si calcolano sul reddito e poi si deducono dallo stesso reddito; nel forfetario l'imposta sostitutiva prende il posto di IRPEF e addizionali. Innestare tutto questo come ramo del motore dei dipendenti avrebbe prodotto una funzione piena di eccezioni, cioè il posto dove nascono gli errori.
 
@@ -570,7 +584,7 @@ Tre conseguenze che il calcolatore rende visibili invece di nasconderle:
 
 **Limiti dichiarati anche in pagina:** la previdenza si sceglie fra tre gestioni INPS — Separata per i professionisti senza cassa, artigiani, commercianti — mentre le casse professionali di categoria non sono ancora modellate; i contributi sono imputati all'anno di competenza, senza acconti, saldo e cassa sfalsata; l'IVA non entra nel calcolo; le cause di esclusione dal forfetario (redditi da lavoro dipendente sopra 35.000 €, partecipazioni societarie, prevalenza dell'ex datore di lavoro) non sono verificate, mentre il superamento della soglia di 85.000 € è segnalato.
 
-### 6.18 Esoneri contributivi all'assunzione
+### 6.19 Esoneri contributivi all'assunzione
 
 Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto. A differenza delle aliquote territoriali non sono un dataset: nascono da leggi che ne cambiano la **struttura**, non solo gli importi.
 
@@ -592,7 +606,7 @@ Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto
 
 Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, la stabilizzazione non si cumula con nessun altro esonero sulle aliquote del datore, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
 
-### 6.21 L'ordine delle card dei parametri
+### 6.20 L'ordine delle card dei parametri
 
 Le sei card della colonna sinistra seguono **l'ordine in cui ogni parametro entra nel calcolo**, cioè lo stesso ordine della cascata dei risultati che sta a destra:
 
@@ -605,7 +619,7 @@ Le sei card della colonna sinistra seguono **l'ordine in cui ogni parametro entr
 
 L'ordine precedente metteva la residenza fiscale al secondo posto e gli esoneri al quinto: alfabeticamente innocuo, ma chiedeva di saltare avanti e indietro nella busta paga per capire dove ciascun parametro agisse. Leggere le card dall'alto verso il basso ora ricalca la lettura del cedolino.
 
-### 6.19 Sorveglianza normativa
+### 6.21 Sorveglianza normativa
 
 Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli esoneri no: nessun automatismo può leggere una legge e tradurla in codice. Quello che si può automatizzare è **accorgersi che qualcosa si è mosso**, e ridurre il danno quando nessuno se ne accorge.
 
@@ -615,7 +629,7 @@ Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli eson
 
 Questa sorveglianza ha già prodotto un risultato al primo avvio: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato l'incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026, INPS circ. 72/2026), oggi modellato: dalla segnalazione alla misura in tabella, il ciclo si è chiuso due volte.
 
-### 6.13 Cosa non è conoscibile, e come viene dichiarato
+### 6.22 Cosa non è conoscibile, e come viene dichiarato
 
 Un calcolatore che presenta come esatto un numero che nessuno può conoscere perde credibilità presso chi il mestiere lo fa. Tre voci della sezione Premium hanno un margine di incertezza che non dipende dall'implementazione, e sono marcate come tali nell'interfaccia:
 
@@ -747,7 +761,7 @@ Va detto con precisione, perché la differenza è sostanziale.
 
 Nessun ente pubblica la Legge di Bilancio come API. Quando cambia un'aliquota IRPEF, qualcuno deve leggere la norma e capirla: è esattamente ciò che ho fatto scoprendo che dal 2026 la seconda aliquota scende al 33%.
 
-Quello che l'architettura garantisce è che quel lavoro umano costi il minimo possibile: ogni parametro normativo è una costante nominata dentro `ANNI` e `COSTANTI`. Aggiungere l'anno d'imposta 2027 significa aggiungere un blocco di una dozzina di righe, senza toccare una sola formula. I 27 test dicono subito se qualcosa si è rotto.
+Quello che l'architettura garantisce è che quel lavoro umano costi il minimo possibile: ogni parametro normativo è una costante nominata dentro `ANNI` e `COSTANTI`. Aggiungere l'anno d'imposta 2027 significa aggiungere un blocco di una dozzina di righe, senza toccare una sola formula. Gli 80 test dicono subito se qualcosa si è rotto.
 
 È la distinzione fra un software che si aggiorna da solo dove è possibile, e uno che promette di farlo dove non lo è.
 
@@ -770,7 +784,7 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
     └── sorveglia-norme.yml         # Sorveglia le circolari INPS ogni lunedi'
 ```
 
-`index.html` pesa circa **425 KB**, di cui **252 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 173 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
+`index.html` pesa circa **567 KB**, di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 316 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
 
 Il repository è collegato a Vercel: ogni push sul ramo `main` pubblica il sito, e ogni pull request genera un'anteprima con indirizzo proprio. La pull request aperta dal workflow di aggiornamento dati è quindi ispezionabile prima di essere accettata.
 
