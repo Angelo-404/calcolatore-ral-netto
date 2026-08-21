@@ -3,3 +3,6 @@ PROJECT.md
 TASKJETHR.md
 build/
 .git/
+
+# Configurazione di CI: non e' parte del sito pubblico
+.github/
