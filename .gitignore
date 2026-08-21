@@ -14,3 +14,6 @@ PROJECT.md
 TASKJETHR.md
 .vercel
 .env*
+
+# Modulo generato da build/estrai_motore.py per la verifica fuori dal browser
+build/motore_estratto.js

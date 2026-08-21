@@ -271,7 +271,15 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Input negativo gestito senza NaN | Robustezza |
 | «Avanzato» con input 0 gestito senza NaN | Robustezza |
 
-**80 test su 80 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**80 test su 80 superati.** Gli stessi calcoli si riproducono fuori dal browser: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta come modulo Node ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
+
+```bash
+python build/estrai_motore.py
+node -e "const m=require('./build/motore_estratto.js'); console.log(m.calcolaBase(30000).nettoAnnuo)"
+# 23425.521215384615
+```
+
+I sette valori di riferimento della tabella più sotto sono stati riprodotti così, tutti e sette al centesimo. Se un giorno il taglio non fosse più possibile — perché il motore ha cominciato a toccare il DOM — lo script si ferma invece di produrre un modulo monco.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **36.505 valutazioni**: 24.000 combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; 4.608 combinazioni di welfare, carichi di famiglia e periodo variate sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -288,7 +296,7 @@ Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione,
 | Avvisi privi di senso con RAL 0 | Detrazioni non godute e soglie contributive segnalate su un rapporto inesistente | Senza retribuzione resta un solo avviso, gli altri sono soppressi |
 | Versamento al fondo superiore alla busta paga | Con pochi giorni lavorati un importo fisso eccedeva la retribuzione. Il limite non è però la retribuzione: dedurre azzera l'imposta e fa perdere il trattamento integrativo, quindi il netto disponibile scende più in fretta di quanto si versa | Il trattenuto viene cercato per approssimazioni successive fino a mantenere il netto non negativo, e l'interfaccia dichiara quanto è stato effettivamente trattenuto |
 | Rapporto netto/costo negativo | Con netto sotto zero l'indicatore perdeva significato | Mostra un trattino invece di una percentuale priva di senso |
-| Pacchetto che prometteva welfare non erogabile | Oltre 80.000 € di reddito il premio agevolato non spetta, ma il pacchetto continuava a contarlo: prometteva 6.200 € di welfare consegnandone 3.200 | Il pacchetto viene ricostruito senza premio, così i numeri mostrati coincidono con ciò che il lavoratore riceve |
+| Pacchetto che prometteva welfare non erogabile | Oltre 80.000 € di reddito il premio agevolato non spetta, ma il pacchetto continuava a contarlo: prometteva 8.200 € di welfare consegnandone 3.200 | Il pacchetto viene ricostruito senza premio, così i numeri mostrati coincidono con ciò che il lavoratore riceve |
 | Spostamento verso la soglia calcolato con l'aliquota sbagliata | Fra RAL e imponibile non c'è solo l'aliquota del lavoratore: ci sono anche il contributo aggiuntivo dell'1% e i fondi di categoria. Su un dirigente lo spostamento mancava il bersaglio di 128 € e lasciava l'imponibile sopra la soglia | Lo spostamento si misura per bisezione sul motore, quindi vale per qualunque profilo |
 | Obiettivo netto non sempre raggiungibile | I salti normativi rendono certe cifre irraggiungibili, ma l'intestazione dichiarava comunque il valore richiesto | Quando il pacchetto consegna una cifra diversa, lo dichiara esplicitamente |
 | 220 buoni pasto in un rapporto di un giorno | I giorni con buono erano un campo indipendente dalla durata del rapporto. L'eccedenza imponibile dei buoni superava la retribuzione maturata e spingeva il netto sotto zero | I giorni con buono si contano sulle presenze, che non possono superare i giorni in cui il rapporto esiste: il numero viene ridotto e l'interfaccia lo dichiara |
@@ -517,7 +525,7 @@ Un euro di RAL e un euro di welfare non costano uguale all'azienda, perché non 
 
 Il dato sulla retribuzione è marginale: a 45.000 € di RAL, l'euro aggiuntivo sconta contributi del datore e del lavoratore, IRPEF marginale al 33%, addizionali e perdita progressiva delle detrazioni.
 
-**Risultato concreto.** Per consegnare 26.000 € di valore annuo: 48.114 € di costo con la sola retribuzione, **38.868 € con il pacchetto ottimizzato**. Sono 9.246 € risparmiati, il 19%.
+**Risultato concreto.** Per consegnare 26.000 € di valore annuo: 47.823,97 € di costo con la sola retribuzione, **36.357,10 € con il pacchetto ottimizzato**. Sono 11.466,87 € risparmiati, il 24,0%.
 
 **Cosa il lavoratore guadagna e cosa rinuncia.** Un confronto che mostrasse solo il risparmio dell'azienda sarebbe metà della verità. Il welfare non passa dalla busta paga, e ciò che non è retribuzione non costruisce pensione né matura TFR. Il pannello espone le due colonne affiancate.
 
@@ -525,11 +533,11 @@ Sull'esempio dei 26.000 € di valore annuo:
 
 | Guadagna | | Rinuncia | |
 |---|---:|---|---:|
-| Welfare esente da imposte | 6.200 € | Retribuzione lorda dichiarata | −11.216 € |
-| Costo aziendale in meno | 9.246 € | TFR maturato nell'anno | −775 € |
-| | | Accantonamento pensionistico | −3.701 € |
+| Welfare esente da imposte | 8.200 € | Retribuzione lorda dichiarata | −14.367,19 € |
+| Costo aziendale in meno | 11.466,87 € | TFR maturato nell'anno | −992,40 € |
+| | | Accantonamento pensionistico | −4.741,17 € |
 
-Sono **4.476 € l'anno di accantonamenti differiti**, calcolati con l'aliquota di computo del 33% che alimenta il montante contributivo. Cala anche la base per NASpI, malattia e maternità, e il reddito che una banca legge per concedere un mutuo. Il minor costo per l'azienda non sparisce: è il margine su cui si può trattare l'offerta, ed è giusto che entrambe le parti lo vedano.
+Sono **5.733,57 € l'anno di accantonamenti differiti**, calcolati con l'aliquota di computo del 33% che alimenta il montante contributivo. Cala anche la base per NASpI, malattia e maternità, e il reddito che una banca legge per concedere un mutuo. Il minor costo per l'azienda non sparisce: è il margine su cui si può trattare l'offerta, ed è giusto che entrambe le parti lo vedano.
 
 **Ottimizzazione rispetto alle soglie.** Non tutte le soglie sono uguali: alcune cambiano solo l'aliquota marginale, e attraversarle non costa nulla di netto; altre sono gradini, e superarle di un euro fa perdere un importo intero. Spostare retribuzione su welfare abbassa l'imponibile e può riportarlo sotto un gradino.
 
@@ -547,7 +555,7 @@ La leva della soglia è il welfare del pacchetto scelto, non la somma dei tetti 
 
 - Non supera mai le soglie di esenzione: oltre la soglia il fringe benefit diventa imponibile per intero e il vantaggio evapora. È l'effetto scalino del §4.2 applicato a un altro istituto.
 - Segnala quando il premio di risultato non spetta, perché il reddito supera gli 80.000 € o manca il contratto aziendale.
-- Dichiara sempre quanta parte del valore arriva come denaro e quanta come welfare vincolato. Non li somma fingendo che siano la stessa cosa: nel pacchetto migliore dell'esempio, il 76,2% è denaro in busta.
+- Dichiara sempre quanta parte del valore arriva come denaro e quanta come welfare vincolato. Non li somma fingendo che siano la stessa cosa: nel pacchetto migliore dell'esempio, il 68,5% è denaro in busta.
 
 ### 6.17 Tipo di rapporto, separato da settore e inquadramento
 
@@ -730,7 +738,7 @@ La prima versione del prototipo usava, per i territori diversi da Milano e Lomba
 
 Sono esattamente il tipo di errore che un valore "plausibile" nasconde e che solo la fonte primaria smaschera.
 
-**Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati con un'implementazione indipendente in Node.js, ottenuta estraendo gli strati 1–3 del motore senza modificarne il codice. Le tre discontinuità del §4.5 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
+**Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati in Node.js sul motore estratto da `index.html`, con la procedura riproducibile descritta al §5. Le tre discontinuità del §4.5 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
 
 ---
 
@@ -750,7 +758,7 @@ CSV MEF addizionali comunali 2026  ─┼─→  build_dataset.py  ─→  datas
 2. Interpreta le coppie *(aliquota, fascia di applicazione)* — fino a 12 per comune — distinguendo i quattro formati presenti nella fonte: esenzione, aliquota unica, scaglione chiuso, scaglione aperto.
 3. Normalizza i decimali: il CSV comunale usa la virgola e omette lo zero iniziale (`,8`), le tabelle regionali usano il punto (`1.23`). Due parser distinti, perché unificarli produceva aliquote del 123%.
 4. Applica la regola di vigenza: **la delibera 2026 prevale; in sua assenza resta in vigore quella 2025**. Su 7.897 comuni, 3.028 hanno deliberato per il 2026, 3.984 ereditano il 2025 e 885 non hanno alcuna delibera.
-5. Comprime il risultato: anagrafe scritta una sola volta, tariffe posizionali, 2026 come diff sul 2025 (solo 509 comuni differiscono). Il `dataset.js` prodotto scende da 495 KB a **267 KB**, che incorporati in `index.html` diventano 252 KB al netto dell'intestazione. La proprietà di file unico resta intatta.
+5. Comprime il risultato: anagrafe scritta una sola volta, tariffe posizionali, 2026 come diff sul 2025 (solo 508 comuni differiscono). Il `dataset.js` prodotto scende da 495 KB a **267 KB**, che incorporati in `index.html` diventano 251 KB al netto dell'intestazione. La proprietà di file unico resta intatta.
 
 Il dataset resta rigenerabile: rilanciando lo script su una nuova annualità, il calcolatore si aggiorna senza toccare una riga del motore.
 
@@ -794,6 +802,7 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 │   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
 │   ├── verifica_dataset.py         # Controlli di integrita', gira in CI
+│   ├── estrai_motore.py            # Estrae il motore come modulo Node, per la verifica fuori dal browser
 │   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
 └── .github/workflows/
     ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
