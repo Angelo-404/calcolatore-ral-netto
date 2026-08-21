@@ -413,7 +413,7 @@ Ogni voce che nasconde una regola porta un pulsante informativo che apre **la de
 >
 > *TUIR art. 13*
 
-Sono **24 in tutto**: 12 nella cascata della sezione Base, 10 in quella Premium, 2 sulle card di sintesi. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
+Sono **32 in tutto**: 11 nella cascata di «Al banco», 19 in quella di «Al tavolo», 2 sulle card di sintesi. Le due cascate non spiegano le stesse cose: «Al tavolo» ha più voci perché ha più parametri, e nessuna spiegazione presente nella sezione semplice manca in quella avanzata. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
 
 Alcune si adattano al contesto: l'IRPEF lorda mostra anche quanto sarebbe con le aliquote dell'altro anno d'imposta; l'addizionale comunale cambia testo se il comune è esente, se ha scaglioni o se non ha ancora deliberato.
 

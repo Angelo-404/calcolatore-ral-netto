@@ -19492,7 +19492,7 @@ function renderPremium(r, baseline) {
 
   if (r.premioSostitutiva > 0) html += rigaCascata('Premio di risultato agevolato', `Imposta sostitutiva ${fmtPerc.format(ANNI[r.anno].premiAliquota * 100)}%`, r.premioSostitutiva, M, { tipo: 'neutro', indent: true, spiega: S.premio });
   if (r.premioOrdinario > 0) html += rigaCascata('Premio eccedente il limite', 'Tassazione ordinaria IRPEF', r.premioOrdinario, M, { tipo: 'neutro', indent: true });
-  if (r.accessoriAmmessi > 0) html += rigaCascata('Straordinari e notturni agevolati', 'Imposta sostitutiva 5%', r.accessoriAmmessi, M, { tipo: 'neutro', indent: true });
+  if (r.accessoriAmmessi > 0) html += rigaCascata('Straordinari e notturni agevolati', `Imposta sostitutiva ${fmtPerc.format(PREMIUM.ACCESSORI_ALIQUOTA * 100)}% entro ${euro(PREMIUM.ACCESSORI_REDDITO_MAX)} di reddito`, r.accessoriAmmessi, M, { tipo: 'neutro', indent: true, spiega: S.accessori });
   if (r.accessoriOrdinari > 0) html += rigaCascata('Compensi accessori ordinari', 'Oltre la soglia di reddito', r.accessoriOrdinari, M, { tipo: 'neutro', indent: true });
   if (r.fringeImponibile > 0) html += rigaCascata('Fringe benefit imponibili', 'Soglia superata: intero valore tassato', r.fringeImponibile, M, { tipo: 'neutro', indent: true, spiega: S.fringe });
   if (r.buoniEccedenza > 0) html += rigaCascata('Buoni pasto &mdash; quota eccedente', 'Oltre il limite giornaliero esente', r.buoniEccedenza, M, { tipo: 'neutro', indent: true });
@@ -19508,21 +19508,21 @@ function renderPremium(r, baseline) {
   html += rigaCascata('Imponibile fiscale lordo', 'Base al netto dei contributi', r.imponibileLordo, M, { forte: true, evidenzia: true });
 
   if (r.regimeAbbattuto > 0) html += rigaCascata(`Abbattimento &mdash; ${r.regimeNome}`, 'Quota di reddito esclusa da tassazione', r.regimeAbbattuto, M, { tipo: 'positivo', indent: true, spiega: S.regime });
-  if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Previdenza complementare dedotta', 'Deducibile fino a 5.164,57 &euro;, tetto condiviso con il datore', r.fondoPensioneDeducibile, M, { tipo: 'positivo', indent: true });
+  if (r.fondoPensioneDeducibile > 0) html += rigaCascata('Previdenza complementare dedotta', 'Deducibile fino a 5.164,57 &euro;, tetto condiviso con il datore', r.fondoPensioneDeducibile, M, { tipo: 'positivo', indent: true, spiega: S.fondo });
   if (r.fondoDatoreEccedente > 0) html += rigaCascata('Contributo aziendale oltre il tetto', 'Torna a essere reddito imponibile', r.fondoDatoreEccedente, M, { tipo: 'neutro', indent: true });
   if (r.regimeAbbattuto > 0 || r.fondoPensioneDeducibile > 0) html += rigaCascata('Imponibile IRPEF', 'Base imponibile effettiva', r.imponibile, M, { forte: true, evidenzia: true });
 
   html += rigaCascata('IRPEF lorda', descrizioneScaglioni(r.anno), r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
   html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR' + (r.quotaAnno < 1 ? ', ragguagliata ai giorni' : ''), r.detrazioniBase, M, { tipo: 'positivo', indent: true, spiega: S.detrazioni });
 
-  if (r.ulterioreDetrazione > 0) html += rigaCascata('Ulteriore detrazione (cuneo)', 'Imponibile tra 20.000 e 40.000 &euro;', r.ulterioreDetrazione, M, { tipo: 'positivo', indent: true });
+  if (r.ulterioreDetrazione > 0) html += rigaCascata('Ulteriore detrazione (cuneo)', 'Imponibile tra 20.000 e 40.000 &euro;', r.ulterioreDetrazione, M, { tipo: 'positivo', indent: true, spiega: S.ulteriore });
   if (r.detrConiuge > 0) html += rigaCascata('Detrazione coniuge a carico', 'Art. 12 TUIR', r.detrConiuge, M, { tipo: 'positivo', indent: true });
   if (r.detrFigli > 0) html += rigaCascata('Detrazione figli 21+', 'Art. 12 TUIR', r.detrFigli, M, { tipo: 'positivo', indent: true });
   if (r.detrAltri > 0) html += rigaCascata('Detrazione altri familiari', 'Art. 12 TUIR', r.detrAltri, M, { tipo: 'positivo', indent: true });
   if (r.detrazioneNonGoduta > 0.005) html += rigaCascata('Detrazioni non godute', 'Eccedenti la capienza IRPEF', r.detrazioneNonGoduta, M, { tipo: 'neutro', indent: true, spiega: S.capienza });
 
   html += rigaCascata('IRPEF netta', 'Imposta dovuta', r.irpefNetta, M, { tipo: 'negativo', forte: true, evidenzia: true });
-  html += rigaCascata(`Addizionale regionale ${r.regioneNome}`, 'A regime, per competenza', r.addReg, M, { tipo: 'negativo' });
+  html += rigaCascata(`Addizionale regionale ${r.regioneNome}`, 'A regime, per competenza', r.addReg, M, { tipo: 'negativo', spiega: S.addReg });
   html += rigaCascata(
     `Addizionale comunale ${r.comuneNome}`,
     r.addCom > 0
@@ -19540,8 +19540,8 @@ function renderPremium(r, baseline) {
       'Quota di contributi non versata: aumenta il netto e l&rsquo;imponibile', r.esoneroLavoratore, M,
       { tipo: 'positivo', spiega: S.esonero });
   if (r.contributoDatoreFondo > 0) html += rigaCascata('Contributo del datore al fondo', 'Non transita dalla busta: si accumula nel fondo', r.contributoDatoreFondo, M, { tipo: 'neutro' });
-  if (r.bonusCuneo > 0) html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse', r.bonusCuneo, M, { tipo: 'positivo' });
-  if (r.trattamentoIntegrativo > 0) html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi', r.trattamentoIntegrativo, M, { tipo: 'positivo' });
+  if (r.bonusCuneo > 0) html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse, non erode l&rsquo;IRPEF', r.bonusCuneo, M, { tipo: 'positivo', spiega: S.cuneo });
+  if (r.trattamentoIntegrativo > 0) html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi, soggetto a capienza', r.trattamentoIntegrativo, M, { tipo: 'positivo', spiega: S.trattamento });
 
   if (r.altreTrattenute > 0) {
     html += rigaCascata('Altre trattenute', 'Sindacato, cessione del quinto, pignoramenti: nessun effetto fiscale',
@@ -19589,6 +19589,18 @@ function spiegazioniPremium(r) {
     const quota = Math.min(r.imponibile, s.fino) - precedente;
     passiIrpef.push([`${euro2(quota)} × ${fmtPerc.format(s.aliquota * 100)}%`, euro2(quota * s.aliquota)]);
     precedente = s.fino;
+  }
+
+  const regione = REGIONI[r.regioneNome];
+  const passiReg = [];
+  if (regione) {
+    let precReg = 0;
+    for (const s of regione.scaglioni) {
+      if (r.imponibile <= precReg) break;
+      const quota = Math.min(r.imponibile, s.fino) - precReg;
+      passiReg.push([`${euro2(quota)} × ${fmtPerc2.format(s.aliquota * 100)}%`, euro2(quota * s.aliquota)]);
+      precReg = s.fino;
+    }
   }
 
   const comune = COMUNI_PER_CODICE.get(comuneCorrente);
@@ -19682,6 +19694,67 @@ function spiegazioniPremium(r) {
       html: passiCom.length
         ? formula(passiCom, ['Addizionale comunale', euro2(r.addCom)])
         : formula([], ['Nessuna addizionale dovuta', euro2(0)])
+    },
+    ulteriore: {
+      titolo: 'Ulteriore detrazione del cuneo fiscale',
+      corpo: 'Sopra i 20.000 € di imponibile il taglio del cuneo cambia natura: non è più una somma '
+        + 'esentasse ma una <strong>detrazione d\'imposta</strong>, quindi soggetta a capienza. Vale 1.000 € '
+        + 'fino a 32.000 € e si azzera progressivamente fino a 40.000 €. Il salto di natura è il motivo per cui '
+        + 'intorno ai 20.000 € la curva del netto cambia pendenza.'
+        + (r.quotaAnno < 1 ? ` Qui è ragguagliata ai ${r.giorni} giorni di rapporto.` : ''),
+      fonte: 'L. 207/2024',
+      html: formula([], ['Detrazione spettante', euro2(r.ulterioreDetrazione)])
+    },
+    cuneo: {
+      titolo: 'Bonus del cuneo fiscale',
+      corpo: 'Fino a 20.000 € di imponibile il beneficio è una <strong>somma esentasse</strong> che non concorre '
+        + 'al reddito: si aggiunge al netto e non erode l\'IRPEF, quindi spetta anche a chi è incapiente. '
+        + 'Le percentuali sono 7,1% fino a 8.500 €, 5,3% fino a 15.000 €, 4,8% fino a 20.000 €. '
+        + 'Oltre i 20.000 € sparisce e subentra l\'ulteriore detrazione, che invece la capienza la richiede.'
+        + (r.quotaAnno < 1 ? ` Qui è ragguagliato ai ${r.giorni} giorni di rapporto.` : ''),
+      fonte: 'L. 207/2024',
+      html: formula(
+        r.imponibile > 0
+          ? [[`${euro2(r.imponibile)} × ${fmtPerc.format((r.bonusCuneo / r.imponibile) * 100)}%`, euro2(r.bonusCuneo)]]
+          : [],
+        ['Bonus spettante', euro2(r.bonusCuneo)])
+    },
+    trattamento: {
+      titolo: 'Trattamento integrativo',
+      corpo: 'I 1.200 € annui dell\'ex bonus Renzi spettano solo se l\'imposta lorda supera la detrazione da '
+        + 'lavoro dipendente: è una <strong>condizione di capienza</strong>, non una soglia di reddito. '
+        + 'Il punto di pareggio cade intorno a 8.500 € di imponibile — sotto, il contribuente è incapiente e '
+        + 'il bonus non spetta. Dedurre troppo, per esempio versando molto al fondo pensione, può farlo perdere.'
+        + (r.quotaAnno < 1 ? ` Qui è ragguagliato ai ${r.giorni} giorni di rapporto.` : ''),
+      fonte: 'D.L. 3/2020 conv. L. 21/2020, come modificato dal D.Lgs. 216/2023',
+      html: formula([
+        ['IRPEF lorda', euro2(r.irpefLorda)],
+        ['Detrazione da lavoro', euro2(r.detrazioniBase)]
+      ], ['Trattamento integrativo', euro2(r.trattamentoIntegrativo)])
+    },
+    addReg: {
+      titolo: `Addizionale regionale — ${r.regioneNome}`,
+      corpo: 'Ogni regione delibera le proprie aliquote, e la struttura cambia: alcune applicano un\'aliquota '
+        + 'unica, altre scaglioni progressivi come l\'IRPEF, dove ogni fascia colpisce solo la quota di '
+        + 'imponibile che vi ricade. Si calcola per competenza sull\'anno, non per cassa: in busta paga '
+        + 'viene ripartita sulle mensilità dell\'anno successivo.',
+      fonte: 'Aliquote deliberate — anagrafe MEF, Dipartimento delle Finanze',
+      html: passiReg.length
+        ? formula(passiReg, ['Addizionale regionale', euro2(r.addReg)])
+        : formula([], ['Nessuna addizionale dovuta', euro2(0)])
+    },
+    accessori: {
+      titolo: 'Straordinari, notturni e festivi agevolati',
+      corpo: `Dal 2026 i compensi per lavoro straordinario, notturno e festivo scontano un'imposta `
+        + `sostitutiva del ${fmtPerc.format(PREMIUM.ACCESSORI_ALIQUOTA * 100)}% al posto dell'IRPEF, `
+        + `ma solo per chi ha un reddito da lavoro dipendente fino a ${euro(PREMIUM.ACCESSORI_REDDITO_MAX)}. `
+        + 'Oltre quella soglia l\'agevolazione non spetta e il compenso torna a tassazione ordinaria: '
+        + 'è una soglia di accesso, non una franchigia. I contributi restano dovuti per intero.',
+      fonte: 'Legge di Bilancio 2026',
+      html: formula([
+        ['Compensi agevolati', euro2(r.accessoriAmmessi)],
+        [`× ${fmtPerc.format(PREMIUM.ACCESSORI_ALIQUOTA * 100)}%`, euro2(r.impostaAccessori)]
+      ], ['Imposta sostitutiva', euro2(r.impostaAccessori)])
     },
     fringe: {
       titolo: 'Fringe benefit oltre soglia',
