@@ -127,29 +127,17 @@
       </div>
     </div>
 
-    <div class="no-print flex flex-col items-center gap-2">
-      <p class="inline-flex items-center gap-1.5 pl-1.5 pr-3.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-sm font-extrabold tracking-tight text-amber-900">
-        <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0" role="img" aria-label="Spritz">
-          <path d="M16.6 3.4 13 10.2" fill="none" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" />
-          <path d="M6 6.6h12l-1.3 11.2a2.4 2.4 0 0 1-2.4 2.1h-4.6a2.4 2.4 0 0 1-2.4-2.1z" fill="#fb923c" />
-          <path d="M6 6.6h12l-.3 2.4H6.3z" fill="#fdba74" />
-          <circle cx="17.4" cy="7.2" r="2.6" fill="#fb923c" stroke="#f8fafc" stroke-width="1.2" />
-          <path d="M17.4 4.6v5.2M14.8 7.2h5.2" stroke="#f8fafc" stroke-width=".9" stroke-linecap="round" />
-        </svg>
-        Scegli dove bere il tuo spritz
-      </p>
-      <nav class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Sezioni">
-        <button id="tab-base" role="tab" aria-selected="true" aria-controls="panel-base"
-                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm">Al banco</button>
-        <button id="tab-premium" role="tab" aria-selected="false" aria-controls="panel-premium"
-                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">
-          Al tavolo
-          <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MEF</span>
-        </button>
-        <button id="tab-piva" role="tab" aria-selected="false" aria-controls="panel-piva"
-                class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">Dietro al bancone</button>
-      </nav>
-    </div>
+    <nav class="no-print inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Sezioni">
+      <button id="tab-base" role="tab" aria-selected="true" aria-controls="panel-base"
+              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm">Task Jet HR</button>
+      <button id="tab-premium" role="tab" aria-selected="false" aria-controls="panel-premium"
+              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">
+        Avanzato
+        <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MEF</span>
+      </button>
+      <button id="tab-piva" role="tab" aria-selected="false" aria-controls="panel-piva"
+              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">P.IVA</button>
+    </nav>
   </div>
 </header>
 
@@ -312,11 +300,11 @@
       <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-emerald-100 text-emerald-700">dati ufficiali MEF</span>
     </div>
     <p class="text-slate-600 mt-2 max-w-3xl">
-      Rimuove tutte le assunzioni fisse di &laquo;Al banco&raquo;. Aliquote territoriali per
+      Rimuove tutte le assunzioni fisse di &laquo;Task Jet HR&raquo;. Aliquote territoriali per
       <strong id="stat-comuni">7.897</strong> comuni e <strong>21</strong> regioni e province autonome,
       importate dall'anagrafe del Dipartimento delle Finanze e verificate al
       <span id="data-dataset-premium" class="font-semibold">&mdash;</span>.
-      Il motore di &laquo;Al banco&raquo; resta invariato.
+      Il motore di &laquo;Task Jet HR&raquo; resta invariato.
     </p>
   </div>
 
@@ -19546,7 +19534,7 @@ function renderComposizione(r) {
 let annoCorrente = 2026;
 let comuneCorrente = 'F205';
 
-/* «Al banco» non e' uno scenario dell'utente: e' un profilo cablato nel
+/* «Task Jet HR» non e' uno scenario dell'utente: e' un profilo cablato nel
    motore semplice, che accetta la sola RAL. Se non lo si elenca, il delta
    in cima sembra riferirsi a una simulazione precedente. */
 const RIFERIMENTO_AL_BANCO = [
@@ -19659,22 +19647,22 @@ function renderPremium(r, baseline, params) {
   let testoDelta;
   if (Math.abs(delta) < 0.5) {
     testoDelta = differenze.length === 0
-      ? 'Stesso scenario di «Al banco»'
-      : 'Stesso netto di «Al banco», a parità di RAL';
+      ? 'Stesso scenario di «Task Jet HR»'
+      : 'Stesso netto di «Task Jet HR», a parità di RAL';
     deltaEl.className = 'text-xs mt-1 text-slate-500';
   } else {
     // Con una sola differenza il numero ha una causa, e la causa si dice.
     testoDelta = differenze.length === 1
-      ? `${segno} ${euro(Math.abs(delta))} rispetto a «Al banco»: cambia solo ${differenze[0]}`
-      : `${segno} ${euro(Math.abs(delta))} rispetto a «Al banco», con ${differenze.length} parametri diversi`;
+      ? `${segno} ${euro(Math.abs(delta))} rispetto a «Task Jet HR»: cambia solo ${differenze[0]}`
+      : `${segno} ${euro(Math.abs(delta))} rispetto a «Task Jet HR», con ${differenze.length} parametri diversi`;
     deltaEl.className = `text-xs mt-1 font-semibold ${delta > 0 ? 'text-emerald-600' : 'text-rose-600'}`;
   }
   deltaEl.innerHTML = testoDelta + '<span id="tip-delta"></span>';
 
   el('tip-delta').innerHTML = bottoneSpiegazione({
-    titolo: 'Il confronto con «Al banco»',
+    titolo: 'Il confronto con «Task Jet HR»',
     corpo: 'Il termine di paragone non è una tua simulazione precedente: è il profilo fisso della '
-      + 'sezione «Al banco», che accetta la sola RAL e tiene tutto il resto costante. Il confronto '
+      + 'sezione «Task Jet HR», che accetta la sola RAL e tiene tutto il resto costante. Il confronto '
       + 'avviene <strong>a parità di RAL</strong>, quindi il numero misura l’effetto dei parametri, non della retribuzione.'
       + (differenze.length > 1
           ? ` <strong class="text-amber-700">Qui i parametri diversi sono ${differenze.length}: ${differenze.join(', ')}.</strong> `
@@ -19782,7 +19770,7 @@ function renderPremium(r, baseline, params) {
   if (vistaGrafico === 'curva') renderGrafico(r);
 }
 
-/* La stessa lettura che «Al banco» offre sul suo profilo fisso, applicata
+/* La stessa lettura che «Task Jet HR» offre sul suo profilo fisso, applicata
    a uno scenario qualunque. La base non e' la RAL ma tutto cio' che passa
    dalla busta: retribuzione, premi, compensi accessori e i due bonus, che
    sono denaro in piu' e non un pezzo della RAL. L'identita' e' esatta —
@@ -20276,11 +20264,11 @@ function eseguiTest() {
       break;
     }
   }
-  check('«Al tavolo» 2025 = «Al banco» sotto la prima fascia pensionabile', equivalenza, scarto);
+  check('«Avanzato» 2025 = «Task Jet HR» sotto la prima fascia pensionabile', equivalenza, scarto);
 
   // Sopra la soglia lo scostamento deve essere esattamente il contributo dell'1%
   const alto = calcolaPremium({ ...scenarioBase, ral: 70000 });
-  check('Sopra soglia lo scarto da «Al banco» è solo l’aliquota aggiuntiva 1%',
+  check('Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1%',
         vicino(alto.contributoAggiuntivo, (70000 - ANNI[2025].soglia1pc) * 0.01, 0.01),
         euro2(alto.contributoAggiuntivo));
 
@@ -20889,7 +20877,7 @@ function eseguiTest() {
   check('Dataset: Milano 0,80% con esenzione 23.000 €',
         milano[2025].esenzione === 23000 &&
         vicino(milano[2025].scaglioni[0].aliquota, 0.008, 1e-9));
-  check('Dataset: Lombardia allineata alla specifica di «Al banco»',
+  check('Dataset: Lombardia allineata alla specifica di «Task Jet HR»',
         REGIONI.Lombardia.scaglioni.map((s) => s.aliquota).join() ===
         COSTANTI.ADD_REGIONALE_LOMBARDIA.map((s) => s.aliquota).join());
 
@@ -20911,7 +20899,7 @@ function eseguiTest() {
   // RAL nulla o negativa non produce NaN
   check('Input 0 gestito senza NaN', Number.isFinite(calcolaBase(0).nettoAnnuo));
   check('Input negativo gestito senza NaN', Number.isFinite(calcolaBase(-5000).nettoAnnuo));
-  check('«Al tavolo» con input 0 gestito senza NaN',
+  check('«Avanzato» con input 0 gestito senza NaN',
         Number.isFinite(calcolaPremium({ ...scenarioBase, ral: 0 }).nettoAnnuo));
 
   const passati = risultati.filter((r) => r.esito).length;
@@ -22216,7 +22204,7 @@ function aggiornaAutonomo() {
     : '';
   el('a-comune-nota').textContent = forfetario
     ? 'Nel forfetario l’imposta sostitutiva prende il posto delle addizionali: il comune non incide.'
-    : `Addizionale comunale di ${r.comuneNome}, la stessa scelta di «Al tavolo».`;
+    : `Addizionale comunale di ${r.comuneNome}, la stessa scelta di «Avanzato».`;
   el('a-soglia-nota').textContent = forfetario
     ? `Soglia del regime forfetario: ${euro(FORFETTARIO.soglia)} di ricavi nell’anno precedente.`
     : 'Importo al netto dell’IVA.';

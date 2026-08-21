@@ -5,13 +5,13 @@ Single Page Application che calcola la proiezione della **retribuzione netta ann
 **Applicazione online:** <https://calcolatore-ral-netto.vercel.app/>
 **Codice sorgente:** <https://github.com/Angelo-404/calcolatore-ral-netto>
 
-Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. I nomi delle schede in pagina giocano con la conversione in spritz di Jet HR; fra parentesi il nome tecnico usato nel codice e nel resto di questo documento:
+Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. Fra parentesi il nome tecnico usato nel codice e nel resto di questo documento:
 
 | Sezione | Contenuto |
 |---|---|
-| **Al banco** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
-| **Al tavolo** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
-| **Dietro al bancone** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, quattro gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
+| **Task Jet HR** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
+| **Avanzato** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
+| **P.IVA** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, quattro gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
 
 La sezione Base è la fonte di verità: la sezione Premium la estende senza modificarne una riga. Sullo stesso scenario, i due motori restituiscono lo stesso identico netto — verificato da un test automatico su tutta la scala retributiva.
 
@@ -417,7 +417,7 @@ Ogni voce che nasconde una regola porta un pulsante informativo che apre **la de
 >
 > *TUIR art. 13*
 
-Sono **32 in tutto**: 11 nella cascata di «Al banco», 19 in quella di «Al tavolo», 2 sulle card di sintesi. Le due cascate non spiegano le stesse cose: «Al tavolo» ha più voci perché ha più parametri, e nessuna spiegazione presente nella sezione semplice manca in quella avanzata. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
+Sono **32 in tutto**: 11 nella cascata di «Task Jet HR», 19 in quella di «Avanzato», 2 sulle card di sintesi. Le due cascate non spiegano le stesse cose: «Avanzato» ha più voci perché ha più parametri, e nessuna spiegazione presente nella sezione semplice manca in quella avanzata. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
 
 Alcune si adattano al contesto: l'IRPEF lorda mostra anche quanto sarebbe con le aliquote dell'altro anno d'imposta; l'addizionale comunale cambia testo se il comune è esente, se ha scaglioni o se non ha ancora deliberato.
 
