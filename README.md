@@ -11,7 +11,7 @@ Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. Fra pare
 |---|---|
 | **Task Jet HR** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
 | **Avanzato** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
-| **P.IVA** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, quattro gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
+| **P.IVA** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, tre gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
 
 La sezione Base è la fonte di verità: la sezione Premium la estende senza modificarne una riga. Sullo stesso scenario, i due motori restituiscono lo stesso identico netto — verificato da un test automatico su tutta la scala retributiva.
 
@@ -568,7 +568,7 @@ Tre conseguenze che il calcolatore rende visibili invece di nasconderle:
 - **Il comune di residenza non sposta il netto forfetario di un centesimo**, perché l'imposta sostitutiva sostituisce anche le addizionali locali. È un risultato, non una svista, ed è asserito da un test che confronta lo stesso fatturato a Milano e a Roma.
 - **La tabella di confronto fra i tre regimi** sta accanto al dettaglio: la domanda vera di chi apre una partita IVA non è quanto paga, ma quale regime gli conviene a parità di fatturato.
 
-**Limiti dichiarati anche in pagina:** la previdenza si sceglie fra quattro gestioni INPS — Separata per professionisti e collaboratori, artigiani, commercianti — mentre le casse professionali di categoria non sono ancora modellate; i contributi sono imputati all'anno di competenza, senza acconti, saldo e cassa sfalsata; l'IVA non entra nel calcolo; le cause di esclusione dal forfetario (redditi da lavoro dipendente sopra 35.000 €, partecipazioni societarie, prevalenza dell'ex datore di lavoro) non sono verificate, mentre il superamento della soglia di 85.000 € è segnalato.
+**Limiti dichiarati anche in pagina:** la previdenza si sceglie fra tre gestioni INPS — Separata per i professionisti senza cassa, artigiani, commercianti — mentre le casse professionali di categoria non sono ancora modellate; i contributi sono imputati all'anno di competenza, senza acconti, saldo e cassa sfalsata; l'IVA non entra nel calcolo; le cause di esclusione dal forfetario (redditi da lavoro dipendente sopra 35.000 €, partecipazioni societarie, prevalenza dell'ex datore di lavoro) non sono verificate, mentre il superamento della soglia di 85.000 € è segnalato.
 
 ### 6.18 Esoneri contributivi all'assunzione
 
@@ -635,7 +635,7 @@ Dichiarati anche nell'interfaccia, non solo qui:
 - Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.
 - Il taglio forfettario di 440 € sulle detrazioni al 19% per redditi oltre 200.000 € non è modellato, perché il calcolatore non gestisce oneri detraibili: senza oneri, non c'è nulla da tagliare.
 - Il fringe benefit da auto aziendale va inserito come importo già valorizzato: il motore non calcola le tabelle ACI.
-- Per la partita IVA la previdenza si sceglie fra quattro **gestioni INPS**. Artigiani e commercianti hanno un minimale di 18.808 €: sotto quel reddito il contributo non scende, e a reddito zero restano dovuti 4.521,36 € o 4.611,64 €. Chi versa a una **cassa professionale** di categoria non è ancora coperto e non deve usare la Gestione Separata come approssimazione. I contributi sono imputati per competenza, senza acconti e saldo. L'IVA resta fuori dal calcolo.
+- Per la partita IVA la previdenza si sceglie fra tre **gestioni INPS**. Artigiani e commercianti hanno un minimale di 18.808 €: sotto quel reddito il contributo non scende, e a reddito zero restano dovuti 4.521,36 € o 4.611,64 €. Chi versa a una **cassa professionale** di categoria non è ancora coperto e non deve usare la Gestione Separata come approssimazione. I contributi sono imputati per competenza, senza acconti e saldo. L'IVA resta fuori dal calcolo.
 
 ---
 

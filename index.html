@@ -560,7 +560,7 @@
           Regimi fiscali agevolati
         </h3>
         <div>
-          <label for="p-regime" class="block text-sm font-semibold text-slate-700 mb-1.5">Regime applicato</label>
+          <label for="p-regime" class="block text-sm font-semibold text-slate-700 mb-1.5">Agevolazione fiscale</label>
           <select id="p-regime" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
           <p id="p-regime-nota" class="text-[11px] text-slate-500 mt-1.5">Le agevolazioni riducono l'imponibile IRPEF, mai la base contributiva.</p>
         </div>
@@ -881,7 +881,7 @@
         <h3 class="font-bold text-slate-900">Parametri</h3>
 
         <div>
-          <label for="a-regime" class="block text-sm font-semibold text-slate-700 mb-1.5">Regime</label>
+          <label for="a-regime" class="block text-sm font-semibold text-slate-700 mb-1.5">Regime fiscale</label>
           <select id="a-regime" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
           <p id="a-regime-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
         </div>
@@ -935,7 +935,7 @@
             </select>
           </div>
           <div id="a-riga-regione">
-            <label for="a-regione" class="block text-sm font-semibold text-slate-700 mb-1.5">Regione</label>
+            <label for="a-regione" class="block text-sm font-semibold text-slate-700 mb-1.5">Regione o provincia autonoma</label>
             <select id="a-regione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
           </div>
         </div>
@@ -946,6 +946,7 @@
         <h4 class="font-bold text-slate-900 text-sm">Cosa &egrave; modellato, e cosa no</h4>
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
           <li>La previdenza si sceglie fra <strong>quattro gestioni INPS</strong>: Gestione Separata per professionisti e collaboratori, artigiani e commercianti. Le prime calcolano sul reddito effettivo, le altre due hanno un <strong>minimale</strong> e restano dovute anche a reddito zero.</li>
+          <li>La <strong>collaborazione coordinata e continuativa</strong> non sta qui: il collaboratore non ha partita IVA e il committente versa due terzi dei contributi. Si simula in <strong>Avanzato</strong>, scegliendola fra i tipi di rapporto.</li>
           <li>Le <strong>casse professionali</strong> di categoria &mdash; Forense, Inarcassa, commercialisti, ENPAM e le altre &mdash; hanno contributo soggettivo, integrativo e minimi propri: non sono ancora modellate. Chi vi &egrave; iscritto non usi la Gestione Separata come approssimazione.</li>
           <li>I contributi si calcolano sul reddito dell'anno e vengono dedotti dallo stesso anno: acconti, saldo e cassa sfalsata non sono simulati.</li>
           <li>L'IVA non entra nel calcolo: il fatturato si intende al netto dell'imposta.</li>
@@ -17835,18 +17836,11 @@ const GESTIONE_SEPARATA = {
    differenza che pesa di più su chi comincia.                          */
 const GESTIONI_PREVIDENZIALI = {
   separata_professionisti: {
-    nome: 'Gestione Separata — professionisti senza cassa',
+    nome: 'Gestione Separata — professionisti',
     aliquota: 0.2607,
     massimale: 122295,
     fonte: 'INPS, circolare n. 8 del 3 febbraio 2026',
     nota: "Per chi esercita un'attività senza una cassa professionale di categoria. Sul reddito effettivo: niente minimale, a reddito zero non si versa nulla."
-  },
-  separata_collaboratori: {
-    nome: 'Gestione Separata — collaboratori',
-    aliquota: 0.3503,
-    massimale: 122295,
-    fonte: 'INPS, circolare n. 8 del 3 febbraio 2026',
-    nota: 'Aliquota piena della collaborazione: nel rapporto vero un terzo è a carico del collaboratore e due terzi del committente. Qui è tutta a carico, come accade a chi fattura.'
   },
   artigiani: {
     nome: 'Artigiani — gestione INPS',
@@ -18707,15 +18701,15 @@ const FORFETTARIO = {
 
 const REGIMI_AUTONOMI = {
   ordinario: {
-    nome: 'Partita IVA — regime ordinario',
+    nome: 'Regime ordinario',
     nota: 'IRPEF a scaglioni sul reddito al netto dei costi e dei contributi, con addizionali regionale e comunale e detrazione dell’art. 13, comma 5, TUIR.'
   },
   forfettario15: {
-    nome: 'Partita IVA — forfetario 15%',
+    nome: 'Forfetario 15%',
     nota: 'Imposta sostitutiva del 15% al posto di IRPEF, addizionali e IRAP. Il reddito è il fatturato per il coefficiente ATECO: i costi effettivi non si deducono.'
   },
   forfettario5: {
-    nome: 'Partita IVA — forfetario 5%',
+    nome: 'Forfetario 5%',
     nota: 'Stessa struttura del forfetario ordinario con aliquota al 5%, riservata ai primi cinque anni di una nuova attività.'
   }
 };
