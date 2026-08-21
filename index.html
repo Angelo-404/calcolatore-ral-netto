@@ -657,9 +657,10 @@
 
       <div class="grid sm:grid-cols-4 gap-4">
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Valore totale<span id="tip-valore"></span></p>
-          <p id="pm-valore" class="num text-lg font-bold mt-1 text-emerald-600">&euro; 0</p>
-          <p class="text-[11px] text-slate-400 mt-0.5">netto + welfare esente</p>
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto + welfare<span id="tip-valore"></span></p>
+          <p id="pm-valore" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
+          <div id="pm-valore-barra" class="hidden mt-2 h-1.5 rounded-full overflow-hidden bg-slate-100 flex"></div>
+          <p id="pm-valore-nota" class="text-[11px] text-slate-400 mt-1"></p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">TFR / anno</p>
@@ -19426,6 +19427,20 @@ function renderPremium(r, baseline) {
   el('pm-netto-anno').textContent = euro(r.nettoAnnuo);
   el('pm-mensilita-label').textContent = `su ${M} mensilità`;
   el('pm-valore').textContent = euro(r.valoreTotale);
+  /* Sommare euro in busta ed euro di welfare da' un numero solo, ma le due
+     meta' non si spendono allo stesso modo. La card mostra la proporzione
+     invece di lasciarla intuire. */
+  const quotaBusta = r.valoreTotale > 0 ? r.nettoAnnuo / r.valoreTotale : 1;
+  el('pm-valore-barra').classList.toggle('hidden', r.welfareEsente <= 0);
+  el('pm-valore-barra').innerHTML = r.welfareEsente > 0
+    ? `<div class="bg-slate-800" style="width:${(quotaBusta * 100).toFixed(1)}%"></div>
+       <div class="bg-amber-400" style="width:${((1 - quotaBusta) * 100).toFixed(1)}%"></div>`
+    : '';
+  el('pm-valore-nota').className = r.welfareEsente > 0
+    ? 'text-[11px] text-amber-700 mt-1' : 'text-[11px] text-slate-400 mt-1';
+  el('pm-valore-nota').textContent = r.welfareEsente > 0
+    ? `${euro(r.welfareEsente)} in welfare: vincolato nell'uso, non fa pensione`
+    : 'tutto denaro in busta paga';
   el('pm-tfr').textContent = euro(r.tfr);
   el('pm-tfr-dove').textContent = r.assimilato
     ? 'non previsto nel tirocinio'
@@ -19434,10 +19449,14 @@ function renderPremium(r, baseline) {
   el('pm-efficienza').textContent = r.efficienza > 0 ? perc(r.efficienza) : '—';
 
   el('tip-valore').innerHTML = bottoneSpiegazione({
-    titolo: 'Valore totale percepito',
-    corpo: 'Somma il netto in busta e il welfare esente da imposte. Attenzione a come si legge: '
-      + 'mille euro di buoni pasto non equivalgono a mille euro in busta, perché sono vincolati '
-      + 'nel loro uso e non finanziano la pensione. Il confronto fra due offerte va fatto sapendolo.',
+    titolo: 'Netto e welfare, sommati',
+    corpo: '<strong>Non è uno stipendio più alto.</strong> È la somma di due cose che non si spendono '
+      + 'allo stesso modo: il netto in busta è denaro, il welfare no. Mille euro di buoni pasto valgono '
+      + 'mille euro solo per chi quei mille euro li avrebbe spesi comunque in quel modo; non pagano un '
+      + 'affitto, non finiscono su un conto, non costruiscono pensione né TFR, e le banche non li leggono '
+      + 'come reddito per un mutuo. Il numero serve a confrontare due offerte, non a dire quanto si guadagna: '
+      + 'a parità di totale, quella con più denaro in busta è più liquida, quella con più welfare costa meno '
+      + "all'azienda. La barra sotto la cifra mostra la proporzione.",
     html: formula([
       ['Netto in busta', euro2(r.nettoAnnuo)],
       ['Welfare esente', euro2(r.welfareEsente)]
@@ -19562,8 +19581,8 @@ function renderPremium(r, baseline) {
     if (r.premioWelfare > 0) html += rigaCascata('Premio convertito in welfare', 'Esente da imposte e contributi', r.premioWelfare, M, { tipo: 'positivo' });
     html += `
       <tr class="bg-emerald-50">
-        <td class="px-6 py-4"><span class="font-extrabold text-emerald-900">Valore totale percepito</span>
-          <span class="block text-xs text-emerald-700/70 mt-0.5">Netto in busta + welfare esente</span></td>
+        <td class="px-6 py-4"><span class="font-extrabold text-emerald-900">Netto in busta pi&ugrave; welfare</span>
+          <span class="block text-xs text-emerald-700/70 mt-0.5">Somma di due cose diverse: ${euro(r.welfareEsente)} sono welfare vincolato nell&rsquo;uso</span></td>
         <td class="num px-4 py-4 text-right font-extrabold text-emerald-900">${euro2(r.valoreTotale)}</td>
         <td class="num px-6 py-4 text-right font-extrabold text-emerald-900">${euro2(r.valoreTotale / M)}</td>
       </tr>`;

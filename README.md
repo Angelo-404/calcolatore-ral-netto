@@ -618,7 +618,7 @@ Un calcolatore che presenta come esatto un numero che nessuno può conoscere per
 | Voce | Perché non è conoscibile | Come viene dichiarato |
 |---|---|---|
 | **Costo azienda** | Il premio INAIL varia dallo 0,4% a oltre il 13% secondo la lavorazione; qui è fissato allo 0,5%, valore da ufficio. Le aliquote a carico del datore variano per CCNL, dimensione e ATECO | La card porta la dicitura *"stima, non un preventivo"* e una spiegazione che scompone il calcolo e nomina l'incertezza |
-| **Valore totale percepito** | Somma denaro e benefit come se fossero equivalenti, ma mille euro di buoni pasto non sono mille euro in busta: sono vincolati nell'uso e non finanziano la pensione | Spiegazione dedicata che avverte di come va letto il confronto |
+| **Netto in busta più welfare** | Sommare denaro e benefit produce un numero solo, e un numero solo si legge come stipendio. Ma mille euro di buoni pasto non sono mille euro in busta: sono vincolati nell'uso, non costruiscono pensione né TFR, e le banche non li leggono come reddito | La card non si chiama più «valore totale» e la cifra non è verde: sotto compare una barra che mostra la proporzione fra le due metà, e una riga in ambra dichiara quanta parte è welfare vincolato. La spiegazione apre dicendo che non è uno stipendio più alto |
 | **Minimale contributivo** | Sotto la soglia INPS i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva | L'avviso dice esplicitamente che il motore **non** applica la correzione e che i contributi risultano sottostimati |
 
 La regola seguita: dove il dato è normativo si calcola; dove dipende da variabili che il calcolatore non può conoscere, si dichiara.
