@@ -301,6 +301,7 @@ Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione,
 | Spostamento verso la soglia calcolato con l'aliquota sbagliata | Fra RAL e imponibile non c'è solo l'aliquota del lavoratore: ci sono anche il contributo aggiuntivo dell'1% e i fondi di categoria. Su un dirigente lo spostamento mancava il bersaglio di 128 € e lasciava l'imponibile sopra la soglia | Lo spostamento si misura per bisezione sul motore, quindi vale per qualunque profilo |
 | Obiettivo netto non sempre raggiungibile | I salti normativi rendono certe cifre irraggiungibili, ma l'intestazione dichiarava comunque il valore richiesto | Quando il pacchetto consegna una cifra diversa, lo dichiara esplicitamente |
 | 220 buoni pasto in un rapporto di un giorno | I giorni con buono erano un campo indipendente dalla durata del rapporto. L'eccedenza imponibile dei buoni superava la retribuzione maturata e spingeva il netto sotto zero | I giorni con buono si contano sulle presenze, che non possono superare i giorni in cui il rapporto esiste: il numero viene ridotto e l'interfaccia lo dichiara |
+| Detrazione da lavoro dipendente a reddito zero | La detrazione dell'art. 13 spetta perché al reddito concorrono redditi di lavoro dipendente: senza imponibile non ne matura nessuna. Il motore ne dichiarava comunque 1.955 €, che la capienza azzerava — quindi il netto era giusto — ma la cascata mostrava 1.955 € di «detrazioni non godute» su una busta paga inesistente | La funzione restituisce zero sotto il primo euro di imponibile. Emerso dalla reimplementazione indipendente del §5, non dalla suite |
 | Netto negativo con fringe benefit su rapporto brevissimo | Il valore imponibile del welfare può superare la retribuzione maturata: le ritenute non avevano da cosa essere trattenute | Una busta paga non va in rosso: il netto si ferma a zero e la parte scoperta viene dichiarata, come già accadeva per il fondo pensione e per le altre trattenute |
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
@@ -336,7 +337,7 @@ La differenza più rilevante è che **le regole cambiano fra i due anni**, e un 
 | Seconda aliquota IRPEF (28.000–50.000 €) | 35% | **33%** |
 | Massimale contributivo annuo | 120.607 € | 122.295 € |
 | Soglia dell'aliquota aggiuntiva 1% | 55.448 € | 56.224 € |
-| Minimale retributivo mensile | 1.490,32 € | 1.511,38 € |
+| Minimale retributivo mensile (26 giorni) | 1.490,32 € | 1.511,38 € |
 | Buoni pasto elettronici esenti | 8 €/giorno | **10 €/giorno** |
 | Imposta sostitutiva sui premi di risultato | 5% | **1%** |
 | Massimale del premio agevolato | 3.000 € | **5.000 €** |
@@ -732,8 +733,8 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | Buoni pasto esenti: 8 €/giorno nel 2025, 10 €/giorno dal 2026; cartacei 4 €/giorno | TUIR art. 51, comma 2 lett. c); L. 199/2025 (Legge di Bilancio 2026), art. 1 comma 14 |
 | Premio di risultato: imposta sostitutiva 1% entro 5.000 € per il 2026-2027 | L. 208/2015, art. 1 commi 182-189; L. 199/2025, art. 1 comma 9 |
 | Quota TFR (retribuzione / 13,5) e contributo 0,50% al Fondo di garanzia | Art. 2120 c.c.; L. 297/1982 |
-| Seconda aliquota IRPEF 2026 al 33% e sterilizzazione oltre 200.000 € | Legge di Bilancio 2026; [scheda MEF sulle principali misure](https://www.mef.gov.it/focus/Principali-misure-della-legge-di-bilancio-2026/) |
-| Massimale contributivo, minimale retributivo e prima fascia pensionabile | INPS, circolare n. 6 del 30 gennaio 2026; circolari annuali su minimali e massimali |
+| Seconda aliquota IRPEF 2026 al 33% e sterilizzazione oltre 200.000 € | L. 199/2025 (Legge di Bilancio 2026), art. 1 comma 3; [scheda MEF sulle principali misure](https://www.mef.gov.it/focus/Principali-misure-della-legge-di-bilancio-2026/) |
+| Massimale contributivo 122.295 €, prima fascia pensionabile 56.224 €, minimale di retribuzione 58,13 € al giorno | INPS, circolare n. 6 del 30 gennaio 2026 (rivalutazione ISTAT +1,4%). Il minimale mensile usato dal motore, 1.511,38 €, è il giornaliero per i 26 giorni convenzionali del mese |
 | Aliquota aggiuntiva 1% | Art. 3-ter D.L. 384/1992, conv. L. 438/1992 |
 | Gestione separata: 35,03% per i collaboratori (un terzo e due terzi), 26,07% per i professionisti, massimale 122.295 € | INPS, circolare n. 8 del 3 febbraio 2026 |
 | Artigiani 24% e commercianti 24,48% (25% e 25,48% oltre 56.224 €), minimale 18.808 €, maternità 7,44 €, contributi fissi 4.521,36 € e 4.611,64 € | INPS, circolare n. 14 del 9 febbraio 2026 |
@@ -760,7 +761,9 @@ La prima versione del prototipo usava, per i territori diversi da Milano e Lomba
 
 Sono esattamente il tipo di errore che un valore "plausibile" nasconde e che solo la fonte primaria smaschera.
 
-**Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati in Node.js sul motore estratto da `index.html`, con la procedura riproducibile descritta al §5. Le tre discontinuità del §4.5 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
+**Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati in Node.js sul motore estratto da `index.html`, con la procedura riproducibile descritta al §5.
+
+**Reimplementazione indipendente.** Il motore semplice è stato riscritto una seconda volta partendo dalle norme e non dal codice — INPS al 9,19%, i tre scaglioni, la detrazione dell'art. 13 con il correttivo di fascia, le due nature del cuneo, la capienza, il trattamento integrativo, gli scaglioni lombardi e lo scalino di Milano — e le due implementazioni sono state confrontate **su ogni RAL da 0 a 250.000 € a passo di un euro**, undici campi per volta: **2.750.011 confronti**. La riscrittura ha fatto emergere un difetto, corretto al §5.1: a reddito zero il motore dichiarava 1.955 € di detrazioni non godute su una busta paga inesistente. Le tre discontinuità del §4.5 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
 
 ---
 

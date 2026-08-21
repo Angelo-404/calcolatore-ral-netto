@@ -1143,6 +1143,12 @@ function calcolaIrpefLorda(imponibile) {
 function calcolaDetrazioniBase(imponibile) {
   let detrazione;
 
+  /* La detrazione dell'art. 13 spetta perche' al reddito concorrono redditi
+     di lavoro dipendente: senza imponibile non ne matura nessuna, e senza
+     questa riga il motore dichiarava 1.955 € di detrazioni "non godute" su
+     una busta paga inesistente. */
+  if (imponibile <= 0) return 0;
+
   if (imponibile <= 15000) {
     // No tax area: la detrazione minima spettante è 1.955 €
     detrazione = COSTANTI.DETRAZIONI.MINIMA;
