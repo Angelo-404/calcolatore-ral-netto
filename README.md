@@ -660,7 +660,7 @@ Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli eson
 - **Data di verifica.** Ogni voce dichiara in pagina quando è stata controllata l'ultima volta, insieme alla norma e alla circolare INPS.
 - **Sorveglianza dei feed.** Un workflow settimanale legge i feed RSS delle circolari e dei messaggi INPS, filtra per parole chiave — *esonero, decontribuzione, aliquote, massimali* — scarta il rumore delle convenzioni sindacali e apre una segnalazione con i link. Non interpreta: dice dove guardare.
 
-Questa sorveglianza ha già prodotto un risultato al primo avvio: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato l'incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026, INPS circ. 72/2026), oggi modellato: dalla segnalazione alla misura in tabella, il ciclo si è chiuso due volte.
+Questa sorveglianza, eseguita per la prima volta durante lo sviluppo, ha già prodotto un risultato: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato l'incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026, INPS circ. 72/2026), oggi modellato: dalla segnalazione alla misura in tabella, il ciclo si è chiuso due volte.
 
 ### 6.22 Cosa non è conoscibile, e come viene dichiarato
 
