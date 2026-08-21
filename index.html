@@ -891,6 +891,20 @@
           <p id="a-soglia-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
 
+        <div>
+          <label for="a-gestione" class="block text-sm font-semibold text-slate-700 mb-1.5">Gestione previdenziale</label>
+          <select id="a-gestione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <p id="a-gestione-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <label id="a-riga-riduzione" class="hidden items-start gap-3 cursor-pointer">
+          <input id="a-riduzione" type="checkbox"
+                 class="mt-0.5 h-4 w-4 rounded border-slate-300" style="accent-color:#2148e3" />
+          <span class="text-sm text-slate-700">Riduzione contributiva del 35%
+            <span class="block text-[11px] text-slate-500">Facolt&agrave; dei forfetari iscritti alle gestioni artigiani e commercianti: va chiesta all&rsquo;INPS e riduce l&rsquo;accredito pensionistico in proporzione.</span>
+          </span>
+        </label>
+
         <div id="a-riga-coefficiente">
           <label for="a-coefficiente" class="block text-sm font-semibold text-slate-700 mb-1.5">Gruppo di settore (allegato 4)</label>
           <select id="a-coefficiente" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
@@ -926,7 +940,8 @@
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
         <h4 class="font-bold text-slate-900 text-sm">Cosa &egrave; modellato, e cosa no</h4>
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
-          <li>La previdenza &egrave; la <strong>Gestione separata INPS</strong> al 26,07%, quella di chi non ha una cassa professionale. Casse di categoria, artigiani e commercianti hanno minimali e regole proprie, qui non modellate.</li>
+          <li>La previdenza si sceglie fra <strong>quattro gestioni INPS</strong>: Gestione Separata per professionisti e collaboratori, artigiani e commercianti. Le prime calcolano sul reddito effettivo, le altre due hanno un <strong>minimale</strong> e restano dovute anche a reddito zero.</li>
+          <li>Le <strong>casse professionali</strong> di categoria &mdash; Forense, Inarcassa, commercialisti, ENPAM e le altre &mdash; hanno contributo soggettivo, integrativo e minimi propri: non sono ancora modellate. Chi vi &egrave; iscritto non usi la Gestione Separata come approssimazione.</li>
           <li>I contributi si calcolano sul reddito dell'anno e vengono dedotti dallo stesso anno: acconti, saldo e cassa sfalsata non sono simulati.</li>
           <li>L'IVA non entra nel calcolo: il fatturato si intende al netto dell'imposta.</li>
           <li>Il forfetario &egrave; calcolato senza verificare le cause di esclusione (redditi da lavoro dipendente sopra 35.000 &euro;, partecipazioni, ex datore di lavoro).</li>
@@ -17805,6 +17820,80 @@ const GESTIONE_SEPARATA = {
   verificatoIl: '2026-08-21'
 };
 
+/* --------------------------------------------- Gestioni previdenziali */
+/* La partita IVA non paga una sola aliquota. La Gestione Separata è la
+   cassa di chi non ne ha una propria, e calcola i contributi sul reddito
+   effettivo: sotto una certa soglia si versa poco, a reddito zero non si
+   versa nulla. Le gestioni degli artigiani e dei commercianti funzionano
+   al rovescio: c'è un reddito MINIMALE sotto il quale si paga comunque,
+   e a reddito zero i contributi restano dovuti per intero. È la
+   differenza che pesa di più su chi comincia.                          */
+const GESTIONI_PREVIDENZIALI = {
+  separata_professionisti: {
+    nome: 'Gestione Separata — professionisti senza cassa',
+    aliquota: 0.2607,
+    massimale: 122295,
+    fonte: 'INPS, circolare n. 8 del 3 febbraio 2026',
+    nota: "Per chi esercita un'attività senza una cassa professionale di categoria. Sul reddito effettivo: niente minimale, a reddito zero non si versa nulla."
+  },
+  separata_collaboratori: {
+    nome: 'Gestione Separata — collaboratori',
+    aliquota: 0.3503,
+    massimale: 122295,
+    fonte: 'INPS, circolare n. 8 del 3 febbraio 2026',
+    nota: 'Aliquota piena della collaborazione: nel rapporto vero un terzo è a carico del collaboratore e due terzi del committente. Qui è tutta a carico, come accade a chi fattura.'
+  },
+  artigiani: {
+    nome: 'Artigiani — gestione INPS',
+    aliquota: 0.24,
+    aliquotaOltre: 0.25,
+    sogliaFascia: 56224,
+    minimale: 18808,
+    maternita: 7.44,
+    massimale: 122295,
+    riduzioneForfetario: 0.35,
+    fonte: 'INPS, circolare n. 14 del 9 febbraio 2026',
+    nota: "Contributo dovuto almeno sul minimale di 18.808 €: sono 4.521,36 € l'anno anche a reddito zero."
+  },
+  commercianti: {
+    nome: 'Commercianti — gestione INPS',
+    aliquota: 0.2448,
+    aliquotaOltre: 0.2548,
+    sogliaFascia: 56224,
+    minimale: 18808,
+    maternita: 7.44,
+    massimale: 122295,
+    riduzioneForfetario: 0.35,
+    fonte: 'INPS, circolare n. 14 del 9 febbraio 2026',
+    nota: "L'aliquota comprende lo 0,48% per l'indennizzo di cessazione. Minimale come per gli artigiani: 4.611,64 € l'anno anche a reddito zero."
+  }
+};
+
+/* Calcola i contributi della gestione scelta e dichiara perché sono
+   quelli: il minimale è la ragione per cui a redditi bassi il contributo
+   non scende, e va detta, non subita. */
+function contributiPrevidenziali(redditoLordo, chiaveGestione, forfetarioRidotto) {
+  const g = GESTIONI_PREVIDENZIALI[chiaveGestione] || GESTIONI_PREVIDENZIALI.separata_professionisti;
+  const reddito = Math.max(0, redditoLordo);
+
+  if (!g.minimale) {
+    const base = Math.min(reddito, g.massimale);
+    return { gestione: g, base, contributi: base * g.aliquota,
+             suMinimale: false, riduzione: 0, quotaFissa: 0 };
+  }
+
+  const base = Math.min(Math.max(reddito, g.minimale), g.massimale);
+  const ivs = base <= g.sogliaFascia
+    ? base * g.aliquota
+    : g.sogliaFascia * g.aliquota + (base - g.sogliaFascia) * g.aliquotaOltre;
+  const lordo = ivs + g.maternita;
+  const riduzione = forfetarioRidotto ? lordo * g.riduzioneForfetario : 0;
+
+  return { gestione: g, base, contributi: lordo - riduzione,
+           suMinimale: reddito < g.minimale, riduzione,
+           quotaFissa: g.minimale * g.aliquota + g.maternita };
+}
+
 /* ------------------------------------------------- Tipi di rapporto */
 /* Asse distinto da settore e inquadramento: un apprendista puo' lavorare
    nel terziario come nell'industria, e un tempo determinato riguarda
@@ -18628,6 +18717,8 @@ function calcolaAutonomo(params) {
     regimeAutonomo: 'ordinario',
     coefficiente: 0.78,
     costi: 0,
+    gestione: 'separata_professionisti',
+    riduzioneForfetaria: false,
     regione: 'Lombardia',
     comune: 'F205',
     ...params
@@ -18641,8 +18732,10 @@ function calcolaAutonomo(params) {
      per il coefficiente, nell'ordinario il reddito effettivo. In entrambi i
      casi i contributi si calcolano prima di dedurre se stessi. */
   const redditoLordo = forfetario ? compenso * p.coefficiente : compenso - costi;
-  const baseContributiva = Math.min(Math.max(0, redditoLordo), GESTIONE_SEPARATA.massimale);
-  const contributi = baseContributiva * GESTIONE_SEPARATA.professionisti;
+  const prev = contributiPrevidenziali(redditoLordo, p.gestione,
+                                       forfetario && p.riduzioneForfetaria);
+  const baseContributiva = prev.base;
+  const contributi = prev.contributi;
 
   // I contributi obbligatori si deducono dal reddito in tutti e due i regimi.
   const imponibile = Math.max(0, redditoLordo - contributi);
@@ -18682,7 +18775,10 @@ function calcolaAutonomo(params) {
     irpefLorda, detrazione, irpefNetta, addReg, addCom, impostaSostitutiva,
     imposte, nettoAnnuo, nettoMensile: nettoAnnuo / 12, pressione,
     oltreSoglia: forfetario && compenso > FORFETTARIO.soglia,
-    massimaleRaggiunto: redditoLordo > GESTIONE_SEPARATA.massimale,
+    massimaleRaggiunto: redditoLordo > prev.gestione.massimale,
+    gestione: p.gestione, gestioneNome: prev.gestione.nome,
+    contributiSuMinimale: prev.suMinimale, minimaleGestione: prev.gestione.minimale || 0,
+    riduzioneContributiva: prev.riduzione, quotaFissaGestione: prev.quotaFissa,
     regioneNome: regione.nome,
     comuneNome: comune ? comune.nome + ' (' + comune.provincia + ')' : '—'
   };
@@ -20558,6 +20654,46 @@ function eseguiTest() {
         vicino(ordConCosti.redditoLordo, 30000, 0.01),
         `${euro2(ordSenzaCosti.imposte)} → ${euro2(ordConCosti.imposte)} di imposte`);
 
+  /* Le gestioni degli artigiani e dei commercianti hanno un minimale: e' la
+     differenza che cambia la vita a chi comincia, e va verificata sui valori
+     pubblicati dall'INPS, non sull'aliquota moltiplicata a mano. */
+  const artZero = calcolaAutonomo({ anno: 2026, compenso: 0, gestione: 'artigiani' });
+  const comZero = calcolaAutonomo({ anno: 2026, compenso: 0, gestione: 'commercianti' });
+  const sepZero = calcolaAutonomo({ anno: 2026, compenso: 0, gestione: 'separata_professionisti' });
+  check('Gestioni INPS: a reddito zero il minimale resta dovuto, la Separata no',
+        vicino(artZero.contributi, 4521.36, 0.01) &&
+        vicino(comZero.contributi, 4611.64, 0.01) &&
+        sepZero.contributi === 0,
+        `artigiani ${euro2(artZero.contributi)} · commercianti ${euro2(comZero.contributi)}`);
+
+  // Oltre la prima fascia l'aliquota sale di un punto: 24% → 25%.
+  const artAlto = calcolaAutonomo({ anno: 2026, compenso: 80000, gestione: 'artigiani' });
+  const attesoAlto = 56224 * 0.24 + (80000 - 56224) * 0.25 + 7.44;
+  check('Gestioni INPS: oltre 56.224 € l’aliquota sale di un punto',
+        vicino(artAlto.contributi, attesoAlto, 0.01),
+        `${euro2(artAlto.contributi)} contro ${euro2(attesoAlto)}`);
+
+  // La riduzione del 35% e' una facolta' del forfetario: fuori non si applica.
+  const artRidotto = calcolaAutonomo({ anno: 2026, compenso: 30000, coefficiente: 0.67,
+                                       regimeAutonomo: 'forfettario15',
+                                       gestione: 'artigiani', riduzioneForfetaria: true });
+  const artPieno = calcolaAutonomo({ anno: 2026, compenso: 30000, coefficiente: 0.67,
+                                     regimeAutonomo: 'forfettario15', gestione: 'artigiani' });
+  const ordRidotto = calcolaAutonomo({ anno: 2026, compenso: 30000,
+                                       gestione: 'artigiani', riduzioneForfetaria: true });
+  const ordPieno = calcolaAutonomo({ anno: 2026, compenso: 30000, gestione: 'artigiani' });
+  check('Gestioni INPS: la riduzione del 35% vale solo nel forfetario',
+        vicino(artRidotto.contributi, artPieno.contributi * 0.65, 0.01) &&
+        vicino(ordRidotto.contributi, ordPieno.contributi, 0.01),
+        `forfetario ${euro2(artPieno.contributi)} → ${euro2(artRidotto.contributi)}`);
+
+  // Il netto deve muoversi con la gestione scelta, altrimenti il campo e' finto.
+  const nettoSep = calcolaAutonomo({ anno: 2026, compenso: 30000, gestione: 'separata_professionisti' }).nettoAnnuo;
+  const nettoArt = calcolaAutonomo({ anno: 2026, compenso: 30000, gestione: 'artigiani' }).nettoAnnuo;
+  check('Gestioni INPS: cambiare gestione cambia il netto',
+        Math.abs(nettoSep - nettoArt) > 1,
+        `${euro2(nettoSep)} contro ${euro2(nettoArt)}`);
+
   // Integrità del dataset ufficiale
   const milano = COMUNI_PER_CODICE.get('F205');
   check('Dataset: 7.897 comuni e 21 regioni caricati',
@@ -20870,6 +21006,10 @@ function popolaSelect() {
 
   el('a-regime').innerHTML = Object.entries(REGIMI_AUTONOMI)
     .map(([k, v]) => `<option value="${k}">${v.nome}</option>`)
+    .join('');
+
+  el('a-gestione').innerHTML = Object.entries(GESTIONI_PREVIDENZIALI)
+    .map(([k, v]) => `<option value="${k}"${k === 'separata_professionisti' ? ' selected' : ''}>${v.nome}</option>`)
     .join('');
 
   el('a-coefficiente').innerHTML = COEFFICIENTI_FORFETTARIO
@@ -21616,6 +21756,7 @@ const CAMPI_URL = {
   ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', PROFILO_PREDEFINITO],
   rapporto: ['p-rapporto', 'indeterminato'],
   aregime: ['a-regime', 'ordinario'], compenso: ['a-compenso', '50000'],
+  agestione: ['a-gestione', 'separata_professionisti'],
   acosti: ['a-costi', '0'], acoeff: ['a-coefficiente', 'professionali'],
   aanno: ['a-anno', '2026'], aregione: ['a-regione', 'Lombardia'], regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
   figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
@@ -21627,7 +21768,7 @@ const CAMPI_URL = {
 const INTERRUTTORI_URL = {
   massimale: ['p-massimale', false], coniuge: ['p-coniuge', false], elettronici: ['p-buoni-el', true],
   welfare: ['p-premio-welfare', false], impatriatifigli: ['p-impatriati-figli', false],
-  tfrfondo: ['p-tfr-fondo', false]
+  tfrfondo: ['p-tfr-fondo', false], ariduzione: ['a-riduzione', false]
 };
 
 let ripristinoInCorso = false;
@@ -21815,6 +21956,8 @@ function leggiParametriAutonomo() {
     compenso: Math.max(0, parseFloat(el('a-compenso').value) || 0),
     costi: Math.max(0, parseFloat(el('a-costi').value) || 0),
     regimeAutonomo: el('a-regime').value,
+    gestione: el('a-gestione').value,
+    riduzioneForfetaria: el('a-riduzione').checked,
     coefficiente: scelta.coefficiente,
     gruppo: scelta,
     regione: el('a-regione').value,
@@ -21838,6 +21981,21 @@ function aggiornaAutonomo() {
   el('a-riga-costi').classList.toggle('hidden', forfetario);
   el('a-riga-regione').classList.toggle('hidden', forfetario);
   el('a-regime-nota').textContent = REGIMI_AUTONOMI[p.regimeAutonomo].nota;
+
+  /* La riduzione del 35% e' una facolta' dei soli forfetari iscritti alle
+     gestioni artigiani e commercianti: dove non spetta, la casella non
+     compare invece di restare li' senza effetto. */
+  const gest = GESTIONI_PREVIDENZIALI[p.gestione] || GESTIONI_PREVIDENZIALI.separata_professionisti;
+  const riduzioneAmmessa = forfetario && !!gest.riduzioneForfetario;
+  el('a-riga-riduzione').className = riduzioneAmmessa
+    ? 'flex items-start gap-3 cursor-pointer' : 'hidden items-start gap-3 cursor-pointer';
+  if (!riduzioneAmmessa) el('a-riduzione').checked = false;
+
+  el('a-gestione-nota').innerHTML = gest.nota
+    + (r.contributiSuMinimale
+        ? ` <strong class="text-amber-700">Il reddito è sotto il minimale: i contributi restano quelli del minimale, non scendono.</strong>`
+        : '')
+    + `<span class="block text-slate-400 mt-0.5">${gest.fonte}</span>`;
   el('a-coefficiente-nota').textContent = forfetario
     ? `Codici ATECO ${p.gruppo.ateco} — imponibile ${fmtPerc.format(p.coefficiente * 100)}% del fatturato`
     : '';
@@ -21869,10 +22027,19 @@ function aggiornaAutonomo() {
     righe.push(rigaAutonomo('Reddito d’impresa o di lavoro autonomo',
       'Base su cui si calcolano contributi e imposte', r.redditoLordo, { evidenzia: true }));
   }
-  righe.push(rigaAutonomo('Contributi Gestione separata',
-    `${fmtPerc.format(GESTIONE_SEPARATA.professionisti * 100)}% a carico del professionista`
-    + (r.massimaleRaggiunto ? `, fermi al massimale di ${euro(GESTIONE_SEPARATA.massimale)}` : ''),
-    r.contributi, { tipo: 'negativo' }));
+  const gestioneCorrente = GESTIONI_PREVIDENZIALI[r.gestione] || GESTIONI_PREVIDENZIALI.separata_professionisti;
+  const notaContributi = r.contributiSuMinimale
+    ? `Calcolati sul minimale di ${euro(r.minimaleGestione)}, non sul reddito: sotto quella soglia il contributo non scende`
+    : (r.massimaleRaggiunto
+        ? `${fmtPerc2.format(gestioneCorrente.aliquota * 100)}%, fermi al massimale di ${euro(gestioneCorrente.massimale)}`
+        : `${fmtPerc2.format(gestioneCorrente.aliquota * 100)}% sul reddito`
+          + (gestioneCorrente.aliquotaOltre ? `, ${fmtPerc2.format(gestioneCorrente.aliquotaOltre * 100)}% oltre ${euro(gestioneCorrente.sogliaFascia)}` : ''));
+  righe.push(rigaAutonomo(`Contributi — ${r.gestioneNome}`, notaContributi, r.contributi, { tipo: 'negativo' }));
+  if (r.riduzioneContributiva > 0) {
+    righe.push(rigaAutonomo('Riduzione contributiva del 35%',
+      'Già applicata sopra: abbassa anche l’accredito ai fini pensionistici',
+      r.riduzioneContributiva, { tipo: 'neutro', indent: true }));
+  }
   righe.push(rigaAutonomo('Imponibile fiscale',
     'Reddito al netto dei contributi, che sono deducibili', r.imponibile, { evidenzia: true }));
 
@@ -21939,7 +22106,8 @@ function aggiornaAutonomo() {
   scriviUrl();
 }
 
-['a-compenso', 'a-costi', 'a-regime', 'a-coefficiente', 'a-anno', 'a-regione'].forEach((id) => {
+['a-compenso', 'a-costi', 'a-regime', 'a-coefficiente', 'a-anno', 'a-regione',
+ 'a-gestione', 'a-riduzione'].forEach((id) => {
   el(id).addEventListener('input', aggiornaAutonomo);
   el(id).addEventListener('change', aggiornaAutonomo);
 });
