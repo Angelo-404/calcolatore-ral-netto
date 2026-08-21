@@ -161,7 +161,7 @@
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">rapporto per tutto l'anno</span>
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">13 mensilit&agrave;</span>
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">Addizionali a regime (competenza)</span>
-    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900">anno d&rsquo;imposta 2025<span id="tip-anno-base"></span></span>
+    <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">anno d&rsquo;imposta 2026<span id="tip-anno-base"></span></span>
   </div>
 
   <div class="grid lg:grid-cols-5 gap-6">
@@ -1034,7 +1034,7 @@ const COSTANTI = {
 
   IRPEF: {
     SOGLIA_1: 28000, ALIQUOTA_1: 0.23,
-    SOGLIA_2: 50000, ALIQUOTA_2: 0.35,
+    SOGLIA_2: 50000, ALIQUOTA_2: 0.33,
     ALIQUOTA_3: 0.43
   },
 
@@ -19269,21 +19269,19 @@ function renderBase(r) {
 
   apriRegistroSpiegazioni('b');
   el('tip-anno-base').innerHTML = bottoneSpiegazione({
-    titolo: 'Perché l’anno d’imposta 2025',
-    corpo: 'Questa scheda implementa alla lettera la specifica dell’esercizio, che fissa i tre scaglioni '
-      + 'IRPEF al <strong>23% / 35% / 43%</strong>: sono le aliquote del 2025. Non è una svista di '
-      + 'aggiornamento, è fedeltà al testo — cambiarle qui vorrebbe dire consegnare un motore diverso da '
-      + 'quello richiesto, e renderebbe non verificabili i valori di riferimento del documento.<br><br>'
-      + 'Le regole del <strong>2026</strong> ci sono, e sono nella scheda <strong>Avanzato</strong>, che le '
-      + 'usa come predefinite: seconda aliquota al 33%, massimale e prima fascia rivalutati, buoni pasto a '
-      + '10 €, premio di risultato all’1% entro 5.000 €. Il pulsante qui sotto trasferisce la RAL e '
-      + 'ricalcola con l’anno in corso.',
-    fonte: 'Aliquote 2025: D.Lgs. 216/2023, rese strutturali dalla L. 207/2024',
+    titolo: 'Anno d’imposta 2026',
+    corpo: 'Questa scheda calcola con le regole <strong>dell’anno in corso</strong>: seconda aliquota IRPEF '
+      + 'al 33%, prima fascia pensionabile a 56.224 € e massimale contributivo a 122.295 €. Il 2025 non è '
+      + 'sparito — la scheda <strong>Avanzato</strong> permette di scegliere l’anno e di confrontare i due, '
+      + 'e su questa stessa RAL la differenza si legge in euro.<br><br>'
+      + 'Le regole che cambiano fra i due anni sono poche ma pesano: sotto i 28.000 € di imponibile il netto '
+      + 'è identico, perché la seconda aliquota non li tocca.',
+    fonte: 'Seconda aliquota al 33%: Legge di Bilancio 2026 · massimali e fasce: INPS, circolare n. 6 del 30 gennaio 2026',
     html: formula([
-      ['Prima aliquota, fino a 28.000 €', '23%'],
-      ['Seconda, da 28.000 a 50.000 €', '35% nel 2025 · 33% nel 2026'],
-      ['Terza, oltre 50.000 €', '43%']
-    ], ['Scaglioni applicati qui', '23% / 35% / 43%'])
+      ['Fino a 28.000 €', '23%'],
+      ['Da 28.000 a 50.000 €', '33% — era 35% nel 2025'],
+      ['Oltre 50.000 €', '43%']
+    ], ['Scaglioni applicati qui', '23% / 33% / 43%'])
   });
 
   el('tip-pressione').innerHTML = bottoneSpiegazione({
@@ -19312,7 +19310,7 @@ function renderBase(r) {
   html += rigaCascata('RAL &mdash; Retribuzione Annua Lorda', 'Base di partenza', r.ral, M, { forte: true, evidenzia: true });
   html += rigaCascata('Contributi INPS', 'Aliquota 9,19% a carico del lavoratore', r.inps, M, { tipo: 'negativo', spiega: S.inps });
   html += rigaCascata('Imponibile fiscale', 'RAL al netto dei contributi', r.imponibile, M, { forte: true, evidenzia: true, spiega: S.imponibile });
-  html += rigaCascata('IRPEF lorda', 'Scaglioni 23% / 35% / 43%', r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
+  html += rigaCascata('IRPEF lorda', 'Scaglioni 23% / 33% / 43%', r.irpefLorda, M, { tipo: 'negativo', spiega: S.irpefLorda });
   html += rigaCascata('Detrazione lavoro dipendente', 'Art. 13 TUIR, correttivo di fascia incluso', r.detrazioniBase, M, { tipo: 'positivo', indent: true, spiega: S.detrazioni });
 
   if (r.ulterioreDetrazione > 0) {
@@ -19356,7 +19354,7 @@ function renderBase(r) {
    retributiva ordinaria, ma oltre due soglie contributive smettono di
    valere, e il risultato va dichiarato per quello che è invece di essere
    presentato come esatto. */
-const SOGLIE_OLTRE_STANDARD = { primaFascia: 55448, massimale: 120607 };
+const SOGLIE_OLTRE_STANDARD = { primaFascia: 56224, massimale: 122295 };
 
 function aggiornaAvvisoBase(r) {
   const box = el('base-avviso');
@@ -19553,7 +19551,7 @@ let comuneCorrente = 'F205';
    motore semplice, che accetta la sola RAL. Se non lo si elenca, il delta
    in cima sembra riferirsi a una simulazione precedente. */
 const RIFERIMENTO_AL_BANCO = [
-  ['Anno d’imposta', '2025 — IRPEF 23% / 35% / 43%'],
+  ['Anno d’imposta', '2026 — IRPEF 23% / 33% / 43%'],
   ['Contributi', '9,19% — impiegato a tempo indeterminato'],
   ['Luogo', 'Milano, Lombardia'],
   ['Periodo', '13 mensilità · 365 giorni · tempo pieno'],
@@ -20263,28 +20261,29 @@ function eseguiTest() {
         r10.irpefLorda <= r10.detrazioniBase ? r10.trattamentoIntegrativo === 0 : true);
 
   // Il motore Premium, sullo stesso scenario del motore Base, deve coincidere:
-  // anno 2025, profilo standard, Milano/Lombardia, nessun parametro attivo.
+  // profilo standard, Milano/Lombardia, nessun parametro attivo. L'anno resta
+  // 2025 perche' molti test piu' sotto misurano proprio il salto fra i due anni.
   const scenarioBase = { anno: 2025, mensilita: 13, profilo: 'terziario_impiegato',
                          regione: 'Lombardia', comune: 'F205' };
   // L'equivalenza vale sotto la prima fascia di retribuzione pensionabile:
-  // sopra, il motore Base non conosce l'aliquota aggiuntiva dell'1%, che la
-  // specifica di progetto non prevede e che il motore Premium invece applica.
+  // sopra, «Task Jet HR» non conosce l'aliquota aggiuntiva dell'1%, che vale
+  // per il profilo standard e che «Avanzato» invece applica.
   let equivalenza = true, scarto = '';
   for (const ral of [12000, 20000, 30000, 45000, 55000]) {
     const b = calcolaBase(ral);
-    const p = calcolaPremium({ ...scenarioBase, ral });
+    const p = calcolaPremium({ ...scenarioBase, anno: 2026, ral });
     if (!vicino(b.nettoAnnuo, p.nettoAnnuo, 0.01)) {
       equivalenza = false;
       scarto = `RAL ${ral}: ${euro2(b.nettoAnnuo)} vs ${euro2(p.nettoAnnuo)}`;
       break;
     }
   }
-  check('«Avanzato» 2025 = «Task Jet HR» sotto la prima fascia pensionabile', equivalenza, scarto);
+  check('«Avanzato» 2026 = «Task Jet HR» sotto la prima fascia pensionabile', equivalenza, scarto);
 
   // Sopra la soglia lo scostamento deve essere esattamente il contributo dell'1%
-  const alto = calcolaPremium({ ...scenarioBase, ral: 70000 });
+  const alto = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 70000 });
   check('Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1%',
-        vicino(alto.contributoAggiuntivo, (70000 - ANNI[2025].soglia1pc) * 0.01, 0.01),
+        vicino(alto.contributoAggiuntivo, (70000 - ANNI[2026].soglia1pc) * 0.01, 0.01),
         euro2(alto.contributoAggiuntivo));
 
   // La seconda aliquota 2026 è più bassa: a parità di tutto, il netto sale

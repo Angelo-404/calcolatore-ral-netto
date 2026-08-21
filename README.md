@@ -9,7 +9,7 @@ Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. Fra pare
 
 | Sezione | Contenuto |
 |---|---|
-| **Task Jet HR** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
+| **Task Jet HR** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta in corso. |
 | **Avanzato** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
 | **P.IVA** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, tre gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
 
@@ -93,21 +93,21 @@ Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenari
 | Carichi di famiglia | Nessuno | Nessuna detrazione ex art. 12 TUIR: le uniche detrazioni sono quelle da lavoro dipendente |
 | Giorni di rapporto | 365 | Il rapporto copre l'intero anno: le detrazioni non vengono ragguagliate |
 | Mensilità | 13 | Il netto mensile è il netto annuo diviso 13 |
-| Anno d'imposta | 2025 | Scaglioni 23% / 35% / 43%, come fissati dalla specifica. Dichiarato in pagina accanto alle altre assunzioni; il 2026 è nella scheda Avanzato |
+| Anno d'imposta | 2026 | Scaglioni 23% / 33% / 43%: l'anno in corso. La traccia non ne indica uno, e un calcolatore consegnato oggi deve usare le regole di oggi. Dichiarato in pagina accanto alle altre assunzioni; il confronto col 2025 è nella scheda Avanzato |
 | Addizionali locali | **A regime, per competenza** | Vedi sotto |
 
 ### Dove il profilo standard smette di valere
 
 L'aliquota INPS piatta al 9,19% senza massimale è corretta nella fascia retributiva ordinaria, ma oltre due soglie contributive non lo è più:
 
-| Soglia 2025 | Cosa cambia | Effetto sul netto della sezione Base |
+| Soglia 2026 | Cosa cambia | Effetto sul netto della scheda Task Jet HR |
 |---|---|---|
-| 55.448 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: a 80.000 € di RAL mancano 245,52 € di contributi, che sul netto valgono **133,73 €**. Meno del contributo, perché versarlo abbassa anche l'imponibile e quindi l'IRPEF |
-| 120.607 € | Opera il massimale contributivo per chi è privo di anzianità al 31/12/1995 | Sottostimato: i contributi continuano a crescere quando dovrebbero fermarsi |
+| 56.224 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: a 80.000 € di RAL mancano 237,76 € di contributi, che sul netto valgono **129,51 €**. Meno del contributo, perché versarlo abbassa anche l'imponibile e quindi l'IRPEF |
+| 122.295 € | Opera il massimale contributivo per chi è privo di anzianità al 31/12/1995 | Sottostimato: i contributi continuano a crescere quando dovrebbero fermarsi |
 
 La sezione Base **non** implementa queste due regole, perché il profilo richiesto è quello standard. Piuttosto che presentare un numero impreciso come esatto, la interfaccia lo dichiara: superata la soglia compare un avviso che nomina la norma, quantifica lo scostamento e offre di ricalcolare nella sezione Premium, che applica entrambe le regole. La RAL viene trasferita e il massimale attivato automaticamente.
 
-A 200.000 € di RAL, con il massimale attivo, la scheda Avanzato restituisce **3.619,33 € di netto in più**: la scheda Task Jet HR continua a versare contributi che a quel livello dovrebbero essersi fermati.
+A 200.000 € di RAL, con il massimale attivo, la scheda Avanzato restituisce **3.529,86 € di netto in più**: la scheda Task Jet HR continua a versare contributi che a quel livello dovrebbero essersi fermati.
 
 ### Sul criterio "a regime, per competenza"
 
@@ -179,7 +179,7 @@ Il netto **non è una funzione monotona crescente della RAL**. La normativa prod
 |---|---|---|---|
 | 15.000 € | ≈ 16.519 € | −129,35 € | Decadenza del trattamento integrativo, non compensata dal gradino di detrazione |
 | 23.000 € | ≈ 25.328 € | −183,40 € | Effetto scalino dell'addizionale comunale di Milano |
-| 35.000 € | ≈ 38.543 € | −64,62 € | Decadenza del correttivo di fascia da 65 € |
+| 35.000 € | ≈ 38.543 € | −64,61 € | Decadenza del correttivo di fascia da 65 € |
 
 Un calcolatore che restituisce una curva perfettamente monotona sta approssimando la normativa. Il test `Monotonicità: rotture solo sulle 3 soglie normative note` verifica su 250.000 punti che esistano **esattamente** queste tre discontinuità e nessun'altra: qualunque rottura aggiuntiva sarebbe un bug di implementazione.
 
@@ -305,7 +305,7 @@ Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione,
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
 
-Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 55.448 € di retribuzione, e questo è corretto. La specifica del motore Base fissa l'INPS al 9,19% puro; il motore Premium applica anche l'aliquota aggiuntiva dell'1% prevista dall'art. 3-ter del D.L. 384/1992. Il test non nasconde la divergenza: la misura e verifica che sia esattamente pari a quel contributo.
+Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 56.224 € di retribuzione, e questo è corretto. Il motore Base fissa l'INPS al 9,19% puro, com'è per il profilo standard; il motore Premium applica anche l'aliquota aggiuntiva dell'1% prevista dall'art. 3-ter del D.L. 384/1992. Il test non nasconde la divergenza: la misura e verifica che sia esattamente pari a quel contributo.
 
 ### Valori di riferimento verificati
 
@@ -315,9 +315,9 @@ Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 
 | 20.000 € | 18.162,00 | 1.366,70 | 234,46 | 0,00 | 871,78 | 17.432,61 | 1.340,97 | 12,8% |
 | 25.000 € | 22.702,50 | 1.826,65 | 306,20 | 0,00 | 0,00 | 20.569,65 | 1.582,28 | 17,7% |
 | 30.000 € | 27.243,00 | 3.221,60 | 377,94 | 217,94 | 0,00 | 23.425,52 | 1.801,96 | 21,9% |
-| 45.000 € | 40.864,50 | 10.149,45 | 611,17 | 326,92 | 0,00 | 29.776,97 | 2.290,54 | 33,8% |
-| 60.000 € | 54.486,00 | 16.068,98 | 845,91 | 435,89 | 0,00 | 37.135,22 | 2.856,56 | 38,1% |
-| 100.000 € | 90.810,00 | 31.688,30 | 1.474,31 | 726,48 | 0,00 | 56.920,91 | 4.378,53 | 43,1% |
+| 45.000 € | 40.864,50 | 9.892,16 | 611,17 | 326,92 | 0,00 | 30.034,26 | 2.310,33 | 33,3% |
+| 60.000 € | 54.486,00 | 15.628,98 | 845,91 | 435,89 | 0,00 | 37.575,22 | 2.890,40 | 37,4% |
+| 100.000 € | 90.810,00 | 31.248,30 | 1.474,31 | 726,48 | 0,00 | 57.360,91 | 4.412,38 | 42,6% |
 
 A 15.000 € di RAL la pressione fiscale è 5,3% e a 10.000 € è **negativa** (−5,2%): i bonus esentasse superano il prelievo. Il valore non è un errore di calcolo, è il risultato corretto del cuneo fiscale a redditi bassi.
 
@@ -343,7 +343,7 @@ La differenza più rilevante è che **le regole cambiano fra i due anni**, e un 
 
 A 45.000 € di RAL, il solo passaggio dal 2025 al 2026 vale **+257,29 €** di netto annuo — importo calcolato dal motore, non stimato.
 
-La specifica dell'esercizio fissa i tre scaglioni al 23% / 35% / 43%, che sono le aliquote del **2025**: il motore Base le implementa alla lettera, ed è il motivo per cui quella scheda dichiara in pagina il proprio anno d'imposta. Cambiarle lì avrebbe significato consegnare un motore diverso da quello richiesto, e rendere non verificabili i valori di riferimento del §5. Le regole del 2026 non mancano: sono nella scheda Avanzato, che le usa come predefinite.
+La traccia non indica un anno d'imposta. La scheda Task Jet HR usa quindi le regole **in corso** — 23% / 33% / 43% — perché un calcolatore consegnato oggi che applicasse gli scaglioni dell'anno scorso sarebbe sbagliato senza dirlo. La scheda Avanzato permette invece di scegliere l'anno, ed è lì che il confronto fra i due si legge in euro.
 
 ### 6.2 Contribuzione reale per settore e qualifica
 
@@ -698,7 +698,7 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 
 | Istituto | Fonte |
 |---|---|
-| Scaglioni e aliquote IRPEF (23% / 35% / 43%) | TUIR — D.P.R. 917/1986, art. 11; assetto a tre scaglioni introdotto dal D.Lgs. 216/2023 e reso strutturale dalla Legge di Bilancio 2025 (L. 207/2024) |
+| Assetto a tre scaglioni IRPEF, aliquote 23% / 35% / 43% nel 2025 e 23% / 33% / 43% dal 2026 | TUIR — D.P.R. 917/1986, art. 11; tre scaglioni introdotti dal D.Lgs. 216/2023 e resi strutturali dalla L. 207/2024; seconda aliquota ridotta al 33% dalla Legge di Bilancio 2026 |
 | Detrazioni per lavoro dipendente e correttivo di fascia | TUIR, art. 13 |
 | Detrazioni per carichi di famiglia (sezione Premium) | TUIR, art. 12 |
 | Taglio del cuneo fiscale 2025: bonus esentasse fino a 20.000 € e ulteriore detrazione 20.000–40.000 € | L. 207/2024 (Legge di Bilancio 2025); istruzioni operative Agenzia delle Entrate |
