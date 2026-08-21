@@ -63,6 +63,14 @@
   }
   .spiega:focus-visible { outline: 2px solid #2148e3; outline-offset: 2px; }
 
+  /* Tendine dei parametri di dettaglio: il marcatore nativo cambia forma da
+     un browser all'altro, quindi lo sostituisco con una freccia che ruota. */
+  .tendina > summary { list-style: none; cursor: pointer; }
+  .tendina > summary::-webkit-details-marker { display: none; }
+  .tendina > summary .freccia { transition: transform .15s ease; }
+  .tendina[open] > summary .freccia { transform: rotate(90deg); }
+  .tendina > summary:focus-visible { outline: 2px solid #2148e3; outline-offset: 2px; border-radius: .5rem; }
+
   #popover-spiega {
     position: fixed; z-index: 60; width: min(22rem, calc(100% - 2rem));
     background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
@@ -467,25 +475,28 @@
           <p id="p-fringe-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div id="p-riga-buoni-valore">
-            <label for="p-buoni" class="block text-sm font-semibold text-slate-700 mb-1.5">Buono pasto / giorno</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
-              <input id="p-buoni" type="number" min="0" max="30" step="0.5" value="0"
-                     class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            </div>
-          </div>
-          <div id="p-riga-buoni-giorni">
-            <label for="p-buoni-giorni" class="block text-sm font-semibold text-slate-700 mb-1.5">Giorni con buono</label>
-            <input id="p-buoni-giorni" type="number" min="0" max="365" step="1" value="220"
-                   class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <div>
+          <label for="p-buoni" class="block text-sm font-semibold text-slate-700 mb-1.5">Buono pasto / giorno</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <input id="p-buoni" type="number" min="0" max="30" step="0.5" value="0"
+                   class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
         </div>
-        <label id="p-riga-buoni-el" class="flex items-center gap-3 cursor-pointer -mt-2">
-          <input id="p-buoni-el" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-          <span class="text-sm text-slate-600">Buoni pasto elettronici <span id="p-buoni-nota" class="text-slate-400"></span></span>
-        </label>
+        <details id="p-det-buoni" class="tendina -mt-2">
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Giorni e tipo di buono</summary>
+          <div class="pt-2 space-y-3">
+            <div>
+              <label for="p-buoni-giorni" class="block text-sm font-semibold text-slate-700 mb-1.5">Giorni con buono</label>
+              <input id="p-buoni-giorni" type="number" min="0" max="365" step="1" value="220"
+                     class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input id="p-buoni-el" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+              <span class="text-sm text-slate-600">Buoni pasto elettronici <span id="p-buoni-nota" class="text-slate-400"></span></span>
+            </label>
+          </div>
+        </details>
 
         <div>
           <label for="p-premio" class="block text-sm font-semibold text-slate-700 mb-1.5">Premio di risultato</label>
@@ -496,10 +507,13 @@
           </div>
           <p id="p-premio-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
-        <label id="p-riga-premio-welfare" class="flex items-center gap-3 cursor-pointer -mt-2">
-          <input id="p-premio-welfare" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-          <span class="text-sm text-slate-600">Convertito in welfare aziendale <span class="text-slate-400">(esente da imposte e contributi)</span></span>
-        </label>
+        <details id="p-det-premio" class="tendina -mt-2">
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Come viene erogato il premio</summary>
+          <label class="flex items-center gap-3 cursor-pointer pt-2">
+            <input id="p-premio-welfare" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+            <span class="text-sm text-slate-600">Convertito in welfare aziendale <span class="text-slate-400">(esente da imposte e contributi)</span></span>
+          </label>
+        </details>
 
         <div>
           <label for="p-accessori" class="block text-sm font-semibold text-slate-700 mb-1.5">Straordinari, notturni e festivi</label>
@@ -521,15 +535,26 @@
           <p class="text-[11px] text-slate-500 mt-1">Contributo del lavoratore, deducibile fino a 5.164,57 &euro;</p>
         </div>
 
-        <div id="p-riga-fondo-datore">
-          <label for="p-fondo-datore" class="block text-sm font-semibold text-slate-700 mb-1.5">Contributo del datore al fondo</label>
-          <div class="relative">
-            <input id="p-fondo-datore" type="number" min="0" max="20" step="0.05" value="0"
-                   class="num w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">%</span>
+        <details id="p-det-fondo" class="tendina -mt-2">
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Contributo del datore e destinazione del TFR</summary>
+          <div class="pt-2 space-y-3">
+            <div>
+              <label for="p-fondo-datore" class="block text-sm font-semibold text-slate-700 mb-1.5">Contributo del datore al fondo</label>
+              <div class="relative">
+                <input id="p-fondo-datore" type="number" min="0" max="20" step="0.05" value="0"
+                       class="num w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">%</span>
+              </div>
+              <p id="p-fondo-datore-nota" class="text-[11px] text-slate-500 mt-1"></p>
+            </div>
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input id="p-tfr-fondo" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+              <span class="text-sm text-slate-600">TFR destinato al fondo pensione
+                <span class="block text-[11px] text-slate-400">Non si accantona pi&ugrave; in azienda</span>
+              </span>
+            </label>
           </div>
-          <p id="p-fondo-datore-nota" class="text-[11px] text-slate-500 mt-1"></p>
-        </div>
+        </details>
 
         <div>
           <label for="p-trattenute" class="block text-sm font-semibold text-slate-700 mb-1.5">Altre trattenute annue</label>
@@ -545,13 +570,6 @@
           <p id="p-trattenute-nota" class="text-[11px] text-amber-700 mt-1 hidden"></p>
         </div>
 
-        <label id="p-riga-tfr-fondo" class="flex items-start gap-3 cursor-pointer">
-          <input id="p-tfr-fondo" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-          <span class="text-sm">
-            <span class="font-semibold text-slate-700">TFR destinato al fondo pensione</span>
-            <span class="block text-xs text-slate-500">Non si accantona pi&ugrave; in azienda</span>
-          </span>
-        </label>
       </div>
 
       <!-- Regimi agevolati -->
@@ -21166,23 +21184,18 @@ function aggiornaNoteContestuali(p) {
     ? `Spetta perché il lavoratore versa: ${euro(p.ral * p.contributoDatoreFondo / 100)} l'anno a carico azienda.`
     : 'Nei fondi negoziali il contributo aziendale spetta solo se il lavoratore versa la propria quota.';
 
-  /* Le opzioni di dettaglio esistono solo quando la voce da cui dipendono ha
-     un valore: i giorni con buono senza buono pasto, o il contributo del
-     datore al fondo senza versamento del lavoratore, sono controlli che non
-     possono produrre alcun effetto. Restano nel DOM e ricompaiono da soli
-     appena la voce principale viene compilata — anche aprendo un link
-     condiviso che la porta gia' valorizzata. */
-  const mostra = (id, condizione, classi) =>
-    el(id).className = (condizione ? '' : 'hidden ') + classi;
-
-  mostra('p-riga-buoni-giorni', p.buoniPastoGiorno > 0, '');
-  mostra('p-riga-buoni-el', p.buoniPastoGiorno > 0, 'flex items-center gap-3 cursor-pointer -mt-2');
-  // Senza i giorni accanto, il valore giornaliero occupa la riga intera.
-  el('p-riga-buoni-valore').className = p.buoniPastoGiorno > 0 ? '' : 'col-span-2';
-
-  mostra('p-riga-premio-welfare', p.premioRisultato > 0, 'flex items-center gap-3 cursor-pointer -mt-2');
-  mostra('p-riga-fondo-datore', p.fondoPensione > 0, '');
-  mostra('p-riga-tfr-fondo', p.fondoPensione > 0, 'flex items-start gap-3 cursor-pointer');
+  /* Le opzioni di dettaglio non spariscono: stanno in una tendina, sempre
+     apribile. Si apre da sola quando la voce da cui dipendono acquista un
+     valore — compilato a mano o portato da un link condiviso — perche' a
+     quel punto servono davvero. Se e' stata aperta a mano resta aperta:
+     chiuderla d'ufficio a ogni ricalcolo sarebbe un dispetto. */
+  const apriTendina = (id, condizione) => {
+    const d = el(id);
+    if (d.dataset.apertaAMano !== '1') d.open = condizione;
+  };
+  apriTendina('p-det-buoni', p.buoniPastoGiorno > 0);
+  apriTendina('p-det-premio', p.premioRisultato > 0);
+  apriTendina('p-det-fondo', p.fondoPensione > 0);
 
   el('p-impatriati-box').className = p.regime === 'impatriati'
     ? 'flex items-center gap-3 cursor-pointer'
@@ -21432,6 +21445,14 @@ el('btn-vista-curva').addEventListener('click', () => scegliVista('curva'));
 
 ['p-settore', 'p-qualifica', 'p-dimensione']
   .forEach((id) => el(id).addEventListener('change', ricomponiProfilo));
+
+/* Chi apre o chiude una tendina di persona ha deciso: da quel momento il
+   ricalcolo non gliela muove piu' sotto le mani. */
+['p-det-buoni', 'p-det-premio', 'p-det-fondo'].forEach((id) => {
+  el(id).addEventListener('toggle', (e) => {
+    if (e.isTrusted) el(id).dataset.apertaAMano = '1';
+  });
+});
 
 ['p-ral', 'p-mensilita', 'p-profilo', 'p-rapporto', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
