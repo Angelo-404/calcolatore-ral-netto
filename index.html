@@ -18210,9 +18210,9 @@ const REGIONI = Object.fromEntries(
    FUNZIONI DI DOMINIO — SEZIONE PREMIUM
    ==================================================================== */
 
-/* IRPEF lorda con aliquote dipendenti dall'anno d'imposta.
-   Per il 2025 deve restituire lo stesso valore di calcolaIrpefLorda():
-   è verificato da un test di non-regressione.                            */
+/* IRPEF lorda con aliquote dipendenti dall'anno d'imposta. Sull'anno di
+   riferimento deve restituire lo stesso valore di calcolaIrpefLorda(), che
+   e' il motore semplice: lo verifica un test di non-regressione.          */
 function calcolaIrpefLordaAnno(imponibile, anno) {
   const scaglioni = ANNI[anno].irpef;
   let imposta = 0;
@@ -19568,6 +19568,11 @@ let comuneCorrente = 'F205';
 /* «Task Jet HR» non e' uno scenario dell'utente: e' un profilo cablato nel
    motore semplice, che accetta la sola RAL. Se non lo si elenca, il delta
    in cima sembra riferirsi a una simulazione precedente. */
+/* L'anno del motore semplice. Vive qui accanto all'elenco che lo descrive,
+   cosi' spostarlo significa spostarli insieme: separarli e' stato l'errore
+   che ha fatto dichiarare una differenza inesistente. */
+const ANNO_RIFERIMENTO = 2026;
+
 const RIFERIMENTO_AL_BANCO = [
   ['Anno d’imposta', '2026 — IRPEF 23% / 33% / 43%'],
   ['Contributi', '9,19% — impiegato a tempo indeterminato'],
@@ -19583,7 +19588,7 @@ const RIFERIMENTO_AL_BANCO = [
 function differenzeDalRiferimento(p) {
   const d = [];
   const comune = COMUNI_PER_CODICE.get(p.comune);
-  if (p.anno !== 2025) d.push(`l’anno d’imposta (${p.anno})`);
+  if (p.anno !== ANNO_RIFERIMENTO) d.push(`l’anno d’imposta (${p.anno})`);
   if (p.profilo !== PROFILO_PREDEFINITO) d.push('l’inquadramento contributivo');
   if (p.tipoRapporto !== 'indeterminato') d.push('il tipo di rapporto');
   if (p.comune !== 'F205') d.push(`il comune (${comune ? comune.nome : '—'})`);
@@ -20783,7 +20788,7 @@ function eseguiTest() {
     const netto = calcolaBase(ral).nettoAnnuo;
     if (netto > picco.netto) picco = { ral, netto };
   }
-  const multiplo = invertiNetto(picco.netto - 30, { ...scenarioBase, anno: 2025 });
+  const multiplo = invertiNetto(picco.netto - 30, { ...scenarioBase, anno: ANNO_RIFERIMENTO });
   check('Inversione: più RAL per lo stesso netto, sceglie la meno costosa',
         multiplo.esito === 'esatto' &&
         multiplo.altreSoluzioni.length >= 1 &&
@@ -20906,9 +20911,9 @@ function eseguiTest() {
   check('Dataset: 7.897 comuni e 21 regioni caricati',
         COMUNI.length === 7897 && Object.keys(REGIONI).length === 21,
         `${COMUNI.length} comuni · ${Object.keys(REGIONI).length} regioni`);
-  check('Dataset: Milano 0,80% con esenzione 23.000 €',
-        milano[2025].esenzione === 23000 &&
-        vicino(milano[2025].scaglioni[0].aliquota, 0.008, 1e-9));
+  check('Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni',
+        [2025, 2026].every((a) => milano[a].esenzione === 23000 &&
+          vicino(milano[a].scaglioni[0].aliquota, 0.008, 1e-9)));
   check('Dataset: Lombardia allineata alla specifica di «Task Jet HR»',
         REGIONI.Lombardia.scaglioni.map((s) => s.aliquota).join() ===
         COSTANTI.ADD_REGIONALE_LOMBARDIA.map((s) => s.aliquota).join());

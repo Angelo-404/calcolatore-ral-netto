@@ -201,7 +201,7 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Quadratura: RAL − trattenute + bonus = netto | Riconciliazione contabile |
 | Cuneo: bonus esentasse fino a 20.000 € di imponibile | Confine tra istituti |
 | Trattamento integrativo nullo in caso di incapienza | Regola di legge |
-| «Avanzato» 2025 = «Task Jet HR» sotto la prima fascia pensionabile | Non-regressione |
+| «Avanzato» 2026 = «Task Jet HR» sotto la prima fascia pensionabile | Non-regressione |
 | Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1% | Non-regressione |
 | 2026 più conveniente del 2025 nello scaglione 28k–50k | Effetto della nuova aliquota |
 | Aliquota aggiuntiva 1% applicata sopra soglia | Regola contributiva |
@@ -265,7 +265,7 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Gestioni INPS: la riduzione del 35% vale solo nel forfetario | Perimetro dell'agevolazione |
 | Gestioni INPS: cambiare gestione cambia il netto | Effetto reale della scelta |
 | Dataset: 7.897 comuni e 21 regioni caricati | Integrità del dataset |
-| Dataset: Milano 0,80% con esenzione 23.000 € | Integrità del dataset |
+| Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni | Integrità del dataset |
 | Dataset: Lombardia allineata alla specifica di «Task Jet HR» | Riconciliazione fonte/spec |
 | Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
 | Input 0 gestito senza NaN | Robustezza |
