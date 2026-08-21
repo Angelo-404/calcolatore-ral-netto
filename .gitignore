@@ -1,19 +1,15 @@
-# File scaricati dal MEF e dataset generato: rigenerabili con build/build_dataset.py
+# Dati scaricati e artefatti rigenerabili
 build/*.csv
 build/reg_*.html
 build/dataset.js
+build/motore_estratto.js
 
 # Sistema
 Thumbs.db
 .DS_Store
 
-# Materiale di lavoro, non fa parte della consegna
-# prompt di generazione
+# Note di lavoro e configurazione locale
 PROJECT.md
-# brief interno di Jet HR
 TASKJETHR.md
 .vercel
 .env*
-
-# Modulo generato da build/estrai_motore.py per la verifica fuori dal browser
-build/motore_estratto.js

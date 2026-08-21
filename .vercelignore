@@ -1,8 +1,6 @@
-# Materiale di lavoro: non deve finire sul sito pubblico
+# Fuori dal sito pubblico: note di lavoro, sorgenti dei dati, configurazione
 PROJECT.md
 TASKJETHR.md
 build/
 .git/
-
-# Configurazione di CI: non e' parte del sito pubblico
 .github/
