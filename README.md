@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 59 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 61 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -241,10 +241,12 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Esoneri: quello del datore riduce il costo, non il netto | Confine fra costo e busta paga |
 | Esoneri: quello della lavoratrice alza netto e imponibile | Effetto fiscale dell'esonero |
 | Esoneri: la decontribuzione Sud vale solo nelle regioni previste | Requisito territoriale |
+| Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
+| Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
 | Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**59 test su 59 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**61 test su 61 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -536,12 +538,15 @@ Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto
 | Bonus Donne | Datore | 100%, max 650 €/mese, 24 mesi | D.L. 60/2024 art. 23 — prorogato dal D.L. 200/2025 |
 | Esonero assunzione madri con tre figli | Datore | 100%, max 8.000 € l'anno | L. 199/2025 c. 210-213 — INPS circ. 82/2026 |
 | Esonero lavoratrici madri con 3+ figli | Lavoratrice | 100% quota IVS, max 3.000 € l'anno | L. 213/2023 — resa strutturale dalla L. 207/2024 |
+| Incentivo alla stabilizzazione degli under 35 | Datore | 100%, max 500 €/mese, 24 mesi | D.L. 62/2026 art. 4, conv. L. 112/2026 — INPS circ. 72/2026 |
 
 **Scadute, e il calcolatore lo dice da solo:** Bonus Giovani under 35 e Bonus ZES. La proroga per il 2026 copriva le sole assunzioni fino al 30 aprile: restano visibili, marcate *scadute*, non selezionabili. Nasconderle lascerebbe credere che non esistano; applicarle sarebbe peggio.
 
 **Due comportamenti che vale la pena distinguere.** Un esonero sul datore riduce il costo aziendale e **non tocca la busta paga**. Un esonero sulla quota della lavoratrice alza il netto, ma anche l'imponibile: ciò che non si versa all'INPS resta reddito tassabile, quindi su 2.757 € esonerati ne arrivano 1.612. L'aliquota di computo pensionistico resta comunque piena — l'esonero non intacca la pensione futura.
 
-Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
+**Un incentivo che non premia l'assunzione ma la trasformazione.** L'ultima misura della tabella si applica solo al passaggio a tempo indeterminato, fra il 1° agosto e il 31 dicembre 2026, di un rapporto a termine instaurato entro il 30 aprile 2026, senza soluzione di continuità e di durata complessiva non superiore a dodici mesi; il lavoratore deve avere meno di 35 anni e non essere mai stato occupato a tempo indeterminato. È anche l'unica ad ammettere gli operai agricoli — che la decontribuzione Sud invece esclude — e a escludere i dirigenti. Restano fuori pubbliche amministrazioni, lavoro domestico, apprendistato e trasformazione del lavoro intermittente; i premi INAIL restano dovuti. Il calcolatore modella ciò che incide sul costo — percentuale, tetto, finestra, ambito — e dichiara nelle condizioni ciò che non può verificare: DURC regolare e incremento occupazionale netto sulla media dei dodici mesi precedenti.
+
+Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, la stabilizzazione non si cumula con nessun altro esonero sulle aliquote del datore, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
 
 ### 6.19 Sorveglianza normativa
 
@@ -551,7 +556,7 @@ Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli eson
 - **Data di verifica.** Ogni voce dichiara in pagina quando è stata controllata l'ultima volta, insieme alla norma e alla circolare INPS.
 - **Sorveglianza dei feed.** Un workflow settimanale legge i feed RSS delle circolari e dei messaggi INPS, filtra per parole chiave — *esonero, decontribuzione, aliquote, massimali* — scarta il rumore delle convenzioni sindacali e apre una segnalazione con i link. Non interpreta: dice dove guardare.
 
-Questa sorveglianza ha già prodotto un risultato al primo avvio: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato un incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026), non ancora modellato: resta in coda, dichiarato.
+Questa sorveglianza ha già prodotto un risultato al primo avvio: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato l'incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026, INPS circ. 72/2026), oggi modellato: dalla segnalazione alla misura in tabella, il ciclo si è chiuso due volte.
 
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 

@@ -17555,6 +17555,28 @@ const ESONERI = {
     verificatoIl: '2026-08-21'
   },
 
+  stabilizzazione: {
+    nome: 'Incentivo alla stabilizzazione degli under 35',
+    incide: 'datore',
+    descrizione: 'Esonero totale dei contributi a carico del datore per la trasformazione a tempo indeterminato del rapporto a termine di un under 35.',
+    quote: { 2026: { percentuale: 1, tettoMensile: 500 } },
+    finestraDa: '2026-08-01',
+    finestraA: '2026-12-31',
+    mesi: 24,
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico', 'dirigente'],
+    condizioni: 'Non e’ un incentivo all’assunzione ma alla trasformazione: vale per i passaggi a tempo indeterminato '
+      + 'effettuati fra il 1° agosto e il 31 dicembre 2026 di rapporti a termine instaurati entro il 30 aprile 2026, '
+      + 'senza soluzione di continuita’ e di durata complessiva non superiore a dodici mesi. Il lavoratore deve avere '
+      + 'meno di 35 anni alla trasformazione e non essere mai stato occupato a tempo indeterminato. Ammessi tutti i '
+      + 'datori privati, compresi gli agricoli; escluse le pubbliche amministrazioni, il lavoro domestico, '
+      + 'l’apprendistato, i dirigenti e la trasformazione del lavoro intermittente. Nel part-time il tetto e’ '
+      + 'riproporzionato. Richiesti DURC regolare e incremento occupazionale netto sulla media dei dodici mesi precedenti. '
+      + 'I premi INAIL restano dovuti.',
+    fonte: 'D.L. 62/2026, art. 4, conv. L. 112/2026 — INPS circolare n. 72/2026',
+    verificatoIl: '2026-08-21'
+  },
+
   zes: {
     nome: 'Bonus ZES Unica Mezzogiorno',
     incide: 'datore',
@@ -17638,7 +17660,14 @@ function formattaData(iso) {
 /* La decontribuzione Sud non e' cumulabile con i bonus del decreto
    Coesione: e' una regola di legge, non una scelta di interfaccia. */
 const ESONERI_INCOMPATIBILI = [['sud_pmi', 'donne'], ['sud_pmi', 'giovani'], ['sud_pmi', 'zes'],
-                               ['donne', 'giovani'], ['donne', 'zes'], ['giovani', 'zes']];
+                               ['donne', 'giovani'], ['donne', 'zes'], ['giovani', 'zes'],
+                               /* La circolare 72/2026 esclude il cumulo con ogni altro esonero o
+                                  riduzione delle aliquote a carico del datore. Resta fuori
+                                  dall'elenco il solo esonero delle madri, che agisce sulla quota
+                                  della lavoratrice e non sulle aliquote del datore. */
+                               ['stabilizzazione', 'sud_pmi'], ['stabilizzazione', 'donne'],
+                               ['stabilizzazione', 'giovani'], ['stabilizzazione', 'zes'],
+                               ['stabilizzazione', 'assunzione_madri']];
 
 function esoneriInConflitto(scelti) {
   for (const [a, b] of ESONERI_INCOMPATIBILI) {
@@ -19676,9 +19705,34 @@ function eseguiTest() {
         !sudFuori.applicabile && sudDentro.applicabile &&
         sudDentro.quota.tettoMensile === 125);
 
+  // L'incentivo alla stabilizzazione ha una finestra stretta e un tetto
+  // mensile: la data va fissata, altrimenti il collaudo cambia esito da solo
+  // il 1 gennaio 2027.
+  const dentroFinestra = new Date('2026-09-15');
+  const conStabilizz = calcolaPremium({ ...scenarioEsoneri, esoneri: ['stabilizzazione'],
+                                        oggi: dentroFinestra });
+  const fuoriFinestra = statoEsonero('stabilizzazione', scenarioEsoneri, new Date('2027-01-15'));
+  check('Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra',
+        vicino(conStabilizz.esoneroDatore, 500 * 12, 0.01) &&
+        vicino(conStabilizz.nettoAnnuo, senzaNulla.nettoAnnuo, 0.01) &&
+        !fuoriFinestra.applicabile && fuoriFinestra.scaduto,
+        `${euro(conStabilizz.esoneroDatore)} di contributi non versati`);
+
+  // Ambito soggettivo: fuori i dirigenti, dentro gli operai agricoli —
+  // il contrario della decontribuzione Sud, che l'agricoltura la esclude.
+  const stabDirigente = statoEsonero('stabilizzazione',
+        { ...scenarioEsoneri, profilo: 'dirigente' }, dentroFinestra);
+  const stabAgricolo = statoEsonero('stabilizzazione',
+        { ...scenarioEsoneri, profilo: 'agricolo_operaio' }, dentroFinestra);
+  const stabTermine = statoEsonero('stabilizzazione',
+        { ...scenarioEsoneri, tipoRapporto: 'determinato' }, dentroFinestra);
+  check('Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati',
+        !stabDirigente.applicabile && stabAgricolo.applicabile && !stabTermine.applicabile);
+
   // Il cumulo vietato dalla legge non deve essere possibile
   check('Esoneri: le misure non cumulabili sono riconosciute',
         esoneriInConflitto(['sud_pmi', 'donne']) !== null &&
+        esoneriInConflitto(['stabilizzazione', 'zes']) !== null &&
         esoneriInConflitto(['donne', 'madri_tre_figli']) === null);
 
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
