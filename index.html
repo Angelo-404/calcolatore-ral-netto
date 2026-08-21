@@ -20819,6 +20819,7 @@ el('btn-inverti').addEventListener('click', () => {
 
 /* ------------------------------------------- Ottimizzazione del costo */
 let modalitaOttimizzazione = 'netto';
+let ottStato = null;
 
 /* L'obiettivo netto si indica una volta sola, nel riquadro in cima:
    da li' si puo' cercare la RAL corrispondente oppure il pacchetto che
@@ -20830,6 +20831,7 @@ function renderOttimizzazione(modo, importoGrezzo) {
   const grezzo = parseFloat(importoGrezzo);
 
   if (!Number.isFinite(grezzo) || grezzo <= 0) {
+    ottStato = null;
     esito.innerHTML = '<p class="px-6 py-8 text-center text-sm text-amber-700">'
       + (modo === 'netto'
           ? 'Indica prima la cifra netta nel riquadro <strong>Dal netto alla RAL</strong>.'
@@ -20844,41 +20846,21 @@ function renderOttimizzazione(modo, importoGrezzo) {
 
   const pacchetti = pacchettiOttimizzati({ tipo: modalitaOttimizzazione, valore }, params);
   const riferimento = pacchetti[0];
-  const efficienza = efficienzaStrumenti(params);
-
-  const colonna = (p, indice) => {
-    const deltaCosto = p.costoAzienda - riferimento.costoAzienda;
-    const deltaValore = p.valoreTotale - riferimento.valoreTotale;
-    const evidenza = indice === 0 ? '' : ' bg-emerald-50/60';
-
-    return `
-      <tr class="${evidenza}">
-        <td class="px-6 py-3">
-          <span class="font-semibold text-slate-800">${p.nome}</span>
-          <span class="block text-xs text-slate-400 mt-0.5">${p.descrizione}</span>
-          ${p.premioOltreSoglia ? '<span class="block text-xs text-amber-700 mt-1">Il premio agevolato non spetta oltre '
-            + euro(PREMIUM.PREMIO_REDDITO_MAX) + ' di reddito: questo pacchetto non è applicabile.</span>' : ''}
-        </td>
-        <td class="num px-4 py-3 text-right font-semibold text-slate-900">${euro(p.ral)}</td>
-        <td class="num px-4 py-3 text-right text-slate-600">${euro(p.nettoCassa)}</td>
-        <td class="num px-4 py-3 text-right text-emerald-700">${p.welfare > 0 ? euro(p.welfare) : '—'}</td>
-        <td class="num px-4 py-3 text-right font-bold text-slate-900">${euro(p.costoAzienda)}</td>
-        <td class="num px-6 py-3 text-right font-bold ${indice === 0 ? 'text-slate-400' : (modalitaOttimizzazione === 'netto' ? (deltaCosto < -0.5 ? 'text-emerald-600' : 'text-slate-400') : (deltaValore > 0.5 ? 'text-emerald-600' : 'text-slate-400'))}">
-          ${indice === 0 ? 'riferimento'
-            : modalitaOttimizzazione === 'netto'
-              ? (deltaCosto < -0.5 ? '− ' + euro(Math.abs(deltaCosto)) : '—')
-              : (deltaValore > 0.5 ? '+ ' + euro(deltaValore) : '—')}
-        </td>
-      </tr>`;
-  };
 
   const migliore = modalitaOttimizzazione === 'netto'
     ? pacchetti.reduce((a, b) => (b.costoAzienda < a.costoAzienda && !b.premioOltreSoglia ? b : a))
     : pacchetti.reduce((a, b) => (b.valoreTotale > a.valoreTotale && !b.premioOltreSoglia ? b : a));
 
-  const guadagno = modalitaOttimizzazione === 'netto'
-    ? riferimento.costoAzienda - migliore.costoAzienda
-    : migliore.valoreTotale - riferimento.valoreTotale;
+  /* Il pacchetto consigliato apre la lettura, ma non la chiude: da qui in
+     poi la scelta si puo' spostare su un altro pacchetto, e i due blocchi
+     di analisi si ricalcolano su quello. */
+  ottStato = {
+    modo: modalitaOttimizzazione,
+    params, valore, pacchetti, riferimento,
+    efficienza: efficienzaStrumenti(params),
+    indiceConsigliato: pacchetti.indexOf(migliore),
+    scelto: pacchetti.indexOf(migliore)
+  };
 
   /* Le due direzioni restano allineate: partendo dal netto, il budget si
      compila con la spesa che quel pacchetto comporta; partendo dal budget,
@@ -20896,45 +20878,103 @@ function renderOttimizzazione(modo, importoGrezzo) {
       `Obiettivo netto aggiornato a ${euro(migliore.valoreTotale / params.mensilita)} al mese.`;
   }
 
-  esito.innerHTML = `
+  dipingiOttimizzazione();
+}
+
+/* Disegna l'esito a partire dallo stato, senza toccare i campi di
+   ingresso: cosi' puo' essere richiamata a ogni cambio di pacchetto. */
+function dipingiOttimizzazione() {
+  if (!ottStato) return;
+  const { params, valore, pacchetti, riferimento, efficienza } = ottStato;
+  const consigliato = pacchetti[ottStato.indiceConsigliato];
+  const scelto = pacchetti[ottStato.scelto];
+
+  const guadagno = ottStato.modo === 'netto'
+    ? riferimento.costoAzienda - consigliato.costoAzienda
+    : consigliato.valoreTotale - riferimento.valoreTotale;
+
+  const riga = (p, indice) => {
+    const deltaCosto = p.costoAzienda - riferimento.costoAzienda;
+    const deltaValore = p.valoreTotale - riferimento.valoreTotale;
+    const attivo = indice === ottStato.scelto;
+    const bloccato = !!p.premioOltreSoglia;
+
+    return `
+      <tr data-pacchetto="${indice}"
+          class="transition-colors ${bloccato ? 'opacity-60' : 'cursor-pointer'} ${attivo ? 'bg-brand-50' : 'hover:bg-slate-50'}">
+        <td class="pl-4 pr-0 py-3 align-top">
+          <input type="radio" name="ott-scelta" value="${indice}" ${attivo ? 'checked' : ''} ${bloccato ? 'disabled' : ''}
+                 class="h-4 w-4 mt-0.5 ${bloccato ? '' : 'cursor-pointer'}" style="accent-color:#2148e3"
+                 aria-label="Analizza il pacchetto ${p.nome}" />
+        </td>
+        <td class="px-3 py-3">
+          <span class="font-semibold text-slate-800 whitespace-nowrap">${p.nome}</span>
+          ${indice === ottStato.indiceConsigliato
+            ? '<span class="ml-1.5 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">consigliato</span>'
+            : ''}
+          <span class="block text-xs text-slate-400 mt-0.5">${p.descrizione}</span>
+          ${bloccato ? '<span class="block text-xs text-amber-700 mt-1">Il premio agevolato non spetta oltre '
+            + euro(PREMIUM.PREMIO_REDDITO_MAX) + ' di reddito: questo pacchetto non è applicabile.</span>' : ''}
+        </td>
+        <td class="num px-3 py-3 text-right font-semibold text-slate-900">${euro(p.ral)}</td>
+        <td class="num px-3 py-3 text-right text-slate-600">${euro(p.nettoCassa)}</td>
+        <td class="num px-3 py-3 text-right text-emerald-700">${p.welfare > 0 ? euro(p.welfare) : '—'}</td>
+        <td class="num px-3 py-3 text-right font-bold text-slate-900">${euro(p.costoAzienda)}</td>
+        <td class="num px-6 py-3 text-right font-bold ${indice === 0 ? 'text-slate-400' : (ottStato.modo === 'netto' ? (deltaCosto < -0.5 ? 'text-emerald-600' : 'text-slate-400') : (deltaValore > 0.5 ? 'text-emerald-600' : 'text-slate-400'))}">
+          ${indice === 0 ? 'riferimento'
+            : ottStato.modo === 'netto'
+              ? (deltaCosto < -0.5 ? '− ' + euro(Math.abs(deltaCosto)) : '—')
+              : (deltaValore > 0.5 ? '+ ' + euro(deltaValore) : '—')}
+        </td>
+      </tr>`;
+  };
+
+  el('ott-esito').innerHTML = `
     <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
       <p class="text-sm text-slate-700">
-        ${modalitaOttimizzazione === 'netto'
+        ${ottStato.modo === 'netto'
           ? `Per consegnare <strong>${euro(valore)}</strong> di valore annuo, il pacchetto migliore costa
-             <strong>${euro(migliore.costoAzienda)}</strong> invece di ${euro(riferimento.costoAzienda)}:
+             <strong>${euro(consigliato.costoAzienda)}</strong> invece di ${euro(riferimento.costoAzienda)}:
              <strong class="text-emerald-700">${euro(guadagno)} risparmiati</strong>.`
-            + (Math.abs(migliore.valoreTotale - valore) > 1
+            + (Math.abs(consigliato.valoreTotale - valore) > 1
                 ? ` <span class="text-amber-700">La cifra esatta non &egrave; raggiungibile per via dei salti normativi:
-                    il pacchetto ne consegna ${euro(migliore.valoreTotale)}.</span>`
+                    il pacchetto ne consegna ${euro(consigliato.valoreTotale)}.</span>`
                 : '')
           : `Con un budget di <strong>${euro(valore)}</strong>, il pacchetto migliore consegna
-             <strong>${euro(migliore.valoreTotale)}</strong> invece di ${euro(riferimento.valoreTotale)}:
+             <strong>${euro(consigliato.valoreTotale)}</strong> invece di ${euro(riferimento.valoreTotale)}:
              <strong class="text-emerald-700">${euro(guadagno)} in più al lavoratore</strong>.`}
       </p>
       <p class="text-xs text-slate-500 mt-1">
-        Nel pacchetto migliore ${fmtPerc.format(migliore.quotaContante * 100)}% del valore arriva come denaro in busta,
+        Nel pacchetto migliore ${fmtPerc.format(consigliato.quotaContante * 100)}% del valore arriva come denaro in busta,
         il resto come welfare vincolato nell'uso.
+      </p>
+    </div>
+    <div class="px-6 pt-4 no-print">
+      <p class="text-xs text-slate-500">
+        Il pacchetto consigliato è già selezionato. <strong class="text-slate-700">Scegline un altro</strong>
+        per ricalcolare su quello i due riquadri qui sotto.
       </p>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-white text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
           <tr>
-            <th class="text-left font-semibold px-6 py-3">Pacchetto</th>
-            <th class="text-right font-semibold px-4 py-3">RAL</th>
-            <th class="text-right font-semibold px-4 py-3">Netto in busta</th>
-            <th class="text-right font-semibold px-4 py-3">Welfare</th>
-            <th class="text-right font-semibold px-4 py-3">Costo azienda</th>
-            <th class="text-right font-semibold px-6 py-3">${modalitaOttimizzazione === 'netto' ? 'Risparmio' : 'Valore in più'}</th>
+            <th class="w-8 pl-4 pr-0 py-3"><span class="sr-only">Pacchetto analizzato</span></th>
+            <th class="text-left font-semibold px-3 py-3">Pacchetto</th>
+            <th class="text-right font-semibold px-3 py-3">RAL</th>
+            <th class="text-right font-semibold px-3 py-3">Netto in busta</th>
+            <th class="text-right font-semibold px-3 py-3">Welfare</th>
+            <th class="text-right font-semibold px-3 py-3">Costo azienda</th>
+            <th class="text-right font-semibold px-6 py-3">${ottStato.modo === 'netto' ? 'Risparmio' : 'Valore in più'}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          ${pacchetti.map(colonna).join('')}
+          ${pacchetti.map(riga).join('')}
         </tbody>
       </table>
     </div>
-    ${bloccoRinunce(riferimento, migliore, params)}
-    ${bloccoSoglie(params, migliore)}
+    ${bloccoRinunce(riferimento, scelto, params)}
+    ${bloccoSoglie(params, scelto)}
     <div class="px-6 py-4 border-t border-slate-200">
       <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
         Quanto arriva al lavoratore per ogni euro speso
@@ -20968,15 +21008,31 @@ function renderOttimizzazione(modo, importoGrezzo) {
 
 /* Il welfare non e' retribuzione: cio' che il lavoratore non riceve in
    busta non alimenta pensione ne' TFR. Va detto accanto al risparmio. */
-function bloccoRinunce(riferimento, migliore, params) {
-  if (migliore === riferimento || migliore.welfare <= 0) return '';
-  const a = analisiRinunce(riferimento, migliore);
+function bloccoRinunce(riferimento, scelto, params) {
+  const intestazione = (sottotitolo) => `
+    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+      Cosa cambia per il lavoratore
+    </p>
+    <p class="text-xs text-slate-500 mt-0.5 mb-3">${sottotitolo}</p>`;
+
+  if (scelto === riferimento || scelto.welfare <= 0) {
+    return `
+      <div class="px-6 py-4 border-t border-slate-200">
+        ${intestazione(`Pacchetto analizzato: <strong class="text-slate-700">&laquo;${scelto.nome}&raquo;</strong>`)}
+        <p class="text-sm text-slate-600">
+          Senza welfare non c'è nulla da confrontare: tutto il valore passa dalla busta paga.
+          Nessuna rinuncia su TFR e pensione, ma nemmeno un risparmio per l'azienda.
+          Scegli un altro pacchetto per leggere il baratto.
+        </p>
+      </div>`;
+  }
+
+  const a = analisiRinunce(riferimento, scelto);
 
   return `
     <div class="px-6 py-4 border-t border-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-        Cosa cambia per il lavoratore
-      </p>
+      ${intestazione(`Pacchetto analizzato: <strong class="text-slate-700">&laquo;${scelto.nome}&raquo;</strong>,
+        confrontato con <strong class="text-slate-700">&laquo;${riferimento.nome}&raquo;</strong>`)}
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <p class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Guadagna</p>
@@ -21015,17 +21071,40 @@ function bloccoRinunce(riferimento, migliore, params) {
 
 /* Alcune soglie sono gradini veri: superarle di un euro fa perdere un
    importo intero. Spostare retribuzione su welfare puo' riportare
-   l'imponibile sotto il gradino. */
-function bloccoSoglie(params, migliore) {
-  const tetti = tettiEsenti(params);
-  const capienza = tetti.fringe + tetti.buoni + tetti.premio;
-  const occasione = opportunitaSoglia({ ...params, ral: params.ral || migliore.ral }, capienza);
-  if (!occasione) return '';
+   l'imponibile sotto il gradino. La leva disponibile e' il welfare del
+   pacchetto scelto, non il totale dei tetti di legge. */
+function bloccoSoglie(params, scelto) {
+  const capienza = Math.max(0, scelto.welfare);
+  const base = { ...params, ral: params.ral || scelto.ral };
+  const occasione = capienza > 0 ? opportunitaSoglia(base, capienza) : null;
+
+  /* Se la soglia esiste ma il welfare di questo pacchetto non ci arriva,
+     il riquadro non sparisce senza spiegazione: dice quanto manca. */
+  if (!occasione) {
+    const tetti = tettiEsenti(params);
+    const piena = opportunitaSoglia(base, tetti.fringe + tetti.buoni + tetti.premio);
+    if (!piena) return '';
+    return `
+      <div class="px-6 py-4 border-t border-slate-200 bg-slate-50">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Soglia raggiungibile
+        </p>
+        <p class="text-sm text-slate-600 mt-1.5">
+          La soglia <strong>${piena.nome}</strong> (${euro(piena.valore)}) chiederebbe
+          <strong>${euro(piena.spostamento)}</strong> di welfare: con
+          <strong>&laquo;${scelto.nome}&raquo;</strong> ne sono disponibili ${euro(capienza)}, e resta fuori portata.
+          Un pacchetto con più welfare la riporta a tiro.
+        </p>
+      </div>`;
+  }
 
   return `
     <div class="px-6 py-4 border-t border-slate-200 bg-brand-50/50">
-      <p class="text-xs font-semibold uppercase tracking-wider text-brand-700 mb-2">
+      <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">
         Soglia raggiungibile
+      </p>
+      <p class="text-xs text-brand-700/70 mt-0.5 mb-2">
+        Con il welfare di <strong>&laquo;${scelto.nome}&raquo;</strong>: ${euro(capienza)} spostabili
       </p>
       <p class="text-sm text-slate-700">
         L'imponibile attuale supera di poco la soglia <strong>${occasione.nome}</strong>
@@ -21048,6 +21127,18 @@ el('btn-ottimizza').addEventListener('click', () => {
 });
 
 el('btn-ottimizza-budget').addEventListener('click', () => renderOttimizzazione('budget', el('ott-budget').value));
+
+/* La riga intera e' l'area cliccabile: il radio da' l'accessibilita' da
+   tastiera, la riga la comodita' col mouse. */
+el('ott-esito').addEventListener('click', (e) => {
+  const riga = e.target.closest('tr[data-pacchetto]');
+  if (!riga || !ottStato) return;
+  const indice = Number(riga.dataset.pacchetto);
+  const scelto = ottStato.pacchetti[indice];
+  if (!scelto || scelto.premioOltreSoglia || indice === ottStato.scelto) return;
+  ottStato.scelto = indice;
+  dipingiOttimizzazione();
+});
 el('ott-budget').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); renderOttimizzazione('budget', el('ott-budget').value); }
 });
