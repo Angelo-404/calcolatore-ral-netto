@@ -2,14 +2,16 @@
 
 Single Page Application che calcola la proiezione della **retribuzione netta annuale e mensile** a partire dalla RAL, secondo la normativa fiscale italiana **2025/2026**.
 
-Il progetto è organizzato in tre sezioni accessibili dallo stesso URL:
+**Applicazione online:** <https://calcolatore-ral-netto.vercel.app/>
+**Codice sorgente:** <https://github.com/Angelo-404/calcolatore-ral-netto>
+
+Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. I nomi delle schede in pagina giocano con la conversione in spritz di Jet HR; fra parentesi il nome tecnico usato nel codice e nel resto di questo documento:
 
 | Sezione | Contenuto |
 |---|---|
-| **Base** | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
-| **Premium** | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
-
-| **Partita IVA** | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, quattro gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
+| **Al banco** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
+| **Al tavolo** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
+| **Dietro al bancone** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, quattro gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
 
 La sezione Base è la fonte di verità: la sezione Premium la estende senza modificarne una riga. Sullo stesso scenario, i due motori restituiscono lo stesso identico netto — verificato da un test automatico su tutta la scala retributiva.
 
