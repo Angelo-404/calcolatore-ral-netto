@@ -22036,13 +22036,14 @@ function renderConfronto() {
 
   el('tbody-confronto').innerHTML =
       '<tr class="bg-slate-50">'
-    + '<td class="px-6 py-2 text-xs text-slate-400">Parametri</td>'
-    + '<td class="px-4 py-2 text-right text-xs text-slate-500">' + descriviScenario(scenarioBloccato.params) + '</td>'
-    + '<td class="px-4 py-2 text-right text-xs text-slate-500" colspan="2">' + descriviScenario(paramsB) + '</td>'
+    + '<td class="px-6 py-2 text-xs text-slate-400 align-top">Parametri</td>'
+    + '<td class="px-4 py-2 text-right text-xs text-slate-500 align-top">' + descriviScenario(scenarioBloccato.params) + '</td>'
+    + '<td class="px-4 py-2 text-right text-xs text-slate-500 align-top">' + descriviScenario(paramsB) + '</td>'
+    + '<td class="px-6 py-2"></td>'
     + '</tr>'
     + rigaConfronto('Netto mensile', a.nettoMensile, b.nettoMensile, euro)
     + rigaConfronto('Netto annuo', a.nettoAnnuo, b.nettoAnnuo, euro)
-    + rigaConfronto('Valore totale percepito', a.valoreTotale, b.valoreTotale, euro)
+    + rigaConfronto('Netto + welfare', a.valoreTotale, b.valoreTotale, euro)
     + rigaConfronto('Tasse e contributi', a.totaleTrattenute, b.totaleTrattenute, euro, true)
     + rigaConfronto('Pressione fiscale', a.pressioneFiscale, b.pressioneFiscale, perc, true)
     + rigaConfronto('Costo azienda', a.costoAzienda, b.costoAzienda, euro, true)
