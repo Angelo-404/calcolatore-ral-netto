@@ -631,7 +631,9 @@ Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto
 | Esonero lavoratrici madri con 3+ figli | Lavoratrice | 100% quota IVS, max 3.000 € l'anno | L. 213/2023 — resa strutturale dalla L. 207/2024 |
 | Incentivo alla stabilizzazione degli under 35 | Datore | 100%, max 500 €/mese, 24 mesi | D.L. 62/2026 art. 4, conv. L. 112/2026 — INPS circ. 72/2026 |
 
-**Scadute, e il calcolatore lo dice da solo:** Bonus Giovani under 35 e Bonus ZES. La proroga per il 2026 copriva le sole assunzioni fino al 30 aprile: restano visibili, marcate *scadute*, non selezionabili. Nasconderle lascerebbe credere che non esistano; applicarle sarebbe peggio.
+**Scadute, e il calcolatore lo dice da solo:** Bonus Giovani under 35 e Bonus ZES. La proroga per il 2026 copriva le sole assunzioni fino al 30 aprile: restano consultabili, marcate *scadute*, non selezionabili. Nasconderle lascerebbe credere che non esistano; applicarle sarebbe peggio.
+
+Stanno però raccolte in una tendina chiusa, sotto le misure vive: chi apre la card vede le cinque che può usare, non nove righe di cui due grigie. Chi cerca il Bonus Giovani lo trova, con la data in cui la finestra si è chiusa. È la stessa distinzione fatta altrove fra nascondere e togliere di mezzo: la prima cancella un'informazione, la seconda la mette dove non disturba.
 
 **Due comportamenti che vale la pena distinguere.** Un esonero sul datore riduce il costo aziendale e **non tocca la busta paga**. Un esonero sulla quota della lavoratrice alza il netto, ma anche l'imponibile: ciò che non si versa all'INPS resta reddito tassabile, quindi su 2.757 € esonerati ne arrivano 1.612. L'aliquota di computo pensionistico resta comunque piena — l'esonero non intacca la pensione futura.
 

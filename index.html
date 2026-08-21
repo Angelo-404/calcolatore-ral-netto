@@ -21541,7 +21541,7 @@ function renderEsoneri(params) {
   const contenitore = el('lista-esoneri');
   const scelti = params.esoneri || [];
 
-  contenitore.innerHTML = Object.keys(ESONERI).map((chiave) => {
+  const scheda = (chiave) => {
     const stato = statoEsonero(chiave, params);
     const e = stato.esonero;
     const attivo = scelti.includes(chiave);
@@ -21569,7 +21569,27 @@ function renderEsoneri(params) {
           <span class="block text-[11px] text-slate-400 mt-1">${e.fonte} &middot; verificato il ${formattaData(e.verificatoIl)}</span>
         </span>
       </label>`;
-  }).join('');
+  };
+
+  /* Le misure scadute non si tolgono di mezzo: nasconderle lascerebbe credere
+     che non siano mai esistite, e chi cerca il Bonus Giovani deve poter vedere
+     che c'era e quando si e' chiuso. Ma tenerle in mezzo alle altre riempie la
+     card di righe grigie non selezionabili. Stanno in una tendina, chiusa. */
+  const chiavi = Object.keys(ESONERI);
+  const vive = chiavi.filter((c) => !statoEsonero(c, params).scaduto);
+  const scadute = chiavi.filter((c) => statoEsonero(c, params).scaduto);
+
+  contenitore.innerHTML = vive.map(scheda).join('')
+    + (scadute.length ? `
+      <details class="tendina">
+        <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1">
+          <svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 4l6 6-6 6" /></svg>
+          ${scadute.length} misur${scadute.length === 1 ? 'a scaduta' : 'e scadute'}
+        </summary>
+        <div class="pt-2 space-y-2">${scadute.map(scheda).join('')}</div>
+      </details>` : '');
 
   const conflitto = esoneriInConflitto(scelti);
   const avviso = el('esoneri-conflitto');
