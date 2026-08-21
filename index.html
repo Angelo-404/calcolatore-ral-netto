@@ -421,64 +421,26 @@
         </label>
       </div>
 
-      <!-- Territorio -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-        <h3 class="font-bold text-slate-900 flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">2</span>
-          Residenza fiscale
-        </h3>
-
+      <!-- Esoneri contributivi -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
         <div>
-          <label for="p-regione" class="block text-sm font-semibold text-slate-700 mb-1.5">Regione o provincia autonoma</label>
-          <select id="p-regione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
-          <p id="p-regione-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+          <h3 class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">2</span>
+            Esoneri all'assunzione
+          </h3>
+          <p class="text-xs text-slate-500 mt-1.5">
+            Le misure scadute si disattivano da sole confrontando la finestra di vigenza con la data di oggi.
+          </p>
         </div>
-
-        <div class="relative">
-          <label for="p-comune-search" class="block text-sm font-semibold text-slate-700 mb-1.5">Comune</label>
-          <input id="p-comune-search" type="text" autocomplete="off" placeholder="Cerca fra 7.897 comuni…"
-                 class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          <ul id="p-comune-risultati" class="hidden absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
-          <p id="p-comune-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
-        </div>
-      </div>
-
-      <!-- Famiglia -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-        <h3 class="font-bold text-slate-900 flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">3</span>
-          Carichi di famiglia
-        </h3>
-
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input id="p-coniuge" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-          <span class="text-sm">
-            <span class="font-semibold text-slate-700">Coniuge a carico</span>
-            <span class="block text-xs text-slate-500">Art. 12 TUIR, con maggiorazioni di fascia</span>
-          </span>
-        </label>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="p-figli" class="block text-sm font-semibold text-slate-700 mb-1.5">Figli a carico 21+</label>
-            <input id="p-figli" type="number" min="0" max="10" step="1" value="0"
-                   class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <p class="text-[11px] text-slate-500 mt-1">Sotto i 21 anni: solo Assegno Unico</p>
-          </div>
-          <div>
-            <label for="p-altri" class="block text-sm font-semibold text-slate-700 mb-1.5">Altri familiari</label>
-            <input id="p-altri" type="number" min="0" max="10" step="1" value="0"
-                   class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <p class="text-[11px] text-slate-500 mt-1">750 &euro; teorici pro capite</p>
-          </div>
-        </div>
+        <div id="lista-esoneri" class="space-y-2"></div>
+        <p id="esoneri-conflitto" class="hidden text-xs text-amber-700 font-medium"></p>
       </div>
 
       <!-- Welfare e compensi variabili -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">4</span>
-          Welfare e compensi variabili
+          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">3</span>
+          Welfare, premi e trattenute
         </h3>
 
         <div>
@@ -578,25 +540,10 @@
         </label>
       </div>
 
-      <!-- Esoneri contributivi -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div>
-          <h3 class="font-bold text-slate-900 flex items-center gap-2">
-            <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">5</span>
-            Esoneri all'assunzione
-          </h3>
-          <p class="text-xs text-slate-500 mt-1.5">
-            Le misure scadute si disattivano da sole confrontando la finestra di vigenza con la data di oggi.
-          </p>
-        </div>
-        <div id="lista-esoneri" class="space-y-2"></div>
-        <p id="esoneri-conflitto" class="hidden text-xs text-amber-700 font-medium"></p>
-      </div>
-
       <!-- Regimi agevolati -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">6</span>
+          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">4</span>
           Regimi fiscali agevolati
         </h3>
         <div>
@@ -608,6 +555,59 @@
           <input id="p-impatriati-figli" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
           <span class="text-sm text-slate-600">Con figlio minore <span class="text-slate-400">(imponibile al 40% anzich&eacute; 50%)</span></span>
         </label>
+      </div>
+
+      <!-- Famiglia -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">5</span>
+          Carichi di famiglia
+        </h3>
+
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="p-coniuge" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+          <span class="text-sm">
+            <span class="font-semibold text-slate-700">Coniuge a carico</span>
+            <span class="block text-xs text-slate-500">Art. 12 TUIR, con maggiorazioni di fascia</span>
+          </span>
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="p-figli" class="block text-sm font-semibold text-slate-700 mb-1.5">Figli a carico 21+</label>
+            <input id="p-figli" type="number" min="0" max="10" step="1" value="0"
+                   class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <p class="text-[11px] text-slate-500 mt-1">Sotto i 21 anni: solo Assegno Unico</p>
+          </div>
+          <div>
+            <label for="p-altri" class="block text-sm font-semibold text-slate-700 mb-1.5">Altri familiari</label>
+            <input id="p-altri" type="number" min="0" max="10" step="1" value="0"
+                   class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <p class="text-[11px] text-slate-500 mt-1">750 &euro; teorici pro capite</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Territorio -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">6</span>
+          Residenza fiscale
+        </h3>
+
+        <div>
+          <label for="p-regione" class="block text-sm font-semibold text-slate-700 mb-1.5">Regione o provincia autonoma</label>
+          <select id="p-regione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <p id="p-regione-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <div class="relative">
+          <label for="p-comune-search" class="block text-sm font-semibold text-slate-700 mb-1.5">Comune</label>
+          <input id="p-comune-search" type="text" autocomplete="off" placeholder="Cerca fra 7.897 comuni…"
+                 class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <ul id="p-comune-risultati" class="hidden absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          <p id="p-comune-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
       </div>
 
     </div>

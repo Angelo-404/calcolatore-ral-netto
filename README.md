@@ -587,6 +587,19 @@ Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto
 
 Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, la stabilizzazione non si cumula con nessun altro esonero sulle aliquote del datore, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
 
+### 6.21 L'ordine delle card dei parametri
+
+Le sei card della colonna sinistra seguono **l'ordine in cui ogni parametro entra nel calcolo**, cioè lo stesso ordine della cascata dei risultati che sta a destra:
+
+1. **Contratto** — retribuzione, tipo di rapporto, inquadramento: da qui nascono lordo e contributi
+2. **Esoneri all'assunzione** — agiscono sui contributi appena calcolati
+3. **Welfare, premi e trattenute** — costruiscono l'imponibile fiscale, o lo aggirano restando esenti
+4. **Regimi fiscali agevolati** — abbattono l'imponibile IRPEF, mai la base contributiva
+5. **Carichi di famiglia** — detrazioni sull'IRPEF lorda
+6. **Residenza fiscale** — addizionali regionale e comunale, ultimo anello della catena
+
+L'ordine precedente metteva la residenza fiscale al secondo posto e gli esoneri al quinto: alfabeticamente innocuo, ma chiedeva di saltare avanti e indietro nella busta paga per capire dove ciascun parametro agisse. Leggere le card dall'alto verso il basso ora ricalca la lettura del cedolino.
+
 ### 6.19 Sorveglianza normativa
 
 Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli esoneri no: nessun automatismo può leggere una legge e tradurla in codice. Quello che si può automatizzare è **accorgersi che qualcosa si è mosso**, e ridurre il danno quando nessuno se ne accorge.
