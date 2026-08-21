@@ -359,7 +359,7 @@
 
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">Anno d'imposta</label>
-          <div class="grid grid-cols-2 gap-2" id="anno-switch">
+          <div class="grid grid-cols-2 gap-2">
             <button data-anno="2025" class="anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-500 hover:bg-slate-50 transition">2025</button>
             <button data-anno="2026" class="anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-brand-600 bg-brand-600 text-white transition">2026</button>
           </div>
@@ -21325,15 +21325,22 @@ document.addEventListener('click', (e) => {
 });
 
 /* --------------------------------------------- Selettore anno d'imposta */
+/* Il pulsante dell'anno attivo si evidenzia sia al clic sia al ripristino
+   da indirizzo: la coppia di classi vive qui, non in due punti diversi. */
+function evidenziaAnnoAttivo() {
+  const base = 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border transition';
+  document.querySelectorAll('.anno-btn').forEach((x) => {
+    const attivo = parseInt(x.dataset.anno, 10) === annoCorrente;
+    x.className = `${base} ${attivo
+      ? 'border-brand-600 bg-brand-600 text-white'
+      : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`;
+  });
+}
+
 document.querySelectorAll('.anno-btn').forEach((b) => {
   b.addEventListener('click', () => {
     annoCorrente = parseInt(b.dataset.anno, 10);
-    document.querySelectorAll('.anno-btn').forEach((x) => {
-      const attivo = parseInt(x.dataset.anno, 10) === annoCorrente;
-      x.className = attivo
-        ? 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-brand-600 bg-brand-600 text-white transition'
-        : 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-500 hover:bg-slate-50 transition';
-    });
+    evidenziaAnnoAttivo();
     aggiornaPremium();
   });
 });
@@ -22039,12 +22046,7 @@ function leggiUrl() {
     if (nodo && q.has(chiave)) nodo.checked = q.get(chiave) === '1';
   }
 
-  document.querySelectorAll('.anno-btn').forEach((x) => {
-    const attivo = parseInt(x.dataset.anno, 10) === annoCorrente;
-    x.className = attivo
-      ? 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-brand-600 bg-brand-600 text-white transition'
-      : 'anno-btn px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-500 hover:bg-slate-50 transition';
-  });
+  evidenziaAnnoAttivo();
 
   const c = COMUNI_PER_CODICE.get(comuneCorrente);
   if (c) el('p-comune-search').value = c.nome + ' (' + c.provincia + ')';
