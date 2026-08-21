@@ -393,10 +393,23 @@
         </div>
 
         <div>
-          <label for="p-profilo" class="block text-sm font-semibold text-slate-700 mb-1.5">Inquadramento e settore</label>
-          <select id="p-profilo" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
-          <p id="p-profilo-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+          <label for="p-settore" class="block text-sm font-semibold text-slate-700 mb-1.5">Settore di attivit&agrave;</label>
+          <select id="p-settore" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
         </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="p-qualifica" class="block text-sm font-semibold text-slate-700 mb-1.5">Qualifica</label>
+            <select id="p-qualifica" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          </div>
+          <div id="p-riga-dimensione">
+            <label for="p-dimensione" class="block text-sm font-semibold text-slate-700 mb-1.5">Dipendenti in azienda</label>
+            <select id="p-dimensione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          </div>
+        </div>
+
+        <input type="hidden" id="p-profilo" />
+        <div id="p-profilo-nota" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"></div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -791,7 +804,9 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <tr><td class="px-6 py-3 font-medium text-slate-700">Contributi a carico del datore</td>
-                  <td class="px-6 py-3">Stima parametrica: variano per CCNL, dimensione aziendale e codice ATECO. Le aliquote a carico del lavoratore sono invece valori normativi.</td></tr>
+                  <td class="px-6 py-3">Prese dalle tabelle INPS per settore, qualifica e dimensione: sono totali di tabella, non stime. Restano fuori dal modello la <strong>configurazione giuridica</strong> del datore (cooperativa, ente pubblico), le riduzioni contributive di settore &mdash; per esempio l'11,50% sugli operai edili &mdash; e i fondi di categoria diversi dal Previndai. Agricoltura e lavoro domestico sono ancora stime: l&rsquo;una varia per zona, l&rsquo;altro ha un contributo orario e non percentuale.</td></tr>
+              <tr><td class="px-6 py-3 font-medium text-slate-700">Erogabilit&agrave; del welfare</td>
+                  <td class="px-6 py-3">I tetti di esenzione sono <strong>fiscali e uguali per tutti i settori</strong>: non cambiano per CCNL. Cambia invece se lo strumento sia previsto e in quale misura, e questo il calcolatore non lo sa: assume fringe benefit, buoni pasto e premio disponibili fino al tetto di legge. Il premio richiede inoltre un contratto collettivo aziendale o territoriale depositato. Il welfare gi&agrave; dovuto dal CCNL &mdash; per esempio i 250 &euro; l'anno dei metalmeccanici dal 2026 &mdash; non &egrave; precaricato.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Premio INAIL</td>
                   <td class="px-6 py-3">Fissato allo 0,50%, valore da lavoro d'ufficio. La tariffa reale dipende dalla lavorazione e <strong>varia dallo 0,4% a oltre il 13%</strong>: su attivit&agrave; industriali il costo azienda mostrato &egrave; sensibilmente sottostimato.</td></tr>
               <tr><td class="px-6 py-3 font-medium text-slate-700">Minimale contributivo</td>
@@ -831,7 +846,7 @@
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
           <li>Addizionali regionali e comunali: anagrafe delle delibere del <strong>MEF &mdash; Dipartimento delle Finanze</strong>, 7.897 comuni. Dove il comune non ha ancora deliberato per il 2026, resta in vigore l'aliquota 2025.</li>
           <li>Minimali, massimale contributivo e aliquota aggiuntiva 1%: <strong>circolari INPS</strong>.</li>
-          <li>Le aliquote a carico del <strong>datore</strong> sono stime parametriche: variano per CCNL, dimensione aziendale e codice ATECO.</li>
+          <li>Aliquote contributive per <strong>settore, qualifica e dimensione aziendale</strong>: tabelle INPS delle aliquote contributive, edizione 2026. La quota a carico del datore &egrave; la differenza fra il totale di tabella e la quota del lavoratore. Fanno eccezione agricoltura e lavoro domestico, che restano stime dichiarate.</li>
           <li>Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.</li>
           <li>Il taglio forfettario di 440 &euro; sulle detrazioni al 19% per redditi oltre 200.000 &euro; non &egrave; modellato: il calcolatore non gestisce oneri detraibili.</li>
         </ul>
@@ -17531,6 +17546,7 @@ const ANNI = {
     buonoElettronico: 8,
     buonoCartaceo: 4,
     premiAliquota: 0.05,
+    premiLimite: 3000,
     accessoriAgevolati: false,
     note: 'Aliquote IRPEF 23% / 35% / 43% (L. 207/2024).'
   },
@@ -17543,6 +17559,7 @@ const ANNI = {
     buonoElettronico: 10,
     buonoCartaceo: 4,
     premiAliquota: 0.01,
+    premiLimite: 5000,
     accessoriAgevolati: true,
     note: 'Seconda aliquota ridotta al 33% dalla Legge di Bilancio 2026.'
   }
@@ -17553,7 +17570,6 @@ const PREMIUM = {
   FRINGE_SOGLIA: 1000,
   FRINGE_SOGLIA_CON_FIGLI: 2000,
   BUONI_GIORNI_ANNO: 220,
-  PREMIO_LIMITE: 3000,
   PREMIO_REDDITO_MAX: 80000,
   ACCESSORI_REDDITO_MAX: 33000,
   ACCESSORI_ALIQUOTA: 0.05,
@@ -17571,21 +17587,211 @@ const PREMIUM = {
   GIORNI_ANNO: 365
 };
 
-/* ------------------------------------------------- Profili contributivi */
-/* Quota a carico del lavoratore: valore normativo.
-   Quota a carico del datore: stima parametrica, varia per CCNL,
-   dimensione aziendale e codice ATECO.                                   */
-const PROFILI_CONTRIBUTIVI = {
-  terziario_impiegato: { nome: 'Terziario / commercio — impiegato', lavoratore: 0.0919, datore: 0.2981 },
-  terziario_quadro:    { nome: 'Terziario / commercio — quadro',    lavoratore: 0.0919, datore: 0.3001 },
-  industria_impiegato: { nome: 'Industria — impiegato',             lavoratore: 0.0919, datore: 0.3081 },
-  industria_operaio:   { nome: 'Industria — operaio',               lavoratore: 0.0919, datore: 0.3281 },
-  industria_cigs:      { nome: 'Industria — con CIGS (oltre 50 dip.)', lavoratore: 0.0949, datore: 0.3271 },
-  edilizia_operaio:    { nome: 'Edilizia — operaio',                lavoratore: 0.0919, datore: 0.3450 },
-  dirigente:           { nome: 'Dirigente industria',               lavoratore: 0.0919, datore: 0.3081, fondo: 0.04, fondoDatore: 0.04, fondoTetto: 180000, fondoNome: 'Previndai' },
-  agricolo_operaio:    { nome: 'Agricoltura — operaio',             lavoratore: 0.0884, datore: 0.2500 },
-  domestico:           { nome: 'Lavoro domestico',                  lavoratore: 0.0240, datore: 0.1200 }
+/* ------------------------------------------------- Aliquote contributive */
+/* L'aliquota non e' un attributo del "settore" in senso vago: nasce da tre
+   cose insieme, come dichiara l'INPS stessa. L'attivita' dell'azienda, la
+   qualifica del lavoratore e la dimensione dell'organico, perche' sopra i
+   15 dipendenti scatta la CIGS e sopra i 50 la CIGO ordinaria aumenta.
+   Tenerle separate evita un menu di combinazioni preconfezionate che non
+   coprirebbe mai i casi veri.
+
+   Ogni voce riporta il TOTALE e la quota a carico del lavoratore, come
+   nelle tabelle INPS. La quota a carico del datore e' la differenza: non
+   e' una stima, e' una sottrazione. Dove la tabella e' scomponibile, le
+   singole voci sono elencate in `voci` e la loro somma deve tornare al
+   totale — c'e' un test che lo verifica.                                  */
+
+const QUALIFICHE = {
+  operaio:     'Operaio',
+  impiegato:   'Impiegato, quadro, intermedio',
+  viaggiatore: 'Viaggiatore o piazzista',
+  dirigente:   'Dirigente'
 };
+
+/* Voci comuni a tutte le tabelle dell'industria: IVS, NASpI comprensiva
+   dello 0,30% per la formazione, CUAF gia' al netto degli esoneri, fondo
+   di garanzia del TFR. */
+const V = { ivs: 33.00, naspi: 1.61, cuaf: 0.68, tfr: 0.20,
+            malattia: 2.22, maternita: 0.46, maternitaViagg: 0.24,
+            cigs: 0.90 };
+
+const vociIndustria = (cigo, qualifica, conCigs) => {
+  const v = { 'IVS (FPLD)': V.ivs, 'NASpI e formazione': V.naspi,
+              'CUAF (assegni familiari)': V.cuaf, 'CIG ordinaria': cigo };
+  if (conCigs) v['CIG straordinaria'] = V.cigs;
+  v['Fondo di garanzia TFR'] = V.tfr;
+  if (qualifica === 'operaio') v['Indennità di malattia'] = V.malattia;
+  v['Indennità di maternità'] = qualifica === 'viaggiatore' ? V.maternitaViagg : V.maternita;
+  return v;
+};
+
+/* Industria ed edilizia condividono l'impianto e differiscono nella sola
+   CIG ordinaria degli operai: 1,70% (2,00% sopra i 50 dipendenti) contro
+   il 4,70% dell'edilizia, che non scende mai. */
+const scaglioneIndustria = (cigoOperai, cigoAltri, conCigs) => {
+  const lav = conCigs ? 0.0949 : 0.0919;   // +0,30% di CIGS a carico del lavoratore
+  const q = (qualifica, cigo) => {
+    const voci = vociIndustria(cigo, qualifica, conCigs);
+    const totale = Object.values(voci).reduce((a, b) => a + b, 0);
+    return { totale: Math.round(totale * 100) / 100, lavoratore: lav, voci };
+  };
+  return {
+    operaio:     q('operaio', cigoOperai),
+    impiegato:   q('impiegato', cigoAltri),
+    viaggiatore: q('viaggiatore', cigoAltri),
+    // Il dirigente non e' scomponibile con le stesse voci: la tabella ne
+    // da' il solo totale, e il totale e' quello che si usa.
+    dirigente:   { totale: 36.15, lavoratore: 0.0919,
+                   fondo: 0.04, fondoDatore: 0.04, fondoTetto: 180000, fondoNome: 'Previndai' }
+  };
+};
+
+const SETTORI_CONTRIBUTIVI = {
+  industria: {
+    nome: 'Industria in genere',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 1.1-1.3, edizione 2026',
+    dimensioni: {
+      fino15:  { nome: 'Fino a 15 dipendenti',  qualifiche: scaglioneIndustria(1.70, 1.70, false) },
+      fino50:  { nome: 'Da 16 a 50 dipendenti', qualifiche: scaglioneIndustria(1.70, 1.70, true) },
+      oltre50: { nome: 'Oltre 50 dipendenti',   qualifiche: scaglioneIndustria(2.00, 2.00, true) }
+    }
+  },
+  edilizia: {
+    nome: 'Industria edile',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 1.4-1.6, edizione 2026',
+    nota: 'Sugli operai edili la CIG ordinaria vale 4,70% e non scende con la dimensione.',
+    dimensioni: {
+      fino15:  { nome: 'Fino a 15 dipendenti',  qualifiche: scaglioneIndustria(4.70, 1.70, false) },
+      fino50:  { nome: 'Da 16 a 50 dipendenti', qualifiche: scaglioneIndustria(4.70, 1.70, true) },
+      oltre50: { nome: 'Oltre 50 dipendenti',   qualifiche: scaglioneIndustria(4.70, 2.00, true) }
+    }
+  },
+  artigianato: {
+    nome: 'Artigianato',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 4.1, edizione 2026',
+    nota: 'Le imprese artigiane non hanno soglie dimensionali per CIGO e CIGS.',
+    dimensioni: {
+      unica: { nome: 'Qualunque organico', qualifiche: {
+        operaio:     { totale: 36.12, lavoratore: 0.0919 },
+        impiegato:   { totale: 33.90, lavoratore: 0.0919 },
+        viaggiatore: { totale: 33.68, lavoratore: 0.0919 }
+      } }
+    }
+  },
+  commercio: {
+    nome: 'Commercio e terziario — CUAF intera',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 7.1 e 7.3, edizione 2026',
+    nota: 'Nel commercio la tabella non separa operai e impiegati.',
+    dimensioni: {
+      fino50:  { nome: 'Fino a 50 dipendenti', qualifiche: {
+        operaio:     { totale: 38.17, lavoratore: 0.0919 },
+        impiegato:   { totale: 38.17, lavoratore: 0.0919 },
+        viaggiatore: { totale: 35.73, lavoratore: 0.0919 },
+        dirigente:   { totale: 35.73, lavoratore: 0.0919 }
+      } },
+      oltre50: { nome: 'Da 51 a 200 dipendenti', qualifiche: {
+        operaio:     { totale: 39.07, lavoratore: 0.0949 },
+        impiegato:   { totale: 39.07, lavoratore: 0.0949 },
+        viaggiatore: { totale: 36.63, lavoratore: 0.0949 },
+        dirigente:   { totale: 35.73, lavoratore: 0.0919 }
+      } }
+    }
+  },
+  commercio_cuaf_ridotta: {
+    nome: 'Commercio e terziario — CUAF ridotta',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 7.2, edizione 2026',
+    nota: 'La CUAF ridotta spetta ad alcune categorie di datori: va verificata, non assunta.',
+    dimensioni: {
+      fino50: { nome: 'Fino a 50 dipendenti', qualifiche: {
+        operaio:     { totale: 36.12, lavoratore: 0.0919 },
+        impiegato:   { totale: 36.12, lavoratore: 0.0919 },
+        viaggiatore: { totale: 33.68, lavoratore: 0.0919 },
+        dirigente:   { totale: 33.74, lavoratore: 0.0919 }
+      } }
+    }
+  },
+  pubblici_esercizi: {
+    nome: 'Pubblici esercizi e turismo',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 7.17, edizione 2026',
+    dimensioni: {
+      fino50: { nome: 'Fino a 50 dipendenti', qualifiche: {
+        operaio:     { totale: 36.89, lavoratore: 0.0919 },
+        impiegato:   { totale: 36.89, lavoratore: 0.0919 },
+        viaggiatore: { totale: 33.68, lavoratore: 0.0919 },
+        dirigente:   { totale: 33.68, lavoratore: 0.0919 }
+      } }
+    }
+  },
+  logistica: {
+    nome: 'Logistica e trasporto merci',
+    fonte: 'Tabelle INPS delle aliquote contributive, tab. 7.13, edizione 2026',
+    dimensioni: {
+      oltre50: { nome: 'Da 51 a 200 dipendenti', qualifiche: {
+        operaio:     { totale: 39.37, lavoratore: 0.0949 },
+        impiegato:   { totale: 39.37, lavoratore: 0.0949 },
+        viaggiatore: { totale: 36.93, lavoratore: 0.0949 },
+        dirigente:   { totale: 36.03, lavoratore: 0.0919 }
+      } }
+    }
+  },
+  agricoltura: {
+    nome: 'Agricoltura',
+    stima: true,
+    fonte: 'Stima parametrica: le aliquote agricole variano per zona e per tipo di azienda',
+    dimensioni: {
+      unica: { nome: 'Qualunque organico', qualifiche: {
+        operaio:   { totale: 33.84, lavoratore: 0.0884 },
+        impiegato: { totale: 33.84, lavoratore: 0.0884 }
+      } }
+    }
+  },
+  domestico: {
+    nome: 'Lavoro domestico',
+    stima: true,
+    fonte: 'Stima parametrica: nel lavoro domestico il contributo è orario, non percentuale',
+    dimensioni: {
+      unica: { nome: 'Qualunque organico', qualifiche: {
+        operaio: { totale: 14.40, lavoratore: 0.0240 }
+      } }
+    }
+  }
+};
+
+/* Il motore continua a ragionare su una chiave sola. La chiave e' la
+   terna, cosi' i link condivisi restano stabili e il calcolo non deve
+   sapere nulla di come l'interfaccia la compone. */
+const PROFILI_CONTRIBUTIVI = {};
+for (const [chiaveSettore, settore] of Object.entries(SETTORI_CONTRIBUTIVI))
+  for (const [chiaveDim, dim] of Object.entries(settore.dimensioni))
+    for (const [chiaveQual, q] of Object.entries(dim.qualifiche)) {
+      const datore = Math.round((q.totale / 100 - q.lavoratore) * 10000) / 10000;
+      PROFILI_CONTRIBUTIVI[`${chiaveSettore}|${chiaveQual}|${chiaveDim}`] = {
+        ...q,
+        nome: `${settore.nome} — ${QUALIFICHE[chiaveQual].split(',')[0].toLowerCase()}`,
+        settore: chiaveSettore, qualifica: chiaveQual, dimensione: chiaveDim,
+        lavoratore: q.lavoratore, datore, stima: !!settore.stima, fonte: settore.fonte
+      };
+    }
+
+/* I link condivisi prima della scomposizione portano ancora i vecchi
+   nomi: vanno tradotti, non ignorati. */
+const PROFILI_STORICI = {
+  terziario_impiegato: 'commercio|impiegato|fino50',
+  terziario_quadro:    'commercio|impiegato|fino50',
+  industria_impiegato: 'industria|impiegato|fino50',
+  industria_operaio:   'industria|operaio|fino50',
+  industria_cigs:      'industria|operaio|oltre50',
+  edilizia_operaio:    'edilizia|operaio|fino50',
+  dirigente:           'industria|dirigente|fino50',
+  agricolo_operaio:    'agricoltura|operaio|unica',
+  domestico:           'domestico|operaio|unica'
+};
+
+const PROFILO_PREDEFINITO = 'commercio|impiegato|fino50';
+
+const normalizzaProfilo = (chiave) =>
+  PROFILI_CONTRIBUTIVI[chiave] ? chiave
+    : (PROFILI_STORICI[chiave] || PROFILO_PREDEFINITO);
 
 /* Gestione separata INPS: aliquote 2026 della circolare n. 8/2026.
    Il massimale annuo e' lo stesso dei dipendenti (122.295 €), il minimale
@@ -18046,7 +18252,7 @@ function calcolaPremium(params) {
 
   const A = ANNI[p.anno];
   const rapporto = TIPI_RAPPORTO[p.tipoRapporto] || TIPI_RAPPORTO.indeterminato;
-  const profiloSettore = PROFILI_CONTRIBUTIVI[p.profilo] || PROFILI_CONTRIBUTIVI.terziario_impiegato;
+  const profiloSettore = PROFILI_CONTRIBUTIVI[normalizzaProfilo(p.profilo)];
 
   /* Il tipo di rapporto prevale sulle aliquote del settore: l'apprendistato
      ha un'aliquota fissata per legge, il tirocinio non genera contribuzione
@@ -18091,7 +18297,7 @@ function calcolaPremium(params) {
   // contributi; altrimenti è contributivo e sconta l'imposta sostitutiva.
   const premioLordo = Math.max(0, p.premioRisultato);
   const premioAmmesso = ralContrattuale <= PREMIUM.PREMIO_REDDITO_MAX
-    ? Math.min(premioLordo, PREMIUM.PREMIO_LIMITE)
+    ? Math.min(premioLordo, A.premiLimite)
     : 0;
   const premioOrdinario = premioLordo - premioAmmesso;   // eccedenza tassata IRPEF
   const premioWelfare = p.premioInWelfare ? premioAmmesso : 0;
@@ -18602,7 +18808,7 @@ function tettiEsenti(params) {
   return {
     fringe: params.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA,
     buoni: limiteBuono * (params.buoniGiorni || PREMIUM.BUONI_GIORNI_ANNO),
-    premio: PREMIUM.PREMIO_LIMITE,
+    premio: A.premiLimite,
     limiteBuono
   };
 }
@@ -19528,8 +19734,8 @@ function spiegazioniPremium(r) {
     },
     premio: {
       titolo: 'Premio di risultato',
-      corpo: `Entro ${euro(PREMIUM.PREMIO_LIMITE)} annui e per redditi fino a ${euro(PREMIUM.PREMIO_REDDITO_MAX)}, il premio sconta un'imposta sostitutiva al posto dell'IRPEF: ${fmtPerc.format(A.premiAliquota * 100)}% nel ${r.anno}. Resta però soggetto a contribuzione. Convertirlo in welfare aziendale lo rende esente sia da imposte sia da contributi.`,
-      fonte: 'L. 208/2015; Legge di Bilancio 2026',
+      corpo: `Entro ${euro(A.premiLimite)} annui e per redditi fino a ${euro(PREMIUM.PREMIO_REDDITO_MAX)}, il premio sconta un'imposta sostitutiva al posto dell'IRPEF: ${fmtPerc.format(A.premiAliquota * 100)}% nel ${r.anno}. Resta però soggetto a contribuzione. Convertirlo in welfare aziendale lo rende esente sia da imposte sia da contributi.`,
+      fonte: 'L. 208/2015, art. 1 c. 182-189; L. 199/2025, art. 1 c. 9',
       html: formula([
         ['Premio agevolato', euro2(r.premioSostitutiva)],
         [`× ${fmtPerc.format(A.premiAliquota * 100)}%`, euro2(r.impostaPremio)]
@@ -19904,7 +20110,7 @@ function eseguiTest() {
   check('Ottimizzazione: il welfare resta entro i tetti di legge',
         daNetto[2].fringe <= tetti.fringe + 0.01 &&
         daNetto[2].buoni <= tetti.buoni + 0.01 &&
-        daNetto[2].premio <= PREMIUM.PREMIO_LIMITE + 0.01);
+        daNetto[2].premio <= ANNI[2026].premiLimite + 0.01);
 
   // L'efficienza degli strumenti è misurata sul motore, non dichiarata:
   // il welfare esente deve risultare 1 € ricevuto per 1 € speso.
@@ -19994,6 +20200,39 @@ function eseguiTest() {
   }
   check('Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo',
         soglieCentrate, soglieScarto);
+
+  /* Le aliquote per settore vengono da tabelle, non dalla memoria: dove la
+     tabella e' scomponibile la somma delle voci deve tornare al totale, e
+     la quota del datore deve essere sempre la differenza fra il totale e
+     la quota del lavoratore. Se una cifra viene ritoccata a mano senza
+     ritoccare le altre, il test cade. */
+  let vociQuadrano = true, vociScarto = '';
+  let quoteQuadrano = true, quoteScarto = '';
+  for (const [chiave, profilo] of Object.entries(PROFILI_CONTRIBUTIVI)) {
+    if (profilo.voci) {
+      const somma = Object.values(profilo.voci).reduce((a, b) => a + b, 0);
+      if (Math.abs(somma - profilo.totale) > 0.005) {
+        vociQuadrano = false;
+        vociScarto = `${chiave}: voci ${somma.toFixed(2)} contro totale ${profilo.totale.toFixed(2)}`;
+      }
+    }
+    const atteso = profilo.totale / 100 - profilo.lavoratore;
+    if (Math.abs(atteso - profilo.datore) > 0.00005) {
+      quoteQuadrano = false;
+      quoteScarto = `${chiave}: datore ${aliq(profilo.datore)} contro ${aliq(atteso)}`;
+    }
+  }
+  check('Aliquote per settore: la somma delle voci torna al totale di tabella',
+        vociQuadrano, vociScarto);
+  check('Aliquote per settore: la quota del datore è il totale meno quella del lavoratore',
+        quoteQuadrano, quoteScarto);
+
+  // I link condivisi prima della scomposizione devono continuare ad aprirsi
+  // sullo stesso calcolo, non su un profilo a caso.
+  check('Profili storici: le chiavi dei vecchi link restano valide',
+        Object.entries(PROFILI_STORICI).every(([vecchia, nuova]) =>
+          normalizzaProfilo(vecchia) === nuova && PROFILI_CONTRIBUTIVI[nuova]) &&
+        normalizzaProfilo('inesistente') === PROFILO_PREDEFINITO);
 
   // Un esonero fuori dalla propria finestra di vigenza non va applicato,
   // e il motore deve accorgersene da solo confrontando le date.
@@ -20408,7 +20647,7 @@ function aggiornaPremium() {
 /* Note dinamiche che spiegano l'effetto del parametro selezionato */
 function aggiornaNoteContestuali(p) {
   const A = ANNI[p.anno];
-  const profilo = PROFILI_CONTRIBUTIVI[p.profilo];
+  const profilo = PROFILI_CONTRIBUTIVI[normalizzaProfilo(p.profilo)];
 
   el('anno-nota').textContent = A.note;
   const rapporto = TIPI_RAPPORTO[p.tipoRapporto] || TIPI_RAPPORTO.indeterminato;
@@ -20443,9 +20682,30 @@ function aggiornaNoteContestuali(p) {
   el('p-ral-label').textContent = rapporto.gestioneSeparata
     ? 'Compenso annuo pattuito' : 'RAL contrattuale';
 
-  el('p-profilo-nota').textContent =
-    `Lavoratore ${aliq(profilo.lavoratore)} · datore ~${aliq(profilo.datore)} (stima)` +
-    (profilo.fondo ? ` · ${profilo.fondoNome} ${aliq(profilo.fondo)}` : '');
+  /* L'aliquota non e' piu' un numero da prendere per buono: il riquadro
+     mostra il totale, come si divide fra le due parti e — dove la tabella
+     lo consente — da quali voci e' composto. */
+  const voci = profilo.voci
+    ? Object.entries(profilo.voci).map(([nome, valore]) =>
+        `<li class="flex justify-between gap-3"><span>${nome}</span>
+           <span class="num tabular-nums">${fmtPerc2.format(valore)}%</span></li>`).join('')
+    : '';
+
+  el('p-profilo-nota').innerHTML = `
+    <div class="flex items-baseline justify-between gap-3">
+      <span class="text-xs font-semibold text-slate-600">Aliquota contributiva</span>
+      <span class="num text-sm font-bold text-slate-900">${fmtPerc2.format(profilo.totale)}%</span>
+    </div>
+    <div class="flex flex-wrap gap-x-4 text-[11px] text-slate-500 mt-0.5">
+      <span>lavoratore <strong class="num text-slate-700">${aliq(profilo.lavoratore)}</strong></span>
+      <span>azienda <strong class="num text-slate-700">${aliq(profilo.datore)}</strong></span>
+      ${profilo.fondo ? `<span>${profilo.fondoNome} <strong class="num text-slate-700">${aliq(profilo.fondo)}</strong></span>` : ''}
+    </div>
+    ${voci ? `<ul class="mt-2 pt-2 border-t border-slate-200 space-y-0.5 text-[11px] text-slate-500">${voci}</ul>` : ''}
+    <p class="text-[11px] ${profilo.stima ? 'text-amber-700' : 'text-slate-400'} mt-2">
+      ${profilo.stima ? 'Stima parametrica. ' : ''}${profilo.fonte}${
+        SETTORI_CONTRIBUTIVI[profilo.settore].nota ? ' · ' + SETTORI_CONTRIBUTIVI[profilo.settore].nota : ''}
+    </p>`;
 
   const sogliaFringe = p.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA;
   el('p-fringe-nota').textContent = p.fringeBenefit > sogliaFringe
@@ -20455,7 +20715,7 @@ function aggiornaNoteContestuali(p) {
   el('p-buoni-nota').textContent = `— esenti fino a ${euro(p.buoniElettronici ? A.buonoElettronico : A.buonoCartaceo)}/giorno nel ${p.anno}`;
   el('p-premio-nota').textContent = p.ral > PREMIUM.PREMIO_REDDITO_MAX
     ? `Reddito oltre ${euro(PREMIUM.PREMIO_REDDITO_MAX)}: nessuna agevolazione, tassazione ordinaria.`
-    : `Imposta sostitutiva ${fmtPerc.format(A.premiAliquota * 100)}% nel ${p.anno}, fino a ${euro(PREMIUM.PREMIO_LIMITE)}.`;
+    : `Imposta sostitutiva ${fmtPerc.format(A.premiAliquota * 100)}% nel ${p.anno}, fino a ${euro(A.premiLimite)}.`;
 
   const reg = REGIONI[p.regione];
   el('p-regione-nota').textContent = reg.scaglioni.length === 1
@@ -20502,9 +20762,7 @@ function aggiornaNoteContestuali(p) {
 
 /* ------------------------------------------- Popolamento dei selettori */
 function popolaSelect() {
-  el('p-profilo').innerHTML = Object.entries(PROFILI_CONTRIBUTIVI)
-    .map(([k, v]) => `<option value="${k}"${k === 'terziario_impiegato' ? ' selected' : ''}>${v.nome}</option>`)
-    .join('');
+  popolaProfiloContributivo(PROFILO_PREDEFINITO);
 
   el('p-rapporto').innerHTML = Object.entries(TIPI_RAPPORTO)
     .map(([k, v]) => `<option value="${k}"${k === 'indeterminato' ? ' selected' : ''}>${v.nome}</option>`)
@@ -20657,6 +20915,49 @@ document.querySelectorAll('.anno-btn').forEach((b) => {
     aggiornaPremium();
   });
 });
+
+/* Ogni settore ha le sue dimensioni e le sue qualifiche: quando cambia il
+   settore le altre due liste si rifanno, conservando la scelta precedente
+   se in quel settore esiste ancora. */
+function popolaProfiloContributivo(chiave) {
+  const scelto = PROFILI_CONTRIBUTIVI[normalizzaProfilo(chiave)];
+  const settore = SETTORI_CONTRIBUTIVI[scelto.settore];
+  const opzione = (k, etichetta, attiva) =>
+    `<option value="${k}"${k === attiva ? ' selected' : ''}>${etichetta}</option>`;
+
+  el('p-settore').innerHTML = Object.entries(SETTORI_CONTRIBUTIVI)
+    .map(([k, v]) => opzione(k, v.nome, scelto.settore)).join('');
+
+  const dimensioni = Object.entries(settore.dimensioni);
+  el('p-dimensione').innerHTML = dimensioni
+    .map(([k, v]) => opzione(k, v.nome, scelto.dimensione)).join('');
+  // Un campo con una sola scelta non e' una scelta: sparisce.
+  el('p-riga-dimensione').classList.toggle('hidden', dimensioni.length < 2);
+
+  el('p-qualifica').innerHTML = Object.keys(settore.dimensioni[scelto.dimensione].qualifiche)
+    .map((k) => opzione(k, QUALIFICHE[k], scelto.qualifica)).join('');
+
+  el('p-profilo').value = `${scelto.settore}|${scelto.qualifica}|${scelto.dimensione}`;
+}
+
+/* Non tutte le terne esistono: il commercio non distingue operai e
+   impiegati, l'artigianato non ha soglie dimensionali. Quando la
+   combinazione scelta non esiste si ripiega sulla prima del settore,
+   invece di lasciare il calcolo senza aliquota. */
+function ricomponiProfilo() {
+  const chiaveSettore = SETTORI_CONTRIBUTIVI[el('p-settore').value] ? el('p-settore').value : 'commercio';
+  const settore = SETTORI_CONTRIBUTIVI[chiaveSettore];
+  const dimensione = settore.dimensioni[el('p-dimensione').value]
+    ? el('p-dimensione').value : Object.keys(settore.dimensioni)[0];
+  const qualifiche = settore.dimensioni[dimensione].qualifiche;
+  const qualifica = qualifiche[el('p-qualifica').value]
+    ? el('p-qualifica').value : Object.keys(qualifiche)[0];
+  popolaProfiloContributivo(`${chiaveSettore}|${qualifica}|${dimensione}`);
+  aggiornaPremium();
+}
+
+['p-settore', 'p-qualifica', 'p-dimensione']
+  .forEach((id) => el(id).addEventListener('change', ricomponiProfilo));
 
 ['p-ral', 'p-mensilita', 'p-profilo', 'p-rapporto', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
@@ -20994,8 +21295,10 @@ function dipingiOttimizzazione() {
     <div class="px-6 py-4 border-t border-slate-200 bg-amber-50">
       <p class="text-xs font-semibold text-amber-900 mb-1.5">Condizioni da verificare prima di proporlo</p>
       <ul class="text-xs text-amber-900/90 space-y-1 list-disc list-inside">
-        <li>Il <strong>premio di risultato</strong> richiede un contratto aziendale o territoriale depositato, e spetta
-            per redditi fino a ${euro(PREMIUM.PREMIO_REDDITO_MAX)}.</li>
+        <li>Il <strong>premio di risultato</strong> richiede un contratto collettivo aziendale o territoriale,
+            depositato entro 30 giorni dalla sottoscrizione, e spetta per redditi fino a
+            ${euro(PREMIUM.PREMIO_REDDITO_MAX)}. Senza quel contratto il pacchetto non è proponibile,
+            qualunque sia il settore.</li>
         <li>I <strong>buoni pasto</strong> presuppongono giornate di presenza effettive: qui ne sono ipotizzate
             ${params.buoniGiorni} l'anno.</li>
         <li>La soglia dei <strong>fringe benefit</strong> ha effetto scalino: superarla di un euro rende imponibile
@@ -21163,7 +21466,7 @@ function rigaConfronto(voce, a, b, formatta, invertiColore) {
 
 function descriviScenario(p) {
   const comune = COMUNI_PER_CODICE.get(p.comune);
-  return [euro(p.ral), p.anno, comune ? comune.nome : '—', PROFILI_CONTRIBUTIVI[p.profilo].nome].join(' · ');
+  return [euro(p.ral), p.anno, comune ? comune.nome : '—', PROFILI_CONTRIBUTIVI[normalizzaProfilo(p.profilo)].nome].join(' · ');
 }
 
 function renderConfronto() {
@@ -21218,7 +21521,7 @@ el('btn-azzera-scenario').addEventListener('click', () => {
    link, che si riapre identico. Solo i parametri diversi dal valore
    predefinito finiscono nell'indirizzo, per tenerlo leggibile. */
 const CAMPI_URL = {
-  ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', 'terziario_impiegato'],
+  ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', PROFILO_PREDEFINITO],
   rapporto: ['p-rapporto', 'indeterminato'],
   aregime: ['a-regime', 'ordinario'], compenso: ['a-compenso', '50000'],
   acosti: ['a-costi', '0'], acoeff: ['a-coefficiente', 'professionali'],
@@ -21295,6 +21598,8 @@ function leggiUrl() {
   const c = COMUNI_PER_CODICE.get(comuneCorrente);
   if (c) el('p-comune-search').value = c.nome + ' (' + c.provincia + ')';
   if (!q.has('regione')) allineaRegioneAlComune(comuneCorrente);
+
+  popolaProfiloContributivo(el('p-profilo').value);
 
   ripristinoInCorso = false;
   const sezione = q.get('sezione');

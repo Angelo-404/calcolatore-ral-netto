@@ -7,7 +7,7 @@ Il progetto è organizzato in tre sezioni accessibili dallo stesso URL:
 | Sezione | Contenuto |
 |---|---|
 | **Base** | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
-| **Premium** | Motore parametrico completo: anno d'imposta 2025 o 2026, profilo contributivo per settore e qualifica, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
+| **Premium** | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
 
 | **Partita IVA** | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, contributi in Gestione separata e confronto fra i tre regimi a parità di fatturato. |
 
@@ -314,6 +314,7 @@ La differenza più rilevante è che **le regole cambiano fra i due anni**, e un 
 | Minimale retributivo mensile | 1.490,32 € | 1.511,38 € |
 | Buoni pasto elettronici esenti | 8 €/giorno | **10 €/giorno** |
 | Imposta sostitutiva sui premi di risultato | 5% | **1%** |
+| Massimale del premio agevolato | 3.000 € | **5.000 €** |
 
 A 45.000 € di RAL, il solo passaggio dal 2025 al 2026 vale **+257,29 €** di netto annuo — importo calcolato dal motore, non stimato.
 
@@ -323,7 +324,7 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 
 | Funzionalità | Nota |
 |---|---|
-| 9 profili di settore e inquadramento | Terziario impiegato e quadro, industria impiegato/operaio/con CIGS, edilizia, dirigente, agricoltura, lavoro domestico |
+| 50 combinazioni contributive | Nove settori (industria, edilizia, artigianato, commercio a CUAF intera e ridotta, pubblici esercizi, logistica, agricoltura, lavoro domestico) per quattro qualifiche (operaio, impiegato/quadro, viaggiatore, dirigente) e fino a tre scaglioni dimensionali |
 | 4 tipi di rapporto | Indeterminato, determinato, apprendistato, tirocinio. Asse separato dal settore: si combinano fra loro. Vedi §6.17 |
 | **Aliquota aggiuntiva 1%** | Art. 3-ter D.L. 384/1992: 1% sulla quota oltre la prima fascia di retribuzione pensionabile, dovuta quando l'aliquota a carico del lavoratore è inferiore al 10%. Assente in quasi tutti i calcolatori online |
 | **Massimale contributivo** | Per chi è privo di anzianità al 31/12/1995: oltre il tetto la contribuzione si ferma e il netto marginale sale bruscamente |
@@ -345,7 +346,7 @@ La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per i
 |---|---|
 | Fringe benefit | Soglia 1.000 € (2.000 € con figli a carico). Se superata, l'**intero** importo diventa imponibile: è una soglia, non una franchigia. Errore molto frequente |
 | Buoni pasto | Limite giornaliero esente per anno e per tipo (elettronici o cartacei); l'eccedenza è imponibile e contributiva |
-| Premio di risultato | Imposta sostitutiva 5% (2025) o 1% (2026), entro 3.000 € e per redditi fino a 80.000 €; l'eccedenza torna a tassazione ordinaria |
+| Premio di risultato | Imposta sostitutiva 5% entro 3.000 € (2025) o 1% entro 5.000 € (2026-2027), per redditi da lavoro dipendente dell'anno precedente fino a 80.000 €; l'eccedenza torna a tassazione ordinaria. Richiede un contratto collettivo aziendale o territoriale depositato entro 30 giorni |
 | Conversione del premio in welfare | Esente da imposte e contributi: alternativa esplicita, con confronto immediato sul netto |
 | Straordinari, notturni e festivi | Imposta sostitutiva 5% per redditi fino a 33.000 € |
 | Previdenza complementare | Contributo del lavoratore, contributo del datore in percentuale, destinazione del TFR. Vedi §6.14 |
@@ -626,7 +627,7 @@ La regola seguita: dove il dato è normativo si calcola; dove dipende da variabi
 
 Dichiarati anche nell'interfaccia, non solo qui:
 
-- Le aliquote a carico del **datore di lavoro** sono stime parametriche: variano per CCNL, dimensione aziendale e codice ATECO. Quelle a carico del lavoratore sono invece valori normativi.
+- Le aliquote contributive vengono dalle **tabelle INPS** e si scelgono su tre assi — settore, qualifica, dimensione dell'organico — perché sono i tre che le determinano. La quota a carico del datore è la differenza fra il totale di tabella e la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate solo agricoltura e lavoro domestico.
 - Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.
 - Il taglio forfettario di 440 € sulle detrazioni al 19% per redditi oltre 200.000 € non è modellato, perché il calcolatore non gestisce oneri detraibili: senza oneri, non c'è nulla da tagliare.
 - Il fringe benefit da auto aziendale va inserito come importo già valorizzato: il motore non calcola le tabelle ACI.
@@ -662,7 +663,9 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | Aliquota contributiva 9,19% a carico del lavoratore | Circolari INPS sulle aliquote contributive del settore privato (FPLD) |
 | Addizionale regionale IRPEF Lombardia, scaglioni 1,23% / 1,58% / 1,72% / 1,73% | Legge regionale Lombardia sull'addizionale IRPEF; elenco aliquote pubblicato dal MEF — Dipartimento delle Finanze |
 | Addizionale comunale IRPEF Milano, 0,80% con esenzione fino a 23.000 € | Delibera comunale di Milano sulle aliquote dell'addizionale; regolamento comunale e anagrafe MEF delle aliquote |
-| Soglie fringe benefit (1.000 € / 2.000 € con figli) e buoni pasto elettronici (8 €/giorno) | TUIR art. 51, comma 3 e comma 2 lett. c); disciplina prorogata dalla Legge di Bilancio 2025 |
+| Soglie fringe benefit (1.000 € / 2.000 € con figli) | TUIR art. 51, comma 3; L. 207/2024 (Legge di Bilancio 2025), che le fissa per il triennio 2025-2027 |
+| Buoni pasto esenti: 8 €/giorno nel 2025, 10 €/giorno dal 2026; cartacei 4 €/giorno | TUIR art. 51, comma 2 lett. c); L. 199/2025 (Legge di Bilancio 2026), art. 1 comma 14 |
+| Premio di risultato: imposta sostitutiva 1% entro 5.000 € per il 2026-2027 | L. 208/2015, art. 1 commi 182-189; L. 199/2025, art. 1 comma 9 |
 | Quota TFR (retribuzione / 13,5) e contributo 0,50% al Fondo di garanzia | Art. 2120 c.c.; L. 297/1982 |
 | Seconda aliquota IRPEF 2026 al 33% e sterilizzazione oltre 200.000 € | Legge di Bilancio 2026; [scheda MEF sulle principali misure](https://www.mef.gov.it/focus/Principali-misure-della-legge-di-bilancio-2026/) |
 | Massimale contributivo, minimale retributivo e prima fascia pensionabile | INPS, circolare n. 6 del 30 gennaio 2026; circolari annuali su minimali e massimali |
