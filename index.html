@@ -651,7 +651,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto annuo</p>
           <p id="pm-netto-anno" class="num text-3xl font-extrabold mt-1 text-slate-900">&euro; 0</p>
-          <p id="pm-delta" class="text-xs mt-1 text-slate-500">&mdash;</p>
+          <p id="pm-delta" class="text-xs mt-1 text-slate-500">&mdash;<span id="tip-delta"></span></p>
         </div>
       </div>
 
@@ -19514,7 +19514,44 @@ function renderComposizione(r) {
 let annoCorrente = 2026;
 let comuneCorrente = 'F205';
 
-function renderPremium(r, baseline) {
+/* «Al banco» non e' uno scenario dell'utente: e' un profilo cablato nel
+   motore semplice, che accetta la sola RAL. Se non lo si elenca, il delta
+   in cima sembra riferirsi a una simulazione precedente. */
+const RIFERIMENTO_AL_BANCO = [
+  ['Anno d’imposta', '2025 — IRPEF 23% / 35% / 43%'],
+  ['Contributi', '9,19% — impiegato a tempo indeterminato'],
+  ['Luogo', 'Milano, Lombardia'],
+  ['Periodo', '13 mensilità · 365 giorni · tempo pieno'],
+  ['Carichi di famiglia', 'nessuno'],
+  ['Welfare, premi, fondo, trattenute, regimi, esoneri', 'tutto a zero']
+];
+
+/* Quali parametri si discostano dal riferimento. Serve a dire se il delta
+   e' attribuibile a una causa sola oppure e' una somma di cose diverse:
+   nel secondo caso il numero non spiega nulla, e va detto. */
+function differenzeDalRiferimento(p) {
+  const d = [];
+  const comune = COMUNI_PER_CODICE.get(p.comune);
+  if (p.anno !== 2025) d.push(`l’anno d’imposta (${p.anno})`);
+  if (p.profilo !== PROFILO_PREDEFINITO) d.push('l’inquadramento contributivo');
+  if (p.tipoRapporto !== 'indeterminato') d.push('il tipo di rapporto');
+  if (p.comune !== 'F205') d.push(`il comune (${comune ? comune.nome : '—'})`);
+  if (p.regione !== 'Lombardia') d.push(`la regione (${p.regione})`);
+  if (p.mensilita !== 13) d.push(`le mensilità (${p.mensilita})`);
+  if (p.giorniLavorati !== 365) d.push('la durata del rapporto');
+  if (p.partTime !== 100) d.push('il part-time');
+  if (p.coniugeACarico || p.figli > 0 || p.altriFamiliari > 0) d.push('i carichi di famiglia');
+  if (p.fringeBenefit > 0 || p.buoniPastoGiorno > 0 || p.premioRisultato > 0) d.push('il welfare o i premi');
+  if (p.compensiAccessori > 0) d.push('i compensi accessori');
+  if (p.fondoPensione > 0 || p.contributoDatoreFondo > 0 || p.tfrAlFondo) d.push('la previdenza complementare');
+  if (p.altreTrattenute > 0) d.push('le altre trattenute');
+  if (p.regime !== 'nessuno') d.push('il regime agevolato');
+  if (p.esoneri && p.esoneri.length > 0) d.push('gli esoneri all’assunzione');
+  if (p.massimaleAttivo) d.push('il massimale contributivo');
+  return d;
+}
+
+function renderPremium(r, baseline, params) {
   const M = r.mensilita;
   apriRegistroSpiegazioni('p');
   const S = spiegazioniPremium(r);
@@ -19584,14 +19621,38 @@ function renderPremium(r, baseline) {
     (r.quotaPartTime < 1 ? ` · part-time ${Math.round(r.quotaPartTime * 100)}%` : '');
 
   const delta = r.nettoAnnuo - baseline.nettoAnnuo;
+  const differenze = differenzeDalRiferimento(params || {});
   const deltaEl = el('pm-delta');
+  const segno = delta > 0 ? '+' : '−';
+  let testoDelta;
   if (Math.abs(delta) < 0.5) {
-    deltaEl.textContent = 'Stesso netto di «Al banco», a parità di RAL';
+    testoDelta = differenze.length === 0
+      ? 'Stesso scenario di «Al banco»'
+      : 'Stesso netto di «Al banco», a parità di RAL';
     deltaEl.className = 'text-xs mt-1 text-slate-500';
   } else {
-    deltaEl.textContent = `${delta > 0 ? '+' : '−'} ${euro(Math.abs(delta))} rispetto a «Al banco», a parità di RAL`;
+    // Con una sola differenza il numero ha una causa, e la causa si dice.
+    testoDelta = differenze.length === 1
+      ? `${segno} ${euro(Math.abs(delta))} rispetto a «Al banco»: cambia solo ${differenze[0]}`
+      : `${segno} ${euro(Math.abs(delta))} rispetto a «Al banco», con ${differenze.length} parametri diversi`;
     deltaEl.className = `text-xs mt-1 font-semibold ${delta > 0 ? 'text-emerald-600' : 'text-rose-600'}`;
   }
+  deltaEl.innerHTML = testoDelta + '<span id="tip-delta"></span>';
+
+  el('tip-delta').innerHTML = bottoneSpiegazione({
+    titolo: 'Il confronto con «Al banco»',
+    corpo: 'Il termine di paragone non è una tua simulazione precedente: è il profilo fisso della '
+      + 'sezione «Al banco», che accetta la sola RAL e tiene tutto il resto costante. Il confronto '
+      + 'avviene <strong>a parità di RAL</strong>, quindi il numero misura l’effetto dei parametri, non della retribuzione.'
+      + (differenze.length > 1
+          ? ` <strong class="text-amber-700">Qui i parametri diversi sono ${differenze.length}: ${differenze.join(', ')}.</strong> `
+            + 'Il numero le somma tutte, quindi non è attribuibile a nessuna in particolare. '
+            + 'Per isolare una causa usa <strong>Confronto fra scenari</strong>: blocca uno scenario, cambia un parametro solo e leggi la differenza.'
+          : (differenze.length === 1
+              ? ' Qui cambia un parametro solo, quindi il numero misura proprio quello.'
+              : ' Qui nessun parametro si discosta dal riferimento.')),
+    html: formula(RIFERIMENTO_AL_BANCO, ['Netto di riferimento', euro2(baseline.nettoAnnuo)])
+  });
 
   renderAvvisi(r);
 
@@ -20867,7 +20928,7 @@ function aggiornaPremium() {
   const params = leggiParametriPremium();
   aggiornaNoteContestuali(params);
   renderEsoneri(params);
-  renderPremium(calcolaPremium(params), calcolaBase(params.ral));
+  renderPremium(calcolaPremium(params), calcolaBase(params.ral), params);
   renderConfronto();
   scriviUrl();
 }
