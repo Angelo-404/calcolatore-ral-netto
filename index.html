@@ -21184,18 +21184,16 @@ function aggiornaNoteContestuali(p) {
     ? `Spetta perché il lavoratore versa: ${euro(p.ral * p.contributoDatoreFondo / 100)} l'anno a carico azienda.`
     : 'Nei fondi negoziali il contributo aziendale spetta solo se il lavoratore versa la propria quota.';
 
-  /* Le opzioni di dettaglio non spariscono: stanno in una tendina, sempre
-     apribile. Si apre da sola quando la voce da cui dipendono acquista un
-     valore — compilato a mano o portato da un link condiviso — perche' a
-     quel punto servono davvero. Se e' stata aperta a mano resta aperta:
-     chiuderla d'ufficio a ogni ricalcolo sarebbe un dispetto. */
-  const apriTendina = (id, condizione) => {
-    const d = el(id);
-    if (d.dataset.apertaAMano !== '1') d.open = condizione;
-  };
-  apriTendina('p-det-buoni', p.buoniPastoGiorno > 0);
-  apriTendina('p-det-premio', p.premioRisultato > 0);
-  apriTendina('p-det-fondo', p.fondoPensione > 0);
+  /* La tendina segue il valore, non il ricordo di un clic: e' aperta finche'
+     c'e' qualcosa da vedere e si richiude quando tutto torna a zero. Conta
+     anche cio' che sta dentro, altrimenti si chiuderebbe sotto le dita di
+     chi sta compilando i giorni con buono senza aver ancora messo il
+     valore giornaliero. */
+  el('p-det-buoni').open = p.buoniPastoGiorno > 0
+    || p.buoniGiorni !== PREMIUM.BUONI_GIORNI_ANNO || p.buoniElettronici === false;
+  el('p-det-premio').open = p.premioRisultato > 0 || p.premioInWelfare;
+  el('p-det-fondo').open = p.fondoPensione > 0
+    || p.contributoDatoreFondo > 0 || p.tfrAlFondo;
 
   el('p-impatriati-box').className = p.regime === 'impatriati'
     ? 'flex items-center gap-3 cursor-pointer'
@@ -21446,13 +21444,6 @@ el('btn-vista-curva').addEventListener('click', () => scegliVista('curva'));
 ['p-settore', 'p-qualifica', 'p-dimensione']
   .forEach((id) => el(id).addEventListener('change', ricomponiProfilo));
 
-/* Chi apre o chiude una tendina di persona ha deciso: da quel momento il
-   ricalcolo non gliela muove piu' sotto le mani. */
-['p-det-buoni', 'p-det-premio', 'p-det-fondo'].forEach((id) => {
-  el(id).addEventListener('toggle', (e) => {
-    if (e.isTrusted) el(id).dataset.apertaAMano = '1';
-  });
-});
 
 ['p-ral', 'p-mensilita', 'p-profilo', 'p-rapporto', 'p-massimale', 'p-regione', 'p-giorni', 'p-parttime',
  'p-coniuge', 'p-figli', 'p-altri', 'p-fringe', 'p-buoni', 'p-buoni-giorni', 'p-buoni-el',
