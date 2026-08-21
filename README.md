@@ -2,12 +2,14 @@
 
 Single Page Application che calcola la proiezione della **retribuzione netta annuale e mensile** a partire dalla RAL, secondo la normativa fiscale italiana **2025/2026**.
 
-Il progetto è organizzato in due sezioni accessibili dallo stesso URL:
+Il progetto è organizzato in tre sezioni accessibili dallo stesso URL:
 
 | Sezione | Contenuto |
 |---|---|
 | **Base** | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta 2025. |
 | **Premium** | Motore parametrico completo: anno d'imposta 2025 o 2026, profilo contributivo per settore e qualifica, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
+
+| **Partita IVA** | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, contributi in Gestione separata e confronto fra i tre regimi a parità di fatturato. |
 
 La sezione Base è la fonte di verità: la sezione Premium la estende senza modificarne una riga. Sullo stesso scenario, i due motori restituiscono lo stesso identico netto — verificato da un test automatico su tutta la scala retributiva.
 
@@ -25,7 +27,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 61 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 70 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -244,9 +246,18 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
 | Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
 | Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
+| Co.co.co.: 35,03% diviso un terzo e due terzi | Ripartizione dell'onere in Gestione separata |
+| Co.co.co.: niente TFR né cuneo, il trattamento integrativo resta | Confine fra istituti su un reddito assimilato |
+| Co.co.co.: il massimale di 122.295 € si applica da solo | Regola, non opzione |
+| Forfetario: coefficiente ATECO, contributi dedotti, 15% sul resto | Catena di calcolo del regime |
+| Forfetario 5%: stessa base, imposta ridotta a un terzo | Isolamento dell'aliquota |
+| Forfetario: niente addizionali, il comune non cambia il netto | Perimetro dell'imposta sostitutiva |
+| Partita IVA: i contributi si fermano al massimale della Gestione separata | Tetto contributivo |
+| Partita IVA: detrazione dell'art. 13 comma 5, non quella dei dipendenti | Detrazione corretta per la categoria |
+| Ordinario: i costi abbattono reddito, contributi e imposte | Differenza sostanziale fra i due regimi |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**61 test su 61 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**70 test su 70 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -514,6 +525,7 @@ Ma il punto vero non era la combinatoria: era che ogni voce cambiava **soltanto 
 | **Indeterminato** | Contribuzione ordinaria del settore |
 | **Tempo determinato** | Contributo addizionale NASpI dell'1,40% **a carico del solo datore**: la busta paga del lavoratore è identica, cambia solo il costo aziendale. A 24.000 € sono 336 € l'anno |
 | **Apprendistato** | Aliquota del lavoratore fissata per legge al 5,84%, indipendente dal settore scelto |
+| **Collaborazione coordinata e continuativa** | Non è lavoro dipendente né lavoro autonomo: Gestione separata INPS al 35,03%, divisa per un terzo sul collaboratore e due terzi sul committente |
 | **Tirocinio / stage** | Non è un'aliquota diversa: è un reddito diverso |
 
 **Il tirocinio è il caso che valeva la pena modellare.** L'indennità non è reddito di lavoro dipendente ma **assimilato**, ex art. 50, comma 1, lettera c) del TUIR. Le conseguenze sono strutturali:
@@ -524,7 +536,34 @@ Ma il punto vero non era la combinatoria: era che ogni voce cambiava **soltanto 
 - **Cuneo fiscale e trattamento integrativo non sono riconosciuti**, perché si rivolgono ai titolari di reddito di lavoro dipendente. Questa è un'interpretazione, non un calcolo, ed è dichiarata come tale nell'avviso in pagina.
 - **Costo per il soggetto ospitante**: indennità più copertura INAIL, senza contribuzione previdenziale.
 
-Restano fuori la **somministrazione** e le **collaborazioni in gestione separata**: la prima aggiunge i contributi ai fondi bilaterali, la seconda è un rapporto non subordinato con una logica contributiva propria, fuori dal perimetro di un calcolatore sul lavoro dipendente.
+**La collaborazione coordinata e continuativa è il secondo caso in cui cambia la natura del reddito**, e ha richiesto di distinguere tre istituti che sembrano uno solo:
+
+- **Contributi**: Gestione separata al 35,03% (33% IVS più 0,50%, 0,22% e 1,31% DIS-COLL), ripartita per legge in un terzo a carico del collaboratore e due terzi a carico del committente. Il massimale di 122.295 € qui non è una casella da spuntare come per i dipendenti: si applica sempre, e l'interfaccia lo mostra spuntato e disattivato.
+- **Detrazione dell'art. 13, comma 1**: spetta, perché la norma richiama la lettera c-bis) dell'art. 50.
+- **Trattamento integrativo**: spetta. Il D.L. 3/2020 elenca espressamente la lettera c-bis) fra i redditi ammessi.
+- **Taglio del cuneo 2025**: *non* spetta. La Legge di Bilancio 2025 si rivolge ai «titolari di reddito di lavoro dipendente di cui all'articolo 49», e la collaborazione è reddito assimilato dell'art. 50.
+
+Le ultime due voci sono la ragione per cui questa distinzione andava verificata riga per riga sulle due norme invece che assumere un comportamento unico per «i redditi assimilati»: due istituti nati per lo stesso scopo hanno perimetri diversi. Niente TFR e niente mensilità aggiuntive: il compenso si divide per dodici.
+
+Resta fuori la **somministrazione**, che aggiunge i contributi ai fondi bilaterali.
+
+### 6.20 Partita IVA: un secondo motore, non un ramo
+
+Il lavoro autonomo ha una sezione propria, accanto a Base e Premium, e un motore separato — `calcolaAutonomo` — che non passa da `calcolaPremium`. Non è una scelta estetica: nel lavoro autonomo non c'è una busta paga da ricostruire, non esistono TFR, mensilità aggiuntive, welfare aziendale né un datore che versa due terzi dei contributi, e soprattutto **cambia l'ordine dei fattori**. I contributi si calcolano sul reddito e poi si deducono dallo stesso reddito; nel forfetario l'imposta sostitutiva prende il posto di IRPEF e addizionali. Innestare tutto questo come ramo del motore dei dipendenti avrebbe prodotto una funzione piena di eccezioni, cioè il posto dove nascono gli errori.
+
+| Regime | Come si arriva al netto |
+|---|---|
+| **Ordinario** | Fatturato − costi = reddito; contributi Gestione separata 26,07%, deducibili; IRPEF a scaglioni con la detrazione dell'**art. 13, comma 5** (non quella dei dipendenti: a 20.000 € vale circa la metà); addizionali regionale e comunale |
+| **Forfetario 15%** | Reddito = fatturato × coefficiente ATECO dell'allegato 4 (dal 40% all'86%); contributi sul reddito così determinato e deducibili; imposta sostitutiva del 15% al posto di IRPEF, addizionali e IRAP |
+| **Forfetario 5%** | Identico al precedente con aliquota al 5%, per i primi cinque anni di una nuova attività |
+
+Tre conseguenze che il calcolatore rende visibili invece di nasconderle:
+
+- **Nel forfetario i costi effettivi non contano.** Vale il coefficiente, che dipende dal codice ATECO e non da quanto si è speso: per un professionista al 78% il regime è conveniente finché i costi reali restano sotto il 22% del fatturato. Il campo dei costi sparisce quando si sceglie il forfetario, invece di restare lì a suggerire un effetto che non c'è.
+- **Il comune di residenza non sposta il netto forfetario di un centesimo**, perché l'imposta sostitutiva sostituisce anche le addizionali locali. È un risultato, non una svista, ed è asserito da un test che confronta lo stesso fatturato a Milano e a Roma.
+- **La tabella di confronto fra i tre regimi** sta accanto al dettaglio: la domanda vera di chi apre una partita IVA non è quanto paga, ma quale regime gli conviene a parità di fatturato.
+
+**Limiti dichiarati anche in pagina:** la previdenza modellata è la Gestione separata INPS, quella di chi non ha una cassa professionale — casse di categoria, artigiani e commercianti hanno minimali e regole proprie; i contributi sono imputati all'anno di competenza, senza acconti, saldo e cassa sfalsata; l'IVA non entra nel calcolo; le cause di esclusione dal forfetario (redditi da lavoro dipendente sopra 35.000 €, partecipazioni societarie, prevalenza dell'ex datore di lavoro) non sono verificate, mentre il superamento della soglia di 85.000 € è segnalato.
 
 ### 6.18 Esoneri contributivi all'assunzione
 
@@ -578,6 +617,7 @@ Dichiarati anche nell'interfaccia, non solo qui:
 - Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.
 - Il taglio forfettario di 440 € sulle detrazioni al 19% per redditi oltre 200.000 € non è modellato, perché il calcolatore non gestisce oneri detraibili: senza oneri, non c'è nulla da tagliare.
 - Il fringe benefit da auto aziendale va inserito come importo già valorizzato: il motore non calcola le tabelle ACI.
+- Per la partita IVA la previdenza modellata è la **Gestione separata INPS**: chi versa a una cassa professionale o alle gestioni artigiani e commercianti ha minimali e regole proprie, non implementate. I contributi sono imputati per competenza, senza acconti e saldo. L'IVA resta fuori dal calcolo.
 
 ---
 
@@ -614,6 +654,9 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | Seconda aliquota IRPEF 2026 al 33% e sterilizzazione oltre 200.000 € | Legge di Bilancio 2026; [scheda MEF sulle principali misure](https://www.mef.gov.it/focus/Principali-misure-della-legge-di-bilancio-2026/) |
 | Massimale contributivo, minimale retributivo e prima fascia pensionabile | INPS, circolare n. 6 del 30 gennaio 2026; circolari annuali su minimali e massimali |
 | Aliquota aggiuntiva 1% | Art. 3-ter D.L. 384/1992, conv. L. 438/1992 |
+| Gestione separata: 35,03% per i collaboratori (un terzo e due terzi), 26,07% per i professionisti, massimale 122.295 € | INPS, circolare n. 8 del 3 febbraio 2026 |
+| Detrazione per redditi di lavoro autonomo | TUIR, art. 13, comma 5 |
+| Regime forfetario: soglia 85.000 €, imposta sostitutiva 15% e 5%, coefficienti di redditività per gruppo ATECO | L. 190/2014, art. 1, commi 54-89 e **allegato 4** |
 | Imposta sostitutiva su premi di risultato (5% nel 2025, 1% nel 2026) e sui compensi accessori | L. 208/2015; Legge di Bilancio 2026 |
 | Regime impatriati: imponibile al 50%, 40% con figlio minore, tetto 600.000 € | D.Lgs. 209/2023, art. 5; [Agenzia delle Entrate — nuovo regime impatriati](https://www.agenziaentrate.gov.it/portale/lavoratori-impatriati-209-2023/infogen-lavoratori-impatriati-209-2023-cittadini) |
 | Docenti e ricercatori: imponibile al 10% | Art. 44 D.L. 78/2010 |

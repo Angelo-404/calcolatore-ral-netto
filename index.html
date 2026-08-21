@@ -135,6 +135,8 @@
         Premium
         <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MEF</span>
       </button>
+      <button id="tab-piva" role="tab" aria-selected="false" aria-controls="panel-piva"
+              class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">Partita IVA</button>
     </nav>
   </div>
 </header>
@@ -364,7 +366,7 @@
         </div>
 
         <div>
-          <label for="p-ral" class="block text-sm font-semibold text-slate-700 mb-1.5">RAL contrattuale</label>
+          <label id="p-ral-label" for="p-ral" class="block text-sm font-semibold text-slate-700 mb-1.5">RAL contrattuale</label>
           <div class="relative">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
             <input id="p-ral" type="number" min="0" max="2000000" step="500" value="45000"
@@ -824,6 +826,127 @@
       </div>
 
     </div>
+  </div>
+</section>
+
+<!-- ========================= PANEL PARTITA IVA ======================== -->
+<section id="panel-piva" role="tabpanel" aria-labelledby="tab-piva" class="hidden fade-in">
+
+  <div class="mb-6">
+    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Lavoro autonomo con partita IVA</h2>
+    <p class="text-slate-600 mt-2 max-w-3xl">
+      Nel lavoro autonomo non c'&egrave; una busta paga: non esistono TFR, mensilit&agrave; aggiuntive n&eacute; un datore
+      che versa due terzi dei contributi. Cambia anche l'ordine dei fattori &mdash; i contributi si calcolano sul reddito
+      e poi si deducono &mdash; e nel forfetario l'imposta sostitutiva prende il posto di IRPEF e addizionali.
+    </p>
+  </div>
+
+  <div class="grid lg:grid-cols-5 gap-6">
+
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <h3 class="font-bold text-slate-900">Parametri</h3>
+
+        <div>
+          <label for="a-regime" class="block text-sm font-semibold text-slate-700 mb-1.5">Regime</label>
+          <select id="a-regime" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <p id="a-regime-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <div>
+          <label for="a-compenso" class="block text-sm font-semibold text-slate-700 mb-1.5">Fatturato annuo</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <input id="a-compenso" type="number" min="0" max="2000000" step="500" value="50000"
+                   class="num w-full pl-9 pr-4 py-2.5 font-bold text-lg bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <p id="a-soglia-nota" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+
+        <div id="a-riga-coefficiente">
+          <label for="a-coefficiente" class="block text-sm font-semibold text-slate-700 mb-1.5">Gruppo di settore (allegato 4)</label>
+          <select id="a-coefficiente" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          <p id="a-coefficiente-nota" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+
+        <div id="a-riga-costi">
+          <label for="a-costi" class="block text-sm font-semibold text-slate-700 mb-1.5">Costi deducibili nell'anno</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <input id="a-costi" type="number" min="0" max="2000000" step="500" value="0"
+                   class="num w-full pl-9 pr-4 py-2.5 font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Nel forfetario i costi effettivi non si deducono: al loro posto vale il coefficiente.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="a-anno" class="block text-sm font-semibold text-slate-700 mb-1.5">Anno d'imposta</label>
+            <select id="a-anno" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
+          </div>
+          <div id="a-riga-regione">
+            <label for="a-regione" class="block text-sm font-semibold text-slate-700 mb-1.5">Regione</label>
+            <select id="a-regione" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          </div>
+        </div>
+        <p id="a-comune-nota" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+        <h4 class="font-bold text-slate-900 text-sm">Cosa &egrave; modellato, e cosa no</h4>
+        <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
+          <li>La previdenza &egrave; la <strong>Gestione separata INPS</strong> al 26,07%, quella di chi non ha una cassa professionale. Casse di categoria, artigiani e commercianti hanno minimali e regole proprie, qui non modellate.</li>
+          <li>I contributi si calcolano sul reddito dell'anno e vengono dedotti dallo stesso anno: acconti, saldo e cassa sfalsata non sono simulati.</li>
+          <li>L'IVA non entra nel calcolo: il fatturato si intende al netto dell'imposta.</li>
+          <li>Il forfetario &egrave; calcolato senza verificare le cause di esclusione (redditi da lavoro dipendente sopra 35.000 &euro;, partecipazioni, ex datore di lavoro).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lg:col-span-3 space-y-4">
+      <div id="a-alert" class="hidden rounded-2xl border p-4 text-sm"></div>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="bg-slate-900 text-white rounded-2xl p-5">
+          <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
+          <p id="a-netto-mese" class="num text-3xl font-extrabold mt-1">&euro; 0</p>
+          <p class="text-slate-400 text-xs mt-1">fatturato meno contributi e imposte, diviso dodici</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5">
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto annuo</p>
+          <p id="a-netto-anno" class="num text-3xl font-extrabold mt-1 text-slate-900">&euro; 0</p>
+          <p id="a-pressione" class="text-xs mt-1 text-slate-500">&mdash;</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-900">Dal fatturato al netto</h3>
+          <p id="a-sottotitolo" class="text-xs text-slate-500 mt-0.5">&mdash;</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <tbody id="a-dettaglio" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-900">Confronto fra i tre regimi</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Stesso fatturato, stesso settore: quanto resta in ciascun regime.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <tbody id="a-confronto" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -17452,6 +17575,17 @@ const PROFILI_CONTRIBUTIVI = {
   domestico:           { nome: 'Lavoro domestico',                  lavoratore: 0.0240, datore: 0.1200 }
 };
 
+/* Gestione separata INPS: aliquote 2026 della circolare n. 8/2026.
+   Il massimale annuo e' lo stesso dei dipendenti (122.295 €), il minimale
+   di 18.808 € riguarda l'accredito dei contributi, non il calcolo. */
+const GESTIONE_SEPARATA = {
+  collaboratori: 0.3503,   // 33,00 IVS + 0,50 + 0,22 + 1,31 DIS-COLL
+  professionisti: 0.2607,  // 25,00 IVS + 0,72 + 0,35 ISCRO
+  massimale: 122295,
+  fonte: 'INPS circolare n. 8 del 3 febbraio 2026',
+  verificatoIl: '2026-08-21'
+};
+
 /* ------------------------------------------------- Tipi di rapporto */
 /* Asse distinto da settore e inquadramento: un apprendista puo' lavorare
    nel terziario come nell'industria, e un tempo determinato riguarda
@@ -17474,6 +17608,25 @@ const TIPI_RAPPORTO = {
     lavoratore: 0.0584,
     datore: 0.1161,
     nota: 'Aliquota agevolata per legge, indipendente dal settore: 5,84% a carico dell’apprendista.'
+  },
+  collaboratore: {
+    nome: 'Collaborazione coordinata e continuativa',
+    /* Non e' un'aliquota di settore ma la Gestione separata: 35,03% in tutto
+       (33% IVS + 0,50 + 0,22 + 1,31 DIS-COLL), ripartito per un terzo sul
+       collaboratore e due terzi sul committente. Il massimale non e'
+       un'opzione come per i dipendenti: e' la regola. */
+    gestioneSeparata: true,
+    lavoratore: GESTIONE_SEPARATA.collaboratori / 3,
+    datore: GESTIONE_SEPARATA.collaboratori * 2 / 3,
+    massimaleObbligatorio: true,
+    senzaTfr: true,
+    senzaCuneo: true,
+    mensilitaFisse: 12,
+    nota: 'Gestione separata INPS: 35,03% complessivo, un terzo al collaboratore e due terzi al committente, '
+        + 'entro il massimale di 122.295 €. Il compenso e’ reddito assimilato a quello di lavoro dipendente '
+        + '(art. 50, comma 1, lett. c-bis TUIR): spettano le detrazioni da lavoro dipendente e il trattamento '
+        + 'integrativo, non il taglio del cuneo, riservato ai redditi dell’art. 49. Nessun TFR, nessuna '
+        + 'mensilita’ aggiuntiva.'
   },
   tirocinio: {
     nome: 'Tirocinio / stage',
@@ -17516,7 +17669,7 @@ const ESONERI = {
     finestraDa: '2025-01-01',
     finestraA: '2029-12-31',
     regioni: REGIONI_MEZZOGIORNO,
-    rapportiEsclusi: ['apprendistato', 'tirocinio'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'collaboratore'],
     profiliEsclusi: ['domestico', 'agricolo_operaio'],
     condizioni: 'Datori privati con meno di 250 dipendenti, sedi nelle otto regioni del Mezzogiorno. Esclusi agricoltura, lavoro domestico e pubblica amministrazione.',
     fonte: 'L. 207/2024, art. 1, commi 406-412 — INPS circolare n. 32/2025',
@@ -17532,7 +17685,7 @@ const ESONERI = {
     finestraDa: '2024-09-01',
     finestraA: '2026-12-31',
     mesi: 24,
-    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico'],
     condizioni: 'Assunzione a tempo indeterminato di donne svantaggiate, con incremento occupazionale netto. Durata 24 mesi, ridotti a 12 nei settori con accentuata disparita’ di genere.',
     fonte: 'D.L. 60/2024, art. 23 — prorogato per il 2026 dal D.L. 200/2025',
@@ -17548,7 +17701,7 @@ const ESONERI = {
     finestraDa: '2024-09-01',
     finestraA: '2026-04-30',
     mesi: 24,
-    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico'],
     condizioni: 'Under 35 mai assunti a tempo indeterminato. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile, con esonero pieno solo in caso di incremento occupazionale netto.',
     fonte: 'D.L. 60/2024, art. 22 — proroga limitata dal D.L. 200/2025',
@@ -17563,7 +17716,7 @@ const ESONERI = {
     finestraDa: '2026-08-01',
     finestraA: '2026-12-31',
     mesi: 24,
-    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico', 'dirigente'],
     condizioni: 'Non e’ un incentivo all’assunzione ma alla trasformazione: vale per i passaggi a tempo indeterminato '
       + 'effettuati fra il 1° agosto e il 31 dicembre 2026 di rapporti a termine instaurati entro il 30 aprile 2026, '
@@ -17587,7 +17740,7 @@ const ESONERI = {
     finestraA: '2026-04-30',
     mesi: 24,
     regioni: REGIONI_MEZZOGIORNO,
-    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico', 'dirigente'],
     condizioni: 'Personale non dirigenziale assunto a tempo indeterminato nelle aree della ZES unica. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile.',
     fonte: 'D.L. 60/2024, art. 24 — proroga limitata dal D.L. 200/2025',
@@ -17601,7 +17754,7 @@ const ESONERI = {
     quote: { 2026: { percentuale: 1, tettoAnnuo: 8000 } },
     finestraDa: '2026-01-01',
     finestraA: '2026-12-31',
-    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico', 'dirigente'],
     condizioni: 'Datori privati, assunzione a tempo indeterminato o trasformazione, di madri con almeno tre figli under 18 prive di impiego regolarmente retribuito da almeno sei mesi. Personale non dirigenziale, premi INAIL esclusi dall’esonero.',
     fonte: 'L. 199/2025, art. 1, commi 210-213 — INPS circolare n. 82/2026',
@@ -17616,7 +17769,7 @@ const ESONERI = {
              2026: { percentuale: 1, tettoAnnuo: 3000 } },
     finestraDa: '2024-01-01',
     finestraA: '2026-12-31',
-    rapportiEsclusi: ['tirocinio', 'determinato'],
+    rapportiEsclusi: ['tirocinio', 'determinato', 'collaboratore'],
     profiliEsclusi: ['domestico'],
     condizioni: 'Lavoratrici madri di almeno tre figli con rapporto a tempo indeterminato, fino al compimento dei 18 anni del figlio più piccolo. Il tetto di 3.000 € annui è ripartito su 12 mensilità.',
     fonte: 'L. 213/2023, art. 1, comma 180 — resa strutturale dalla L. 207/2024',
@@ -17748,12 +17901,16 @@ function calcolaIrpefLordaAnno(imponibile, anno) {
    L'aliquota aggiuntiva dell'1% (art. 3-ter L. 438/1992) si applica alla
    quota eccedente la prima fascia di retribuzione pensionabile, e solo
    quando l'aliquota a carico del lavoratore è inferiore al 10%.          */
-function calcolaContributiLavoratore(baseContributiva, profilo, anno, massimaleAttivo) {
+function calcolaContributiLavoratore(baseContributiva, profilo, anno, massimaleAttivo, gestioneSeparata) {
   const A = ANNI[anno];
   const base = massimaleAttivo ? Math.min(baseContributiva, A.massimale) : baseContributiva;
 
   const ordinari = base * profilo.lavoratore;
-  const aggiuntivo = profilo.lavoratore > 0 && profilo.lavoratore < PREMIUM.SOGLIA_ALIQUOTA_AGGIUNTIVA
+  // L'aliquota aggiuntiva dell'1% oltre la prima fascia appartiene al FPLD:
+  // nella Gestione separata non esiste, e la quota del collaboratore
+  // supererebbe comunque la soglia sotto cui viene cercata.
+  const aggiuntivo = !gestioneSeparata
+    && profilo.lavoratore > 0 && profilo.lavoratore < PREMIUM.SOGLIA_ALIQUOTA_AGGIUNTIVA
     ? Math.max(0, base - A.soglia1pc) * PREMIUM.ALIQUOTA_AGGIUNTIVA
     : 0;
   const fondo = profilo.fondo
@@ -17940,7 +18097,8 @@ function calcolaPremium(params) {
                          + premioSostitutiva + premioOrdinario
                          + accessoriAmmessi + accessoriOrdinari;
 
-  const contributi = calcolaContributiLavoratore(baseContributiva, profilo, p.anno, p.massimaleAttivo);
+  const contributi = calcolaContributiLavoratore(baseContributiva, profilo, p.anno,
+        p.massimaleAttivo || !!rapporto.massimaleObbligatorio, !!rapporto.gestioneSeparata);
 
   /* Gli esoneri che incidono sulla quota del lavoratore aumentano il netto,
      ma anche l'imponibile fiscale: cio' che non si versa all'INPS resta
@@ -18030,8 +18188,14 @@ function calcolaPremium(params) {
   // titolari di reddito di lavoro dipendente: l'indennita' di tirocinio e'
   // reddito assimilato, quindi qui non vengono riconosciuti. La scelta e'
   // dichiarata in interfaccia perche' e' un'interpretazione, non un calcolo.
-  const bonusCuneo = rapporto.assimilato ? 0 : calcolaBonusCuneo(redditoComplessivo) * quotaAnno;
-  const ulterioreDetrazione = rapporto.assimilato ? 0 : calcolaUlterioreDetrazione(redditoComplessivo) * quotaAnno;
+  // Il taglio del cuneo si rivolge ai soli titolari di reddito di lavoro
+  // dipendente dell'art. 49 TUIR: ne restano fuori sia il tirocinio sia la
+  // collaborazione, che sono redditi assimilati dell'art. 50. Il trattamento
+  // integrativo invece li distingue: il D.L. 3/2020 richiama espressamente la
+  // lettera c-bis), quindi al collaboratore spetta e al tirocinante no.
+  const senzaCuneo = rapporto.assimilato || rapporto.senzaCuneo;
+  const bonusCuneo = senzaCuneo ? 0 : calcolaBonusCuneo(redditoComplessivo) * quotaAnno;
+  const ulterioreDetrazione = senzaCuneo ? 0 : calcolaUlterioreDetrazione(redditoComplessivo) * quotaAnno;
 
   const detrConiuge = p.coniugeACarico ? detrazioneConiuge(redditoComplessivo) * quotaAnno : 0;
   const detrFigli = detrazioneFigli(redditoComplessivo, p.figli) * quotaAnno;
@@ -18075,7 +18239,11 @@ function calcolaPremium(params) {
   const nettoPrimaTrattenute = nettoAnnuo;
   nettoAnnuo -= altreTrattenute;
 
-  const nettoMensile = nettoAnnuo / p.mensilita;
+  // Le mensilita' aggiuntive sono un istituto del lavoro dipendente: dove il
+  // rapporto non le prevede il compenso si divide per dodici, qualunque cosa
+  // dica il controllo in interfaccia.
+  const mensilita = rapporto.mensilitaFisse || p.mensilita;
+  const nettoMensile = nettoAnnuo / mensilita;
   const welfareEsente = fringeEsente + buoniEsente + premioWelfare;
   const valoreTotale = nettoAnnuo + welfareEsente;
   const lordoDiRiferimento = ral + premioLordo + Math.max(0, p.compensiAccessori);
@@ -18089,7 +18257,8 @@ function calcolaPremium(params) {
   const tfrLordo = baseTfr / PREMIUM.TFR_DIVISORE;
   // Conferito al fondo il TFR non subisce il contributo dello 0,50% al
   // Fondo di garanzia, che riguarda l'accantonamento in azienda.
-  const tfr = rapporto.assimilato ? 0
+  const senzaTfr = rapporto.assimilato || rapporto.senzaTfr;
+  const tfr = senzaTfr ? 0
     : (p.tfrAlFondo ? tfrLordo : tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO);
 
   const contributiDatoreLordi = contributi.baseApplicata * profilo.datore;
@@ -18111,14 +18280,14 @@ function calcolaPremium(params) {
   const inail = ral * PREMIUM.DATORE_INAIL;
   const costoAzienda = ral + premioLordo + Math.max(0, p.compensiAccessori)
     + contributiDatore + fondoDatore + contributoDatoreFondo + inail
-    + (rapporto.assimilato ? 0 : tfrLordo)
+    + (senzaTfr ? 0 : tfrLordo)
     + p.fringeBenefit + buoniTotale;
   // Senza un netto positivo il rapporto non ha significato
   const efficienza = costoAzienda > 0 && nettoPrimaTrattenute > 0
     ? (nettoPrimaTrattenute / costoAzienda) * 100 : 0;
 
   /* --- Controllo del minimale contributivo ----------------------------- */
-  const retribuzioneMese = p.mensilita > 0 ? ral / p.mensilita : 0;
+  const retribuzioneMese = mensilita > 0 ? ral / mensilita : 0;
   const sottoMinimale = ral > 0 && retribuzioneMese < A.minimaleMese;
 
   return {
@@ -18148,12 +18317,155 @@ function calcolaPremium(params) {
     fringeEsente, fringeImponibile, buoniEsente, buoniEccedenza, buoniTotale,
     buoniElettronici: p.buoniElettronici,
     welfareEsente, valoreTotale,
-    nettoAnnuo, nettoMensile, pressioneFiscale, mensilita: p.mensilita,
+    nettoAnnuo, nettoMensile, pressioneFiscale, mensilita,
     altreTrattenute, altreTrattenuteRichieste, altreTrattenuteNonCapienti, nettoPrimaTrattenute,
     tfr, contributiDatore, fondoDatore, inail, costoAzienda, efficienza,
     sottoMinimale, minimaleMese: A.minimaleMese,
     totaleTrattenute: inps + irpefNetta + addReg + addCom + impostaPremio + impostaAccessori,
     totaleBonus: bonusCuneo + trattamentoIntegrativo
+  };
+}
+
+/* ====================================================================
+   LAVORO AUTONOMO — PARTITA IVA
+   ----------------------------------------------------------------------
+   Qui non c'e' una busta paga da ricostruire: non esistono TFR, mensilita'
+   aggiuntive, welfare, cuneo fiscale ne' un datore che versa due terzi dei
+   contributi. Cambia anche l'ordine dei fattori: i contributi si calcolano
+   sul reddito e poi si deducono, e nel forfetario l'imposta sostitutiva
+   prende il posto di IRPEF e addizionali. Per questo e' un motore separato
+   e non un ramo dentro quello dei dipendenti: mescolarli avrebbe prodotto
+   una funzione piena di eccezioni, cioe' il posto dove nascono gli errori.
+
+   Limite dichiarato: la previdenza modellata e' la Gestione separata INPS,
+   quella di chi non ha una cassa professionale. Chi versa a una cassa di
+   categoria o alle gestioni artigiani e commercianti ha minimali e regole
+   proprie, che questo motore non conosce.
+   ==================================================================== */
+
+/* Allegato 4 della legge 190/2014: il coefficiente non dipende dai costi
+   sostenuti ma dal codice ATECO, ed e' cio' che rende il forfetario
+   conveniente o punitivo a seconda del mestiere. */
+const COEFFICIENTI_FORFETTARIO = [
+  { chiave: 'professionali', coefficiente: 0.78,
+    nome: 'Attività professionali, scientifiche, tecniche, sanitarie, di istruzione, servizi finanziari e assicurativi',
+    ateco: '64-65-66 · 69-70-71-72-73-74-75 · 85 · 86-87-88' },
+  { chiave: 'altre', coefficiente: 0.67,
+    nome: 'Altre attività economiche', ateco: 'tutti i codici non elencati altrove' },
+  { chiave: 'costruzioni', coefficiente: 0.86,
+    nome: 'Costruzioni e attività immobiliari', ateco: '41-42-43 · 68' },
+  { chiave: 'intermediari', coefficiente: 0.62,
+    nome: 'Intermediari del commercio', ateco: '46.1' },
+  { chiave: 'ambulante_altri', coefficiente: 0.54,
+    nome: 'Commercio ambulante di altri prodotti', ateco: '47.82 · 47.89' },
+  { chiave: 'alimentari', coefficiente: 0.40,
+    nome: 'Industrie alimentari e delle bevande', ateco: '10-11' },
+  { chiave: 'commercio', coefficiente: 0.40,
+    nome: 'Commercio all’ingrosso e al dettaglio', ateco: '45 · 46.2-46.9 · 47.1-47.7 · 47.9' },
+  { chiave: 'ambulante_alimentari', coefficiente: 0.40,
+    nome: 'Commercio ambulante di prodotti alimentari e bevande', ateco: '47.81' },
+  { chiave: 'ristorazione', coefficiente: 0.40,
+    nome: 'Attività dei servizi di alloggio e di ristorazione', ateco: '55-56' }
+];
+
+const FORFETTARIO = {
+  soglia: 85000,
+  aliquota: 0.15,
+  aliquotaStartUp: 0.05,
+  anniStartUp: 5,
+  fonte: 'L. 190/2014, art. 1, commi 54-89 e allegato 4',
+  verificatoIl: '2026-08-21'
+};
+
+const REGIMI_AUTONOMI = {
+  ordinario: {
+    nome: 'Partita IVA — regime ordinario',
+    nota: 'IRPEF a scaglioni sul reddito al netto dei costi e dei contributi, con addizionali regionale e comunale e detrazione dell’art. 13, comma 5, TUIR.'
+  },
+  forfettario15: {
+    nome: 'Partita IVA — forfetario 15%',
+    nota: 'Imposta sostitutiva del 15% al posto di IRPEF, addizionali e IRAP. Il reddito è il fatturato per il coefficiente ATECO: i costi effettivi non si deducono.'
+  },
+  forfettario5: {
+    nome: 'Partita IVA — forfetario 5%',
+    nota: 'Stessa struttura del forfetario ordinario con aliquota al 5%, riservata ai primi cinque anni di una nuova attività.'
+  }
+};
+
+/* Detrazione dell'art. 13, comma 5, TUIR: quella dei redditi di lavoro
+   autonomo, piu' bassa di quella dei dipendenti e non cumulabile con essa. */
+function calcolaDetrazioneLavoroAutonomo(reddito) {
+  if (reddito <= 0) return 0;
+  if (reddito <= 5500) return 1265;
+  if (reddito <= 28000) return 500 + 765 * ((28000 - reddito) / 22500);
+  if (reddito <= 50000) return 500 * ((50000 - reddito) / 22000);
+  return 0;
+}
+
+function calcolaAutonomo(params) {
+  const p = {
+    anno: 2026,
+    compenso: 0,
+    regimeAutonomo: 'ordinario',
+    coefficiente: 0.78,
+    costi: 0,
+    regione: 'Lombardia',
+    comune: 'F205',
+    ...params
+  };
+
+  const compenso = Math.max(0, p.compenso);
+  const forfetario = p.regimeAutonomo !== 'ordinario';
+  const costi = forfetario ? 0 : Math.min(Math.max(0, p.costi), compenso);
+
+  /* Base imponibile previdenziale e fiscale: nel forfetario e' il fatturato
+     per il coefficiente, nell'ordinario il reddito effettivo. In entrambi i
+     casi i contributi si calcolano prima di dedurre se stessi. */
+  const redditoLordo = forfetario ? compenso * p.coefficiente : compenso - costi;
+  const baseContributiva = Math.min(Math.max(0, redditoLordo), GESTIONE_SEPARATA.massimale);
+  const contributi = baseContributiva * GESTIONE_SEPARATA.professionisti;
+
+  // I contributi obbligatori si deducono dal reddito in tutti e due i regimi.
+  const imponibile = Math.max(0, redditoLordo - contributi);
+
+  let irpefLorda = 0, detrazione = 0, irpefNetta = 0, addReg = 0, addCom = 0, impostaSostitutiva = 0;
+  const regione = REGIONI[p.regione] || REGIONI.Lombardia;
+  const comune = COMUNI_PER_CODICE.get(p.comune);
+
+  if (forfetario) {
+    // L'imposta sostitutiva sostituisce davvero: niente IRPEF, niente
+    // addizionali locali, niente detrazioni. Il comune di residenza qui
+    // non cambia una virgola, e questo e' un risultato, non una svista.
+    const aliquota = p.regimeAutonomo === 'forfettario5'
+      ? FORFETTARIO.aliquotaStartUp : FORFETTARIO.aliquota;
+    impostaSostitutiva = imponibile * aliquota;
+  } else {
+    irpefLorda = calcolaIrpefLordaAnno(imponibile, p.anno);
+    detrazione = Math.min(calcolaDetrazioneLavoroAutonomo(imponibile), irpefLorda);
+    irpefNetta = Math.max(0, irpefLorda - detrazione);
+    addReg = calcolaAddizionaleScaglioni(imponibile, regione.scaglioni);
+    addCom = calcolaAddizionaleComunaleDataset(imponibile, comune, p.anno);
+  }
+
+  const imposte = irpefNetta + addReg + addCom + impostaSostitutiva;
+  const nettoAnnuo = Math.max(0, compenso - costi - contributi - imposte);
+
+  // Il confronto onesto e' fra prelievo e fatturato al netto dei costi:
+  // e' quanto resta davvero di cio' che si e' guadagnato.
+  const baseCarico = compenso - costi;
+  const pressione = baseCarico > 0 ? ((contributi + imposte) / baseCarico) * 100 : 0;
+
+  return {
+    anno: p.anno, compenso, costi, regimeAutonomo: p.regimeAutonomo,
+    regimeNome: REGIMI_AUTONOMI[p.regimeAutonomo].nome,
+    forfetario, coefficiente: forfetario ? p.coefficiente : null,
+    redditoLordo, baseContributiva, contributi, imponibile,
+    irpefLorda, detrazione, irpefNetta, addReg, addCom, impostaSostitutiva,
+    imposte, nettoAnnuo, nettoMensile: nettoAnnuo / 12, pressione,
+    oltreSoglia: forfetario && compenso > FORFETTARIO.soglia,
+    massimaleRaggiunto: redditoLordo > GESTIONE_SEPARATA.massimale,
+    regioneNome: regione.nome,
+    comuneNome: comune ? comune.nome + ' (' + comune.provincia + ')' : '—'
   };
 }
 
@@ -19705,6 +20017,37 @@ function eseguiTest() {
         !sudFuori.applicabile && sudDentro.applicabile &&
         sudDentro.quota.tettoMensile === 125);
 
+  // La collaborazione coordinata e continuativa non e' lavoro dipendente ma
+  // nemmeno lavoro autonomo: la Gestione separata divide il 35,03% per un
+  // terzo sul collaboratore e due terzi sul committente.
+  const collab = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 30000,
+                                  mensilita: 12, tipoRapporto: 'collaboratore' });
+  check('Co.co.co.: 35,03% diviso un terzo e due terzi',
+        vicino(collab.contributiOrdinari, 30000 * 0.3503 / 3, 0.01) &&
+        vicino(collab.contributiDatoreLordi, 30000 * 0.3503 * 2 / 3, 0.01) &&
+        collab.contributoAggiuntivo === 0,
+        `${euro2(collab.contributiOrdinari)} + ${euro2(collab.contributiDatoreLordi)}`);
+
+  // Niente TFR ne' cuneo, ma il trattamento integrativo spetta: il D.L. 3/2020
+  // richiama la lettera c-bis), la legge di Bilancio 2025 solo l'art. 49.
+  const collabBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 14000,
+                                       mensilita: 12, tipoRapporto: 'collaboratore' });
+  const dipBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 14000, mensilita: 12 });
+  check('Co.co.co.: niente TFR ne’ cuneo, il trattamento integrativo resta',
+        collab.tfr === 0 && collab.bonusCuneo === 0 && collab.ulterioreDetrazione === 0 &&
+        collabBasso.trattamentoIntegrativo > 0 && dipBasso.bonusCuneo > 0,
+        `TI ${euro2(collabBasso.trattamentoIntegrativo)}`);
+
+  // Il massimale della Gestione separata non e' un'opzione: si applica
+  // anche senza spuntare la casella, che per i dipendenti e' facoltativa.
+  const collabAlto = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 200000,
+                                      mensilita: 12, tipoRapporto: 'collaboratore',
+                                      massimaleAttivo: false });
+  check('Co.co.co.: il massimale di 122.295 € si applica da solo',
+        vicino(collabAlto.baseContributivaApplicata, GESTIONE_SEPARATA.massimale, 0.01) &&
+        vicino(collabAlto.contributiOrdinari, GESTIONE_SEPARATA.massimale * 0.3503 / 3, 0.01),
+        euro2(collabAlto.baseContributivaApplicata));
+
   // L'incentivo alla stabilizzazione ha una finestra stretta e un tetto
   // mensile: la data va fissata, altrimenti il collaudo cambia esito da solo
   // il 1 gennaio 2027.
@@ -19806,6 +20149,71 @@ function eseguiTest() {
   // Oltre il massimo rappresentabile deve dirlo, non restituire un numero
   const fuori = invertiNetto(900000, scenarioInv);
   check('Inversione: dichiara le richieste fuori scala', fuori.esito === 'fuoriScala');
+
+  // --- Partita IVA ----------------------------------------------------
+  // Nel forfetario il reddito e' il fatturato per il coefficiente ATECO,
+  // i contributi si calcolano su quello e poi si deducono.
+  const forf = calcolaAutonomo({ anno: 2026, compenso: 50000,
+                                 regimeAutonomo: 'forfettario15', coefficiente: 0.78 });
+  const redditoAtteso = 50000 * 0.78;
+  const contributiAttesi = redditoAtteso * GESTIONE_SEPARATA.professionisti;
+  check('Forfetario: coefficiente ATECO, contributi dedotti, 15% sul resto',
+        vicino(forf.redditoLordo, redditoAtteso, 0.01) &&
+        vicino(forf.contributi, contributiAttesi, 0.01) &&
+        vicino(forf.impostaSostitutiva, (redditoAtteso - contributiAttesi) * 0.15, 0.01) &&
+        vicino(forf.nettoAnnuo, 50000 - contributiAttesi - forf.impostaSostitutiva, 0.01),
+        euro2(forf.nettoAnnuo));
+
+  // L'aliquota di start-up e' un terzo di quella ordinaria: tutto il resto
+  // della catena deve restare identico, contributi compresi.
+  const forf5 = calcolaAutonomo({ anno: 2026, compenso: 50000,
+                                  regimeAutonomo: 'forfettario5', coefficiente: 0.78 });
+  check('Forfetario 5%: stessa base, imposta ridotta a un terzo',
+        vicino(forf5.contributi, forf.contributi, 0.01) &&
+        vicino(forf5.impostaSostitutiva, forf.impostaSostitutiva / 3, 0.01) &&
+        forf5.nettoAnnuo > forf.nettoAnnuo,
+        `+${euro2(forf5.nettoAnnuo - forf.nettoAnnuo)} rispetto al 15%`);
+
+  // L'imposta sostitutiva sostituisce anche le addizionali locali: nel
+  // forfetario il comune di residenza non sposta il netto, nell'ordinario si.
+  const forfMilano = calcolaAutonomo({ anno: 2026, compenso: 50000, comune: 'F205',
+                                       regimeAutonomo: 'forfettario15', coefficiente: 0.78 });
+  const forfRoma = calcolaAutonomo({ anno: 2026, compenso: 50000, comune: 'H501',
+                                     regione: 'Lazio', regimeAutonomo: 'forfettario15', coefficiente: 0.78 });
+  const ordMilano = calcolaAutonomo({ anno: 2026, compenso: 50000, comune: 'F205' });
+  const ordRoma = calcolaAutonomo({ anno: 2026, compenso: 50000, comune: 'H501', regione: 'Lazio' });
+  check('Forfetario: niente addizionali, il comune non cambia il netto',
+        vicino(forfMilano.nettoAnnuo, forfRoma.nettoAnnuo, 0.01) &&
+        forfMilano.addReg === 0 && forfMilano.addCom === 0 &&
+        ordMilano.addCom > 0 && Math.abs(ordMilano.nettoAnnuo - ordRoma.nettoAnnuo) > 1,
+        `ordinario: ${euro2(ordMilano.nettoAnnuo)} a Milano, ${euro2(ordRoma.nettoAnnuo)} a Roma`);
+
+  // I contributi della Gestione separata si fermano al massimale, come per
+  // i collaboratori: oltre quella soglia si paga solo imposta.
+  const forfAlto = calcolaAutonomo({ anno: 2026, compenso: 200000,
+                                     regimeAutonomo: 'forfettario15', coefficiente: 0.78 });
+  check('Partita IVA: i contributi si fermano al massimale della Gestione separata',
+        forfAlto.massimaleRaggiunto && forfAlto.oltreSoglia &&
+        vicino(forfAlto.contributi, GESTIONE_SEPARATA.massimale * GESTIONE_SEPARATA.professionisti, 0.01),
+        euro2(forfAlto.contributi));
+
+  // Detrazione dell'art. 13 comma 5: si spegne a 50.000 € e non e' quella
+  // dei dipendenti, che allo stesso reddito vale di piu'.
+  check('Partita IVA: detrazione dell’art. 13 comma 5, non quella dei dipendenti',
+        vicino(calcolaDetrazioneLavoroAutonomo(5500), 1265, 0.01) &&
+        calcolaDetrazioneLavoroAutonomo(50001) === 0 &&
+        calcolaDetrazioneLavoroAutonomo(20000) < calcolaDetrazioniBase(20000),
+        `${euro2(calcolaDetrazioneLavoroAutonomo(20000))} contro ${euro2(calcolaDetrazioniBase(20000))}`);
+
+  // Nell'ordinario i costi sono deducibili davvero, nel forfetario no:
+  // e' la differenza che decide quale regime conviene.
+  const ordConCosti = calcolaAutonomo({ anno: 2026, compenso: 50000, costi: 20000 });
+  const ordSenzaCosti = calcolaAutonomo({ anno: 2026, compenso: 50000, costi: 0 });
+  check('Ordinario: i costi abbattono reddito, contributi e imposte',
+        ordConCosti.contributi < ordSenzaCosti.contributi &&
+        ordConCosti.imposte < ordSenzaCosti.imposte &&
+        vicino(ordConCosti.redditoLordo, 30000, 0.01),
+        `${euro2(ordSenzaCosti.imposte)} → ${euro2(ordConCosti.imposte)} di imposte`);
 
   // Integrità del dataset ufficiale
   const milano = COMUNI_PER_CODICE.get('F205');
@@ -19994,19 +20402,34 @@ function aggiornaNoteContestuali(p) {
   const rapporto = TIPI_RAPPORTO[p.tipoRapporto] || TIPI_RAPPORTO.indeterminato;
   el('p-rapporto-nota').innerHTML = rapporto.nota;
 
-  // Nel tirocinio non esistono mensilita' aggiuntive ne' TFR: i controlli
-  // che non hanno effetto vengono disattivati invece di restare attivi e
-  // ininfluenti, che sarebbe piu' confuso.
+  // Un controllo che non ha effetto viene disattivato invece di restare
+  // attivo e ininfluente, che sarebbe piu' confuso. Il tirocinio non ha
+  // mensilita' aggiuntive ne' TFR; la collaborazione nemmeno, e per di piu'
+  // il massimale non e' una scelta ma la regola della Gestione separata.
   const assimilato = !!rapporto.assimilato;
-  for (const id of ['p-mensilita', 'p-tfr-fondo', 'p-massimale']) {
+  const senzaMensilita = assimilato || !!rapporto.mensilitaFisse;
+  const spenti = {
+    'p-mensilita': senzaMensilita,
+    'p-tfr-fondo': assimilato || !!rapporto.senzaTfr,
+    'p-massimale': assimilato || !!rapporto.massimaleObbligatorio
+  };
+  for (const [id, spento] of Object.entries(spenti)) {
     const nodo = el(id);
-    nodo.disabled = assimilato;
-    nodo.parentElement.classList.toggle('opacity-40', assimilato);
+    nodo.disabled = spento;
+    nodo.parentElement.classList.toggle('opacity-40', spento);
   }
-  if (assimilato && el('p-mensilita').value !== '12') {
+  if (senzaMensilita && el('p-mensilita').value !== '12') {
     el('p-mensilita').value = '12';
     p.mensilita = 12;
   }
+  // Nella Gestione separata il massimale e' obbligatorio: la casella lo mostra
+  // spuntato perche' il calcolo lo applica comunque.
+  if (rapporto.massimaleObbligatorio) el('p-massimale').checked = true;
+
+  // Il collaboratore non ha una RAL: ha un compenso pattuito. Cambiare la
+  // parola costa una riga e toglie un equivoco.
+  el('p-ral-label').textContent = rapporto.gestioneSeparata
+    ? 'Compenso annuo pattuito' : 'RAL contrattuale';
 
   el('p-profilo-nota').textContent =
     `Lavoratore ${aliq(profilo.lavoratore)} · datore ~${aliq(profilo.datore)} (stima)` +
@@ -20081,6 +20504,18 @@ function popolaSelect() {
 
   el('p-regime').innerHTML = Object.entries(REGIMI)
     .map(([k, v]) => `<option value="${k}">${v.nome}</option>`)
+    .join('');
+
+  el('a-regime').innerHTML = Object.entries(REGIMI_AUTONOMI)
+    .map(([k, v]) => `<option value="${k}">${v.nome}</option>`)
+    .join('');
+
+  el('a-coefficiente').innerHTML = COEFFICIENTI_FORFETTARIO
+    .map((c) => `<option value="${c.chiave}">${fmtPerc.format(c.coefficiente * 100)}% — ${c.nome}</option>`)
+    .join('');
+
+  el('a-regione').innerHTML = Object.keys(REGIONI).sort()
+    .map((k) => `<option value="${k}"${k === 'Lombardia' ? ' selected' : ''}>${k}</option>`)
     .join('');
 
   el('stat-comuni').textContent = String(COMUNI.length).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -20681,7 +21116,10 @@ el('btn-azzera-scenario').addEventListener('click', () => {
    predefinito finiscono nell'indirizzo, per tenerlo leggibile. */
 const CAMPI_URL = {
   ral: ['p-ral', '45000'], mensilita: ['p-mensilita', '13'], profilo: ['p-profilo', 'terziario_impiegato'],
-  rapporto: ['p-rapporto', 'indeterminato'], regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
+  rapporto: ['p-rapporto', 'indeterminato'],
+  aregime: ['a-regime', 'ordinario'], compenso: ['a-compenso', '50000'],
+  acosti: ['a-costi', '0'], acoeff: ['a-coefficiente', 'professionali'],
+  aanno: ['a-anno', '2026'], aregione: ['a-regione', 'Lombardia'], regione: ['p-regione', 'Lombardia'], giorni: ['p-giorni', '365'], parttime: ['p-parttime', '100'],
   figli: ['p-figli', '0'], altri: ['p-altri', '0'], fringe: ['p-fringe', '0'],
   buoni: ['p-buoni', '0'], buonigiorni: ['p-buoni-giorni', '220'], premio: ['p-premio', '0'],
   accessori: ['p-accessori', '0'], fondo: ['p-fondo', '0'],
@@ -20709,7 +21147,8 @@ function scriviUrl() {
 function scriviUrlOra() {
   if (ripristinoInCorso) return;
   const q = new URLSearchParams();
-  q.set('sezione', el('panel-premium').classList.contains('hidden') ? 'base' : 'premium');
+  q.set('sezione', !el('panel-premium').classList.contains('hidden') ? 'premium'
+                  : !el('panel-piva').classList.contains('hidden') ? 'piva' : 'base');
   q.set('anno', String(annoCorrente));
   if (comuneCorrente !== 'F205') q.set('comune', comuneCorrente);
 
@@ -20755,7 +21194,8 @@ function leggiUrl() {
   if (!q.has('regione')) allineaRegioneAlComune(comuneCorrente);
 
   ripristinoInCorso = false;
-  return q.get('sezione') === 'premium' ? 'premium' : q.get('sezione') === 'base' ? 'base' : null;
+  const sezione = q.get('sezione');
+  return ['base', 'premium', 'piva'].includes(sezione) ? sezione : null;
 }
 
 /* ------------------------------------------ Popover delle spiegazioni */
@@ -20863,26 +21303,175 @@ window.addEventListener('scroll', () => {
 }, true);
 window.addEventListener('resize', chiudiSpiegazione);
 
+/* ====================================================================
+   INTERFACCIA — PARTITA IVA
+   ==================================================================== */
+
+function leggiParametriAutonomo() {
+  const scelta = COEFFICIENTI_FORFETTARIO.find((c) => c.chiave === el('a-coefficiente').value)
+              || COEFFICIENTI_FORFETTARIO[0];
+  return {
+    anno: parseInt(el('a-anno').value, 10) === 2025 ? 2025 : 2026,
+    compenso: Math.max(0, parseFloat(el('a-compenso').value) || 0),
+    costi: Math.max(0, parseFloat(el('a-costi').value) || 0),
+    regimeAutonomo: el('a-regime').value,
+    coefficiente: scelta.coefficiente,
+    gruppo: scelta,
+    regione: el('a-regione').value,
+    comune: comuneCorrente
+  };
+}
+
+function rigaAutonomo(voce, nota, annuo, opts = {}) {
+  return rigaCascata(voce, nota, annuo, 12, opts);
+}
+
+function aggiornaAutonomo() {
+  const p = leggiParametriAutonomo();
+  const r = calcolaAutonomo(p);
+  const forfetario = r.forfetario;
+
+  // I controlli che non hanno effetto nel regime scelto spariscono invece di
+  // restare li' a suggerire che qualcosa cambi: il coefficiente non esiste
+  // nell'ordinario, le addizionali non esistono nel forfetario.
+  el('a-riga-coefficiente').classList.toggle('hidden', !forfetario);
+  el('a-riga-costi').classList.toggle('hidden', forfetario);
+  el('a-riga-regione').classList.toggle('hidden', forfetario);
+  el('a-regime-nota').textContent = REGIMI_AUTONOMI[p.regimeAutonomo].nota;
+  el('a-coefficiente-nota').textContent = forfetario
+    ? `Codici ATECO ${p.gruppo.ateco} — imponibile ${fmtPerc.format(p.coefficiente * 100)}% del fatturato`
+    : '';
+  el('a-comune-nota').textContent = forfetario
+    ? 'Nel forfetario l’imposta sostitutiva prende il posto delle addizionali: il comune non incide.'
+    : `Addizionale comunale di ${r.comuneNome}, la stessa scelta nella sezione Premium.`;
+  el('a-soglia-nota').textContent = forfetario
+    ? `Soglia del regime forfetario: ${euro(FORFETTARIO.soglia)} di ricavi nell’anno precedente.`
+    : 'Importo al netto dell’IVA.';
+
+  el('a-netto-mese').textContent = euro(r.nettoMensile);
+  el('a-netto-anno').textContent = euro(r.nettoAnnuo);
+  el('a-pressione').textContent = r.compenso > 0
+    ? `${fmtPerc.format(r.pressione)}% fra contributi e imposte`
+    : '—';
+  el('a-sottotitolo').textContent = `${r.regimeNome} · anno ${r.anno} · importi annui e mensili`;
+
+  const righe = [
+    rigaAutonomo('Fatturato', 'Corrispettivi incassati nell’anno, IVA esclusa', r.compenso, { forte: true })
+  ];
+  if (!forfetario && r.costi > 0) {
+    righe.push(rigaAutonomo('Costi deducibili', 'Spese effettive dell’attività', r.costi, { tipo: 'negativo' }));
+  }
+  if (forfetario) {
+    righe.push(rigaAutonomo('Reddito imponibile forfetario',
+      `Fatturato × ${fmtPerc.format(r.coefficiente * 100)}%: i costi effettivi non entrano nel calcolo`,
+      r.redditoLordo, { evidenzia: true }));
+  } else {
+    righe.push(rigaAutonomo('Reddito d’impresa o di lavoro autonomo',
+      'Base su cui si calcolano contributi e imposte', r.redditoLordo, { evidenzia: true }));
+  }
+  righe.push(rigaAutonomo('Contributi Gestione separata',
+    `${fmtPerc.format(GESTIONE_SEPARATA.professionisti * 100)}% a carico del professionista`
+    + (r.massimaleRaggiunto ? `, fermi al massimale di ${euro(GESTIONE_SEPARATA.massimale)}` : ''),
+    r.contributi, { tipo: 'negativo' }));
+  righe.push(rigaAutonomo('Imponibile fiscale',
+    'Reddito al netto dei contributi, che sono deducibili', r.imponibile, { evidenzia: true }));
+
+  if (forfetario) {
+    const aliquota = r.regimeAutonomo === 'forfettario5' ? FORFETTARIO.aliquotaStartUp : FORFETTARIO.aliquota;
+    righe.push(rigaAutonomo('Imposta sostitutiva',
+      `${fmtPerc.format(aliquota * 100)}% al posto di IRPEF, addizionali e IRAP`,
+      r.impostaSostitutiva, { tipo: 'negativo' }));
+  } else {
+    righe.push(rigaAutonomo('IRPEF lorda', `Scaglioni ${r.anno}`, r.irpefLorda, { tipo: 'negativo' }));
+    righe.push(rigaAutonomo('Detrazione da lavoro autonomo',
+      'Art. 13, comma 5, TUIR: più bassa di quella dei dipendenti', r.detrazione,
+      { tipo: 'positivo', indent: true }));
+    righe.push(rigaAutonomo('Addizionale regionale', r.regioneNome, r.addReg, { tipo: 'negativo' }));
+    righe.push(rigaAutonomo('Addizionale comunale', r.comuneNome, r.addCom, { tipo: 'negativo' }));
+  }
+  righe.push(rigaAutonomo('Netto', 'Quanto resta dopo contributi e imposte', r.nettoAnnuo,
+    { forte: true, evidenzia: true }));
+  el('a-dettaglio').innerHTML = righe.join('');
+
+  /* Il confronto fra i tre regimi e' il motivo per cui questa sezione
+     esiste: la domanda vera non e' quanto si paga, ma quale regime conviene
+     a parita' di fatturato. */
+  const confronti = Object.keys(REGIMI_AUTONOMI).map((chiave) => {
+    const alt = calcolaAutonomo({ ...p, regimeAutonomo: chiave });
+    return { chiave, alt };
+  });
+  const migliore = confronti.reduce((a, b) => (b.alt.nettoAnnuo > a.alt.nettoAnnuo ? b : a));
+  el('a-confronto').innerHTML = confronti.map(({ chiave, alt }) => {
+    const attuale = chiave === p.regimeAutonomo;
+    const delta = alt.nettoAnnuo - r.nettoAnnuo;
+    return `
+      <tr class="${attuale ? 'bg-slate-50' : ''}">
+        <td class="px-6 py-3">
+          <span class="font-semibold text-slate-700">${REGIMI_AUTONOMI[chiave].nome}</span>
+          ${chiave === migliore.chiave ? '<span class="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">più conveniente</span>' : ''}
+          ${attuale ? '<span class="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">selezionato</span>' : ''}
+        </td>
+        <td class="num px-4 py-3 text-right font-semibold text-slate-900">${euro2(alt.nettoAnnuo)}</td>
+        <td class="num px-6 py-3 text-right ${delta > 0.005 ? 'text-emerald-600' : delta < -0.005 ? 'text-rose-600' : 'text-slate-400'}">
+          ${Math.abs(delta) < 0.005 ? '—' : (delta > 0 ? '+ ' : '− ') + euro2(Math.abs(delta))}
+        </td>
+      </tr>`;
+  }).join('');
+
+  // Due avvisi che non sono errori di calcolo ma limiti di ammissibilita':
+  // il calcolo resta valido, la scelta del regime no.
+  const avvisi = [];
+  if (r.oltreSoglia) {
+    avvisi.push(`Con ${euro(r.compenso)} di ricavi si supera la soglia di ${euro(FORFETTARIO.soglia)}: `
+      + 'il forfetario non spetta, il calcolo qui sotto resta solo un confronto teorico.');
+  }
+  if (r.regimeAutonomo === 'forfettario5') {
+    avvisi.push('L’aliquota del 5% vale solo per i primi cinque anni di una nuova attività, '
+      + 'e a condizione che non sia la prosecuzione di un’attività già svolta.');
+  }
+  const alert = el('a-alert');
+  alert.classList.toggle('hidden', avvisi.length === 0);
+  if (avvisi.length) {
+    alert.className = 'rounded-2xl border p-4 text-sm border-amber-200 bg-amber-50 text-amber-800';
+    alert.innerHTML = avvisi.map((t) => `<p>${t}</p>`).join('');
+  }
+
+  scriviUrl();
+}
+
+['a-compenso', 'a-costi', 'a-regime', 'a-coefficiente', 'a-anno', 'a-regione'].forEach((id) => {
+  el(id).addEventListener('input', aggiornaAutonomo);
+  el(id).addEventListener('change', aggiornaAutonomo);
+});
+
 /* ------------------------------------------------------------ Tabs */
-const tabBase = el('tab-base');
-const tabPremium = el('tab-premium');
 const attivo = 'px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm';
 const inattivo = 'px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700';
 
+/* Le sezioni sono tre e il badge della Premium fa parte del suo pulsante:
+   si cambiano le classi senza toccare il contenuto. */
+const SEZIONI = {
+  base: { tab: 'tab-base', panel: 'panel-base', aggiorna: () => scriviUrl() },
+  premium: { tab: 'tab-premium', panel: 'panel-premium', aggiorna: () => aggiornaPremium() },
+  piva: { tab: 'tab-piva', panel: 'panel-piva', aggiorna: () => aggiornaAutonomo() }
+};
+
 function mostraSezione(nome) {
-  const isBase = nome === 'base';
-  el('panel-base').classList.toggle('hidden', !isBase);
-  el('panel-premium').classList.toggle('hidden', isBase);
-  tabBase.className = isBase ? attivo : inattivo;
-  tabPremium.className = isBase ? inattivo : attivo;
-  tabBase.setAttribute('aria-selected', String(isBase));
-  tabPremium.setAttribute('aria-selected', String(!isBase));
-  if (!isBase) aggiornaPremium();
-  else scriviUrl();
+  const scelta = SEZIONI[nome] ? nome : 'base';
+  for (const [chiave, s] of Object.entries(SEZIONI)) {
+    const suo = chiave === scelta;
+    el(s.panel).classList.toggle('hidden', !suo);
+    const tab = el(s.tab);
+    // Il pulsante Premium contiene un badge: si sostituisce solo la classe.
+    tab.className = suo ? attivo : inattivo;
+    tab.setAttribute('aria-selected', String(suo));
+  }
+  SEZIONI[scelta].aggiorna();
 }
 
-tabBase.addEventListener('click', () => mostraSezione('base'));
-tabPremium.addEventListener('click', () => mostraSezione('premium'));
+Object.keys(SEZIONI).forEach((nome) => {
+  el(SEZIONI[nome].tab).addEventListener('click', () => mostraSezione(nome));
+});
 
 /* ------------------------------------------------------ Bootstrap */
 el('engine-version').textContent = ENGINE_VERSION;
@@ -20897,6 +21486,7 @@ popolaSelect();
 const sezioneRichiesta = leggiUrl();
 aggiornaBase();
 aggiornaPremium();
+aggiornaAutonomo();
 mostraSezione(sezioneRichiesta || (location.hash === '#premium' ? 'premium' : 'base'));
 
 // Espone il motore per ispezione da console (utile in fase di valutazione)
