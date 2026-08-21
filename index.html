@@ -19586,10 +19586,10 @@ function renderPremium(r, baseline) {
   const delta = r.nettoAnnuo - baseline.nettoAnnuo;
   const deltaEl = el('pm-delta');
   if (Math.abs(delta) < 0.5) {
-    deltaEl.textContent = 'Allineato allo scenario base';
+    deltaEl.textContent = 'Stesso netto di «Al banco», a parità di RAL';
     deltaEl.className = 'text-xs mt-1 text-slate-500';
   } else {
-    deltaEl.textContent = `${delta > 0 ? '+' : '−'} ${euro(Math.abs(delta))} rispetto allo scenario base`;
+    deltaEl.textContent = `${delta > 0 ? '+' : '−'} ${euro(Math.abs(delta))} rispetto a «Al banco», a parità di RAL`;
     deltaEl.className = `text-xs mt-1 font-semibold ${delta > 0 ? 'text-emerald-600' : 'text-rose-600'}`;
   }
 
@@ -20127,11 +20127,11 @@ function eseguiTest() {
       break;
     }
   }
-  check('Premium 2025 = motore Base sotto la prima fascia pensionabile', equivalenza, scarto);
+  check('«Al tavolo» 2025 = «Al banco» sotto la prima fascia pensionabile', equivalenza, scarto);
 
   // Sopra la soglia lo scostamento deve essere esattamente il contributo dell'1%
   const alto = calcolaPremium({ ...scenarioBase, ral: 70000 });
-  check('Sopra soglia lo scarto dal Base è solo l’aliquota aggiuntiva 1%',
+  check('Sopra soglia lo scarto da «Al banco» è solo l’aliquota aggiuntiva 1%',
         vicino(alto.contributoAggiuntivo, (70000 - ANNI[2025].soglia1pc) * 0.01, 0.01),
         euro2(alto.contributoAggiuntivo));
 
@@ -20702,7 +20702,7 @@ function eseguiTest() {
   check('Dataset: Milano 0,80% con esenzione 23.000 €',
         milano[2025].esenzione === 23000 &&
         vicino(milano[2025].scaglioni[0].aliquota, 0.008, 1e-9));
-  check('Dataset: Lombardia allineata alla specifica del motore Base',
+  check('Dataset: Lombardia allineata alla specifica di «Al banco»',
         REGIONI.Lombardia.scaglioni.map((s) => s.aliquota).join() ===
         COSTANTI.ADD_REGIONALE_LOMBARDIA.map((s) => s.aliquota).join());
 
@@ -20724,7 +20724,7 @@ function eseguiTest() {
   // RAL nulla o negativa non produce NaN
   check('Input 0 gestito senza NaN', Number.isFinite(calcolaBase(0).nettoAnnuo));
   check('Input negativo gestito senza NaN', Number.isFinite(calcolaBase(-5000).nettoAnnuo));
-  check('Premium con input 0 gestito senza NaN',
+  check('«Al tavolo» con input 0 gestito senza NaN',
         Number.isFinite(calcolaPremium({ ...scenarioBase, ral: 0 }).nettoAnnuo));
 
   const passati = risultati.filter((r) => r.esito).length;
