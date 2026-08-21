@@ -691,6 +691,20 @@ Fuori scope, in modo deliberato:
 
 Il prototipo è una **stima previsionale a fini illustrativi** e non sostituisce il cedolino elaborato dal consulente del lavoro.
 
+### Dati e privacy
+
+Non c'è un backend, quindi non c'è un posto dove i dati inseriti possano finire: il calcolo avviene nel browser e gli importi non vengono trasmessi né conservati. Verificato, non dichiarato: zero occorrenze di `document.cookie`, `localStorage`, `sessionStorage`, `fetch` e `XMLHttpRequest` nel sorgente, nessuna analitica, e nessun header `Set-Cookie` dal server pubblicato.
+
+Ne segue che **non serve un banner cookie**: il consenso riguarda ciò che viene memorizzato sul dispositivo, e qui non viene memorizzato nulla. Metterne uno lo renderebbe un rituale.
+
+Restano tre fatti veri, dichiarati nel piè di pagina:
+
+- lo stato della simulazione vive nell'indirizzo, quindi **condividere il link significa condividere i parametri** — RAL e carichi di famiglia compresi. È la conseguenza meno ovvia della scelta di rendere ogni scenario un link, e vale la pena dirla;
+- l'hosting su Vercel registra gli accessi nei log tecnici, come qualunque hosting;
+- il foglio di stile arriva dalla CDN di Tailwind, che riceve l'indirizzo IP del visitatore. È l'unica risorsa esterna della pagina.
+
+Per uno strumento che tratta stipendi e situazione familiare, dire dove finiscono i numeri conta quanto calcolarli bene.
+
 ---
 
 ## 8. Fonti normative

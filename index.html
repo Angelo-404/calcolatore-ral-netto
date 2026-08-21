@@ -1023,13 +1023,29 @@
 </main>
 
 <footer class="border-t border-slate-200 bg-white mt-8">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-xs text-slate-500 flex flex-wrap gap-2 justify-between">
-    <p>Prototipo tecnico &middot; Single Page Application zero dependencies &middot; Motore fiscale 2025/2026</p>
-    <p>
-      Aliquote territoriali dall'anagrafe MEF, aggiornate al
-      <span id="data-dataset" class="font-semibold text-slate-600">&mdash;</span>
-      &middot; stima previsionale, non sostituisce il cedolino paga.
-    </p>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-xs text-slate-500 space-y-4">
+
+    <div class="flex flex-wrap gap-2 justify-between">
+      <p>Prototipo tecnico &middot; Single Page Application zero dependencies &middot; Motore fiscale 2025/2026</p>
+      <p>
+        Aliquote territoriali dall'anagrafe MEF, aggiornate al
+        <span id="data-dataset" class="font-semibold text-slate-600">&mdash;</span>
+        &middot; stima previsionale, non sostituisce il cedolino paga.
+      </p>
+    </div>
+
+    <div class="pt-4 border-t border-slate-100">
+      <p class="font-semibold text-slate-600">Dati e privacy</p>
+      <p class="mt-1 max-w-4xl leading-relaxed">
+        Il calcolo avviene interamente nel browser: gli importi inseriti <strong>non vengono trasmessi n&eacute; conservati</strong>,
+        e non esiste un archivio dove finiscano. Il sito non usa cookie, non traccia la navigazione e non raccoglie statistiche.
+        Lo stato della simulazione &egrave; scritto nell'indirizzo: <strong>condividendo il link si condividono anche i parametri inseriti</strong>,
+        RAL e carichi di famiglia compresi. Il sito &egrave; ospitato su Vercel, che registra gli accessi nei log tecnici come qualunque
+        hosting; il foglio di stile arriva dalla CDN di Tailwind, che riceve l'indirizzo IP del visitatore.
+        Tutto quanto sopra &egrave; verificabile dagli strumenti di sviluppo del browser.
+      </p>
+    </div>
+
   </div>
 </footer>
 
