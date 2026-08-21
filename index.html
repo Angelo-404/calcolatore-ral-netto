@@ -649,6 +649,22 @@
 
       <div id="pm-alert" class="hidden rounded-2xl border p-4 text-sm"></div>
 
+      <!-- Barra del confronto: sta in cima ai risultati perche' il ciclo vero
+           e' blocca, cambia un parametro, leggi. Averla in fondo alla pagina
+           obbligava a scorrere avanti e indietro a ogni modifica. -->
+      <div id="confronto-barra" class="no-print rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p id="confronto-barra-stato" class="text-xs text-slate-500"></p>
+          <div class="flex items-center gap-2">
+            <button id="btn-blocca-barra"
+                    class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition"></button>
+            <button id="btn-azzera-barra"
+                    class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Azzera</button>
+          </div>
+        </div>
+        <div id="confronto-barra-delta" class="hidden mt-3 pt-3 border-t border-slate-100"></div>
+      </div>
+
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="bg-slate-900 text-white rounded-2xl shadow-lg p-6">
           <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
@@ -21976,6 +21992,21 @@ function descriviScenario(p) {
   return [euro(p.ral), p.anno, comune ? comune.nome : '—', PROFILI_CONTRIBUTIVI[normalizzaProfilo(p.profilo)].nome].join(' · ');
 }
 
+/* Una differenza in cifra: verde quando migliora per il lavoratore, rossa
+   quando peggiora. Sui costi e sul prelievo il verso e' rovesciato, perche'
+   scendere e' una buona notizia. */
+function pastiglia(voce, a, b, formatta, invertiColore) {
+  const delta = b - a;
+  const trascurabile = Math.abs(delta) < 0.5;
+  const positivo = invertiColore ? delta < 0 : delta > 0;
+  const colore = trascurabile ? 'text-slate-400' : positivo ? 'text-emerald-600' : 'text-rose-600';
+  const segno = trascurabile ? '' : delta > 0 ? '+ ' : '− ';
+  return `<span class="inline-flex items-baseline gap-1.5">
+      <span class="text-slate-500">${voce}</span>
+      <span class="num font-bold ${colore}">${trascurabile ? '=' : segno + formatta(Math.abs(delta))}</span>
+    </span>`;
+}
+
 function renderConfronto() {
   const vuoto = el('confronto-vuoto');
   const tabella = el('confronto-tabella');
@@ -21985,6 +22016,12 @@ function renderConfronto() {
     tabella.classList.add('hidden');
     el('btn-azzera-scenario').classList.add('hidden');
     el('btn-blocca-scenario').textContent = 'Blocca come A';
+
+    el('confronto-barra-stato').innerHTML =
+      'Confronta due scenari: blocca questo come <strong class="text-slate-700">A</strong>, poi cambia un parametro e leggi qui la differenza.';
+    el('btn-blocca-barra').textContent = 'Blocca come A';
+    el('btn-azzera-barra').classList.add('hidden');
+    el('confronto-barra-delta').classList.add('hidden');
     return;
   }
 
@@ -22010,18 +22047,45 @@ function renderConfronto() {
     + rigaConfronto('Pressione fiscale', a.pressioneFiscale, b.pressioneFiscale, perc, true)
     + rigaConfronto('Costo azienda', a.costoAzienda, b.costoAzienda, euro, true)
     + rigaConfronto('Netto per euro speso', a.efficienza, b.efficienza, perc);
+
+  /* La stessa differenza, in cima ai risultati e in una riga sola: e' quella
+     che si guarda mentre si muovono i parametri. La tabella qui sotto resta
+     per chi vuole tutte le voci. */
+  el('confronto-barra-stato').innerHTML =
+    `Scenario <strong class="text-slate-700">A</strong>: ${descriviScenario(scenarioBloccato.params)}`;
+  el('btn-blocca-barra').textContent = 'Aggiorna A';
+  el('btn-azzera-barra').classList.remove('hidden');
+
+  const barra = el('confronto-barra-delta');
+  barra.classList.remove('hidden');
+  barra.innerHTML = `
+    <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+      ${pastiglia('Netto mensile', a.nettoMensile, b.nettoMensile, euro)}
+      ${pastiglia('Netto annuo', a.nettoAnnuo, b.nettoAnnuo, euro)}
+      ${pastiglia('Netto + welfare', a.valoreTotale, b.valoreTotale, euro)}
+      ${pastiglia('Costo azienda', a.costoAzienda, b.costoAzienda, euro, true)}
+      ${pastiglia('Pressione', a.pressioneFiscale, b.pressioneFiscale, perc, true)}
+      <button id="btn-vai-confronto" class="text-brand-700 font-semibold hover:underline">tutte le voci ↓</button>
+    </div>`;
+
+  el('btn-vai-confronto').addEventListener('click', () => {
+    el('confronto-vuoto').closest('.bg-white').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 }
 
-el('btn-blocca-scenario').addEventListener('click', () => {
+/* Due pulsanti per la stessa azione, uno in cima e uno accanto alla tabella:
+   chi sta guardando il dettaglio non deve risalire per bloccare uno scenario. */
+const bloccaScenario = () => {
   const params = leggiParametriPremium();
   scenarioBloccato = { params, risultato: calcolaPremium(params) };
   renderConfronto();
-});
+};
+const azzeraScenario = () => { scenarioBloccato = null; renderConfronto(); };
 
-el('btn-azzera-scenario').addEventListener('click', () => {
-  scenarioBloccato = null;
-  renderConfronto();
-});
+el('btn-blocca-scenario').addEventListener('click', bloccaScenario);
+el('btn-blocca-barra').addEventListener('click', bloccaScenario);
+el('btn-azzera-scenario').addEventListener('click', azzeraScenario);
+el('btn-azzera-barra').addEventListener('click', azzeraScenario);
 
 /* ------------------------------------------- Stato nell'indirizzo */
 /* Lo scenario vive nell'URL: l'HR configura la simulazione e ne manda il

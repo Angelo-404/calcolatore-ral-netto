@@ -413,9 +413,15 @@ Esempio reale prodotto dal motore, vicino allo scalino di Milano:
 
 ### 6.8 Confronto fra scenari
 
-Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e una tabella di differenze su netto, netto più welfare, prelievo, costo azienda ed efficienza.
+Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e le differenze su netto, netto più welfare, prelievo, costo azienda ed efficienza.
 
 Serve a confrontare due offerte, due città, i due anni d'imposta, oppure più RAL contro meno RAL più welfare.
+
+**Il confronto sta dove si guarda.** La prima versione aveva il pannello in fondo alla pagina: per bloccare uno scenario bisognava scorrere giù, per cambiare un parametro risalire, per leggere la differenza riscendere. Il ciclo vero è *blocca, cambia, leggi*, e chiedeva due scorrimenti a ogni giro.
+
+Ora una barra sottile apre i risultati, sopra le card del netto: da lì si blocca lo scenario e lì compaiono le cinque differenze che contano, in una riga sola. Il parametro da muovere è nella colonna accanto, alla stessa altezza: il giro si chiude senza mai scorrere. La tabella completa resta in fondo per chi vuole tutte le voci, raggiungibile con un collegamento dalla barra, e i due pulsanti — quello in alto e quello accanto alla tabella — sono la stessa azione, così chi sta leggendo il dettaglio non deve risalire per bloccare un nuovo scenario.
+
+Le differenze sono colorate secondo il verso che conta per chi legge: il verde è più netto in busta, ma sul costo aziendale e sulla pressione fiscale è la discesa a essere una buona notizia.
 
 ### 6.9 Scenario condivisibile
 
