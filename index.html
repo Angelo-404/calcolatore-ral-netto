@@ -1036,6 +1036,49 @@
   </div>
 </section>
 
+<section class="max-w-6xl mx-auto mt-8">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200">
+      <h3 class="font-bold text-slate-900">Che cosa si aggiorna da solo</h3>
+      <p class="text-xs text-slate-500 mt-0.5">Tre dati, tre destini diversi: dirlo evita di promettere un automatismo che non esiste</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+
+      <div class="p-6">
+        <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-emerald-100 text-emerald-700">da solo</span>
+        <p class="font-semibold text-slate-800 mt-2">Esoneri all&rsquo;assunzione</p>
+        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          Ogni misura porta la propria finestra di vigenza, confrontata con la data di oggi a ogni calcolo.
+          Quando scade smette di applicarsi e scende fra le misure chiuse, dove resta consultabile.
+          <strong>Nessuno deve ricordarsi di toglierla.</strong>
+        </p>
+      </div>
+
+      <div class="p-6">
+        <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-amber-100 text-amber-800">con una conferma</span>
+        <p class="font-semibold text-slate-800 mt-2">Aliquote dei 7.897 comuni</p>
+        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          Un processo automatico le ricontrolla sull&rsquo;anagrafe MEF il 1&deg; e il 15 di ogni mese e, se qualche comune
+          ha deliberato, prepara l&rsquo;aggiornamento. Ma si ferma l&igrave;: <strong>un dato fiscale non entra in produzione
+          senza che una persona lo guardi.</strong>
+        </p>
+      </div>
+
+      <div class="p-6">
+        <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-slate-200 text-slate-700">mai, e non pu&ograve;</span>
+        <p class="font-semibold text-slate-800 mt-2">Aliquote IRPEF e soglie di legge</p>
+        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          Nascono da un testo normativo, non da un archivio interrogabile: nessuno pubblica la Legge di Bilancio in un
+          formato che una macchina sappia leggere. <strong>Quello che si automatizza &egrave; accorgersene:</strong> ogni luned&igrave;
+          un processo legge le circolari INPS e segnala ci&ograve; che vale la pena controllare.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 </main>
 
 <footer class="border-t border-slate-200 bg-white mt-8">
@@ -1047,21 +1090,6 @@
         Aliquote territoriali dall'anagrafe MEF, aggiornate al
         <span id="data-dataset" class="font-semibold text-slate-600">&mdash;</span>
         &middot; stima previsionale, non sostituisce il cedolino paga.
-      </p>
-    </div>
-
-    <div class="pt-4 border-t border-slate-100">
-      <p class="font-semibold text-slate-600">Che cosa si aggiorna da solo, e che cosa no</p>
-      <p class="mt-1 max-w-4xl leading-relaxed">
-        <strong>Gli esoneri all&rsquo;assunzione scadono da soli:</strong> ogni misura porta la propria finestra di vigenza,
-        confrontata con la data di oggi al momento del calcolo. Una misura scaduta resta visibile, marcata come tale,
-        ma non viene applicata &mdash; nessuno deve ricordarsi di toglierla.
-        <strong>Le aliquote territoriali no, non da sole:</strong> un workflow le ricontrolla sull&rsquo;anagrafe MEF il 1&deg; e il 15
-        di ogni mese e, se qualche comune ha deliberato, apre una <em>proposta</em> di aggiornamento. Il dataset cambia
-        quando quella proposta viene accettata, non prima: un dato fiscale non entra in produzione senza che qualcuno lo guardi.
-        <strong>Le aliquote IRPEF e le soglie di legge non si aggiornano affatto:</strong> nascono da un testo normativo, non da un
-        archivio interrogabile, e vanno lette da una persona. Quello che si automatizza &egrave; accorgersene &mdash; un secondo
-        workflow legge ogni luned&igrave; le circolari INPS e segnala ci&ograve; che vale la pena guardare.
       </p>
     </div>
 
