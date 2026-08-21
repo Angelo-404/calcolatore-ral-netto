@@ -161,6 +161,7 @@
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">rapporto per tutto l'anno</span>
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">13 mensilit&agrave;</span>
     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">Addizionali a regime (competenza)</span>
+    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900">anno d&rsquo;imposta 2025<span id="tip-anno-base"></span></span>
   </div>
 
   <div class="grid lg:grid-cols-5 gap-6">
@@ -19267,6 +19268,24 @@ function renderBase(r) {
   aggiornaAvvisoBase(r);
 
   apriRegistroSpiegazioni('b');
+  el('tip-anno-base').innerHTML = bottoneSpiegazione({
+    titolo: 'Perché l’anno d’imposta 2025',
+    corpo: 'Questa scheda implementa alla lettera la specifica dell’esercizio, che fissa i tre scaglioni '
+      + 'IRPEF al <strong>23% / 35% / 43%</strong>: sono le aliquote del 2025. Non è una svista di '
+      + 'aggiornamento, è fedeltà al testo — cambiarle qui vorrebbe dire consegnare un motore diverso da '
+      + 'quello richiesto, e renderebbe non verificabili i valori di riferimento del documento.<br><br>'
+      + 'Le regole del <strong>2026</strong> ci sono, e sono nella scheda <strong>Avanzato</strong>, che le '
+      + 'usa come predefinite: seconda aliquota al 33%, massimale e prima fascia rivalutati, buoni pasto a '
+      + '10 €, premio di risultato all’1% entro 5.000 €. Il pulsante qui sotto trasferisce la RAL e '
+      + 'ricalcola con l’anno in corso.',
+    fonte: 'Aliquote 2025: D.Lgs. 216/2023, rese strutturali dalla L. 207/2024',
+    html: formula([
+      ['Prima aliquota, fino a 28.000 €', '23%'],
+      ['Seconda, da 28.000 a 50.000 €', '35% nel 2025 · 33% nel 2026'],
+      ['Terza, oltre 50.000 €', '43%']
+    ], ['Scaglioni applicati qui', '23% / 35% / 43%'])
+  });
+
   el('tip-pressione').innerHTML = bottoneSpiegazione({
     titolo: 'Pressione fiscale',
     corpo: 'Quanto della RAL non arriva in busta: comprende contributi previdenziali e imposte, al netto dei bonus che non concorrono al reddito. A redditi bassi può risultare negativa, perché il cuneo fiscale restituisce più di quanto il prelievo sottrae.',

@@ -93,6 +93,7 @@ Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenari
 | Carichi di famiglia | Nessuno | Nessuna detrazione ex art. 12 TUIR: le uniche detrazioni sono quelle da lavoro dipendente |
 | Giorni di rapporto | 365 | Il rapporto copre l'intero anno: le detrazioni non vengono ragguagliate |
 | Mensilità | 13 | Il netto mensile è il netto annuo diviso 13 |
+| Anno d'imposta | 2025 | Scaglioni 23% / 35% / 43%, come fissati dalla specifica. Dichiarato in pagina accanto alle altre assunzioni; il 2026 è nella scheda Avanzato |
 | Addizionali locali | **A regime, per competenza** | Vedi sotto |
 
 ### Dove il profilo standard smette di valere
@@ -342,7 +343,7 @@ La differenza più rilevante è che **le regole cambiano fra i due anni**, e un 
 
 A 45.000 € di RAL, il solo passaggio dal 2025 al 2026 vale **+257,29 €** di netto annuo — importo calcolato dal motore, non stimato.
 
-La specifica di `PROJECT.md` fissa la seconda aliquota al 35%: è corretta per il 2025 ed è quella che il motore Base implementa alla lettera. Il motore Premium copre entrambi gli anni.
+La specifica dell'esercizio fissa i tre scaglioni al 23% / 35% / 43%, che sono le aliquote del **2025**: il motore Base le implementa alla lettera, ed è il motivo per cui quella scheda dichiara in pagina il proprio anno d'imposta. Cambiarle lì avrebbe significato consegnare un motore diverso da quello richiesto, e rendere non verificabili i valori di riferimento del §5. Le regole del 2026 non mancano: sono nella scheda Avanzato, che le usa come predefinite.
 
 ### 6.2 Contribuzione reale per settore e qualifica
 
