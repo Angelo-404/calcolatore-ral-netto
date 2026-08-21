@@ -703,11 +703,28 @@
       </div>
 
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div class="flex items-baseline justify-between gap-3 mb-1">
-          <h3 class="font-bold text-slate-900">Curva netto / RAL</h3>
-          <p class="text-xs text-slate-500">A parit&agrave; di tutti gli altri parametri</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 id="pm-vista-titolo" class="font-bold text-slate-900">Come si divide il lordo</h3>
+            <p id="pm-vista-nota" class="text-xs text-slate-500 mt-0.5">Tutto ci&ograve; che passa dalla busta, e dove va a finire</p>
+          </div>
+          <div class="no-print inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Vista del grafico">
+            <button id="btn-vista-composizione" role="tab" aria-selected="true"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm">Composizione</button>
+            <button id="btn-vista-curva" role="tab" aria-selected="false"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700">Curva</button>
+          </div>
         </div>
-        <div id="chart-wrap" class="mt-3"></div>
+
+        <div id="vista-composizione" class="mt-4">
+          <div class="flex h-4 w-full rounded-full overflow-hidden bg-slate-100" id="pm-bar-composizione" role="img" aria-label="Composizione del lordo"></div>
+          <ul id="pm-legend-composizione" class="mt-4 space-y-2 text-sm"></ul>
+          <p id="pm-composizione-nota" class="text-[11px] text-slate-400 mt-3"></p>
+        </div>
+
+        <div id="vista-curva" class="hidden mt-3">
+          <div id="chart-wrap"></div>
+        </div>
       </div>
 
       <!-- Ottimizzazione del costo aziendale -->
@@ -19746,7 +19763,53 @@ function renderPremium(r, baseline, params) {
   }
 
   el('tbody-premium').innerHTML = html;
-  renderGrafico(r);
+  renderComposizionePremium(r);
+  if (vistaGrafico === 'curva') renderGrafico(r);
+}
+
+/* La stessa lettura che «Al banco» offre sul suo profilo fisso, applicata
+   a uno scenario qualunque. La base non e' la RAL ma tutto cio' che passa
+   dalla busta: retribuzione, premi, compensi accessori e i due bonus, che
+   sono denaro in piu' e non un pezzo della RAL. L'identita' e' esatta —
+   le voci sommate danno il lordo, senza arrotondamenti di comodo — perche'
+   sono le stesse del calcolo, non una loro approssimazione grafica. */
+function renderComposizionePremium(r) {
+  const voci = [
+    { label: 'Netto in busta', valore: Math.max(0, r.nettoAnnuo), colore: 'bg-brand-600', testo: 'text-brand-700' },
+    { label: 'Contributi INPS', valore: r.inps, colore: 'bg-slate-400', testo: 'text-slate-600' },
+    { label: 'IRPEF netta', valore: r.irpefNetta, colore: 'bg-rose-500', testo: 'text-rose-600' },
+    { label: 'Addizionali regionale e comunale', valore: r.addReg + r.addCom, colore: 'bg-amber-500', testo: 'text-amber-600' },
+    { label: 'Imposte sostitutive su premi e accessori', valore: r.impostaPremio + r.impostaAccessori, colore: 'bg-rose-300', testo: 'text-rose-500' },
+    { label: 'Versamento al fondo pensione', valore: r.versamentoLavoratore, colore: 'bg-indigo-400', testo: 'text-indigo-600' },
+    { label: 'Altre trattenute', valore: r.altreTrattenute, colore: 'bg-slate-700', testo: 'text-slate-700' }
+  ];
+
+  const totale = voci.reduce((acc, v) => acc + v.valore, 0) || 1;
+  const presenti = voci.filter((v) => v.valore > 0.005);
+
+  el('pm-bar-composizione').innerHTML = presenti
+    .map((v) => `<div class="${v.colore}" style="width:${(v.valore / totale) * 100}%" title="${v.label}"></div>`)
+    .join('');
+
+  el('pm-legend-composizione').innerHTML = presenti.map((v) => `
+    <li class="flex items-center justify-between gap-3">
+      <span class="flex items-center gap-2">
+        <span class="h-2.5 w-2.5 rounded-sm ${v.colore} shrink-0"></span>
+        <span class="text-slate-600">${v.label}</span>
+      </span>
+      <span class="num font-semibold ${v.testo} whitespace-nowrap">${euro(v.valore)}
+        <span class="text-slate-400 font-normal ml-1">${fmtPerc.format((v.valore / totale) * 100)}%</span>
+      </span>
+    </li>`).join('');
+
+  /* Due cose non stanno nella barra e vanno dette, non nascoste: i bonus
+     sono denaro che entra e gonfia il totale, il welfare non passa
+     nemmeno dalla busta. */
+  const bonus = r.bonusCuneo + r.trattamentoIntegrativo;
+  const note = [`Il totale è ${euro(totale)}: retribuzione maturata, premi e compensi accessori`];
+  if (bonus > 0.005) note.push(`più ${euro(bonus)} fra bonus del cuneo e trattamento integrativo, che non escono dalla retribuzione ma vi si aggiungono`);
+  if (r.welfareEsente > 0.005) note.push(`Fuori dalla barra restano ${euro(r.welfareEsente)} di welfare esente, che non passa dalla busta paga`);
+  el('pm-composizione-nota').textContent = note.join('. ') + '.';
 }
 
 function descrizioneScaglioni(anno) {
@@ -20475,6 +20538,24 @@ function eseguiTest() {
         vociQuadrano, vociScarto);
   check('Aliquote per settore: la quota del datore è il totale meno quella del lavoratore',
         quoteQuadrano, quoteScarto);
+
+  /* La barra della composizione non e' un disegno approssimato: le sue
+     voci sono quelle del calcolo, e sommate devono dare esattamente il
+     lordo che passa dalla busta. Se un giorno una voce venisse aggiunta al
+     motore e non alla barra, la differenza si vedrebbe qui e non a occhio. */
+  const comp = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 42000,
+                                premioRisultato: 2000, compensiAccessori: 1500,
+                                fondoPensione: 1200, altreTrattenute: 800,
+                                fringeBenefit: 500, buoniPastoGiorno: 8 });
+  const sommaVoci = comp.nettoAnnuo + comp.inps + comp.irpefNetta + comp.addReg + comp.addCom
+                  + comp.impostaPremio + comp.impostaAccessori
+                  + comp.versamentoLavoratore + comp.altreTrattenute;
+  const lordoBusta = comp.ral + comp.premioSostitutiva + comp.premioOrdinario
+                   + comp.accessoriAmmessi + comp.accessoriOrdinari
+                   + comp.bonusCuneo + comp.trattamentoIntegrativo;
+  check('Composizione: le voci della barra sommano esattamente il lordo in busta',
+        vicino(sommaVoci, lordoBusta, 0.01),
+        `${euro2(sommaVoci)} contro ${euro2(lordoBusta)}`);
 
   // I link condivisi prima della scomposizione devono continuare ad aprirsi
   // sullo stesso calcolo, non su un profilo a caso.
@@ -21248,6 +21329,34 @@ function ricomponiProfilo() {
   popolaProfiloContributivo(`${chiaveSettore}|${qualifica}|${dimensione}`);
   aggiornaPremium();
 }
+
+/* La composizione risponde alla domanda che si fa per prima — dove
+   finiscono i miei soldi — quindi apre lei. La curva resta a un clic. */
+let vistaGrafico = 'composizione';
+
+function scegliVista(quale) {
+  vistaGrafico = quale;
+  const attivo = 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-white text-brand-700 shadow-sm';
+  const spento = 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors text-slate-500 hover:text-slate-700';
+  const suComposizione = quale === 'composizione';
+
+  el('btn-vista-composizione').className = suComposizione ? attivo : spento;
+  el('btn-vista-curva').className = suComposizione ? spento : attivo;
+  el('btn-vista-composizione').setAttribute('aria-selected', String(suComposizione));
+  el('btn-vista-curva').setAttribute('aria-selected', String(!suComposizione));
+  el('vista-composizione').classList.toggle('hidden', !suComposizione);
+  el('vista-curva').classList.toggle('hidden', suComposizione);
+
+  el('pm-vista-titolo').textContent = suComposizione ? 'Come si divide il lordo' : 'Curva netto / RAL';
+  el('pm-vista-nota').textContent = suComposizione
+    ? 'Tutto ciò che passa dalla busta, e dove va a finire'
+    : 'A parità di tutti gli altri parametri';
+
+  aggiornaPremium();
+}
+
+el('btn-vista-composizione').addEventListener('click', () => scegliVista('composizione'));
+el('btn-vista-curva').addEventListener('click', () => scegliVista('curva'));
 
 ['p-settore', 'p-qualifica', 'p-dimensione']
   .forEach((id) => el(id).addEventListener('change', ricomponiProfilo));
