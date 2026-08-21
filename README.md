@@ -25,7 +25,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 54 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 59 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -237,9 +237,14 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Soglie: nessun suggerimento se l'imponibile è già basso | Assenza di consigli inutili |
 | Ottimizzazione: nessun premio promesso oltre la soglia di reddito | Coerenza fra promesso ed erogato |
 | Soglie: lo spostamento porta l'imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
+| Esoneri: una misura scaduta non viene applicata | Disattivazione automatica |
+| Esoneri: quello del datore riduce il costo, non il netto | Confine fra costo e busta paga |
+| Esoneri: quello della lavoratrice alza netto e imponibile | Effetto fiscale dell'esonero |
+| Esoneri: la decontribuzione Sud vale solo nelle regioni previste | Requisito territoriale |
+| Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
 | Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
 
-**54 test su 54 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
+**59 test su 59 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **25.610 valutazioni**: tutte le combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; ogni parametro di welfare, famiglia e periodo variato sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -519,6 +524,35 @@ Ma il punto vero non era la combinatoria: era che ogni voce cambiava **soltanto 
 
 Restano fuori la **somministrazione** e le **collaborazioni in gestione separata**: la prima aggiunge i contributi ai fondi bilaterali, la seconda è un rapporto non subordinato con una logica contributiva propria, fuori dal perimetro di un calcolatore sul lavoro dipendente.
 
+### 6.18 Esoneri contributivi all'assunzione
+
+Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto. A differenza delle aliquote territoriali non sono un dataset: nascono da leggi che ne cambiano la **struttura**, non solo gli importi.
+
+**Vigenti al 21 agosto 2026**, verificati sulle fonti:
+
+| Misura | Incide su | Entità | Fonte |
+|---|---|---|---|
+| Decontribuzione Sud — PMI | Datore | 20%, max 125 €/mese nel 2026 | L. 207/2024 c. 406-412 — INPS circ. 32/2025 |
+| Bonus Donne | Datore | 100%, max 650 €/mese, 24 mesi | D.L. 60/2024 art. 23 — prorogato dal D.L. 200/2025 |
+| Esonero assunzione madri con tre figli | Datore | 100%, max 8.000 € l'anno | L. 199/2025 c. 210-213 — INPS circ. 82/2026 |
+| Esonero lavoratrici madri con 3+ figli | Lavoratrice | 100% quota IVS, max 3.000 € l'anno | L. 213/2023 — resa strutturale dalla L. 207/2024 |
+
+**Scadute, e il calcolatore lo dice da solo:** Bonus Giovani under 35 e Bonus ZES. La proroga per il 2026 copriva le sole assunzioni fino al 30 aprile: restano visibili, marcate *scadute*, non selezionabili. Nasconderle lascerebbe credere che non esistano; applicarle sarebbe peggio.
+
+**Due comportamenti che vale la pena distinguere.** Un esonero sul datore riduce il costo aziendale e **non tocca la busta paga**. Un esonero sulla quota della lavoratrice alza il netto, ma anche l'imponibile: ciò che non si versa all'INPS resta reddito tassabile, quindi su 2.757 € esonerati ne arrivano 1.612. L'aliquota di computo pensionistico resta comunque piena — l'esonero non intacca la pensione futura.
+
+Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
+
+### 6.19 Sorveglianza normativa
+
+Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli esoneri no: nessun automatismo può leggere una legge e tradurla in codice. Quello che si può automatizzare è **accorgersi che qualcosa si è mosso**, e ridurre il danno quando nessuno se ne accorge.
+
+- **Scadenza automatica.** Ogni misura porta la propria finestra di vigenza. Il motore la confronta con la data odierna e disattiva ciò che è scaduto, senza attendere che qualcuno intervenga. È il rimedio al modo peggiore di sbagliare: applicare un esonero che non esiste più.
+- **Data di verifica.** Ogni voce dichiara in pagina quando è stata controllata l'ultima volta, insieme alla norma e alla circolare INPS.
+- **Sorveglianza dei feed.** Un workflow settimanale legge i feed RSS delle circolari e dei messaggi INPS, filtra per parole chiave — *esonero, decontribuzione, aliquote, massimali* — scarta il rumore delle convenzioni sindacali e apre una segnalazione con i link. Non interpreta: dice dove guardare.
+
+Questa sorveglianza ha già prodotto un risultato al primo avvio: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato un incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026), non ancora modellato: resta in coda, dichiarato.
+
 ### 6.13 Cosa non è conoscibile, e come viene dichiarato
 
 Un calcolatore che presenta come esatto un numero che nessuno può conoscere perde credibilità presso chi il mestiere lo fa. Tre voci della sezione Premium hanno un margine di incertezza che non dipende dall'implementazione, e sono marcate come tali nell'interfaccia:
@@ -659,8 +693,11 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 │   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
 │   └── verifica_dataset.py         # Controlli di integrita', gira in CI
+├── build/
+│   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
 └── .github/workflows/
-    └── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
+    ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
+    └── sorveglia-norme.yml         # Sorveglia le circolari INPS ogni lunedi'
 ```
 
 `index.html` pesa circa **425 KB**, di cui **252 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 173 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.

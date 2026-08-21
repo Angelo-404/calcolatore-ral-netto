@@ -1,0 +1,50 @@
+name: Sorveglia le circolari INPS
+
+# Gli esoneri contributivi non sono un dataset: nascono da leggi che ne
+# cambiano la struttura, non solo gli importi. Nessun automatismo puo'
+# leggerli e tradurli in codice. Puo' pero' accorgersi che qualcosa si e'
+# mosso: questo workflow legge i feed INPS, filtra per parole chiave e
+# apre una segnalazione con i link, perche' una persona li valuti.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # ogni lunedi' alle 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sorveglia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il repository
+        uses: actions/checkout@v4
+
+      - name: Prepara Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cerca novita' rilevanti nei feed INPS
+        id: cerca
+        run: python build/sorveglia_norme.py
+
+      - name: Apri una segnalazione
+        if: steps.cerca.outputs.trovate == 'si'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const corpo = fs.readFileSync('segnalazione.md', 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Possibili novita' normative — ${new Date().toISOString().slice(0, 10)}`,
+              body: corpo,
+              labels: ['normativa']
+            });
+
+      - name: Nessuna novita'
+        if: steps.cerca.outputs.trovate != 'si'
+        run: echo "Nessuna circolare rilevante nel periodo osservato."

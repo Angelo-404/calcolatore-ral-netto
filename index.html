@@ -576,10 +576,25 @@
         </label>
       </div>
 
+      <!-- Esoneri contributivi -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div>
+          <h3 class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">5</span>
+            Esoneri all'assunzione
+          </h3>
+          <p class="text-xs text-slate-500 mt-1.5">
+            Le misure scadute si disattivano da sole confrontando la finestra di vigenza con la data di oggi.
+          </p>
+        </div>
+        <div id="lista-esoneri" class="space-y-2"></div>
+        <p id="esoneri-conflitto" class="hidden text-xs text-amber-700 font-medium"></p>
+      </div>
+
       <!-- Regimi agevolati -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
         <h3 class="font-bold text-slate-900 flex items-center gap-2">
-          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">5</span>
+          <span class="h-6 w-6 rounded-lg bg-brand-100 text-brand-700 grid place-items-center text-xs font-extrabold">6</span>
           Regimi fiscali agevolati
         </h3>
         <div>
@@ -17477,6 +17492,162 @@ const REGIMI = {
 };
 
 /* ====================================================================
+   ESONERI CONTRIBUTIVI PER LE ASSUNZIONI
+   ----------------------------------------------------------------------
+   A differenza delle aliquote territoriali, questi non sono un dataset:
+   nascono da leggi che ne cambiano struttura, non solo importi. Ogni voce
+   porta quindi la propria finestra di vigenza, la fonte e la data in cui
+   e' stata verificata. Il motore confronta la finestra con la data odierna
+   e disattiva da solo cio' che e' scaduto: e' l'unico automatismo davvero
+   possibile su questa materia, ed evita il modo peggiore di sbagliare,
+   cioe' applicare un esonero che non esiste piu'.
+   ==================================================================== */
+
+const REGIONI_MEZZOGIORNO = ['Abruzzo', 'Molise', 'Campania', 'Basilicata',
+                             'Sicilia', 'Puglia', 'Calabria', 'Sardegna'];
+
+const ESONERI = {
+  sud_pmi: {
+    nome: 'Decontribuzione Sud — PMI',
+    incide: 'datore',
+    descrizione: 'Esonero parziale dei contributi a carico del datore per le piccole e medie imprese del Mezzogiorno.',
+    quote: { 2025: { percentuale: 0.25, tettoMensile: 145 },
+             2026: { percentuale: 0.20, tettoMensile: 125 } },
+    finestraDa: '2025-01-01',
+    finestraA: '2029-12-31',
+    regioni: REGIONI_MEZZOGIORNO,
+    rapportiEsclusi: ['apprendistato', 'tirocinio'],
+    profiliEsclusi: ['domestico', 'agricolo_operaio'],
+    condizioni: 'Datori privati con meno di 250 dipendenti, sedi nelle otto regioni del Mezzogiorno. Esclusi agricoltura, lavoro domestico e pubblica amministrazione.',
+    fonte: 'L. 207/2024, art. 1, commi 406-412 — INPS circolare n. 32/2025',
+    verificatoIl: '2026-08-21'
+  },
+
+  donne: {
+    nome: 'Bonus Donne',
+    incide: 'datore',
+    descrizione: 'Esonero totale dei contributi a carico del datore per l’assunzione a tempo indeterminato di donne svantaggiate.',
+    quote: { 2025: { percentuale: 1, tettoMensile: 650 },
+             2026: { percentuale: 1, tettoMensile: 650 } },
+    finestraDa: '2024-09-01',
+    finestraA: '2026-12-31',
+    mesi: 24,
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico'],
+    condizioni: 'Assunzione a tempo indeterminato di donne svantaggiate, con incremento occupazionale netto. Durata 24 mesi, ridotti a 12 nei settori con accentuata disparita’ di genere.',
+    fonte: 'D.L. 60/2024, art. 23 — prorogato per il 2026 dal D.L. 200/2025',
+    verificatoIl: '2026-08-21'
+  },
+
+  giovani: {
+    nome: 'Bonus Giovani under 35',
+    incide: 'datore',
+    descrizione: 'Esonero dei contributi a carico del datore per l’assunzione stabile di under 35 mai occupati a tempo indeterminato.',
+    quote: { 2025: { percentuale: 1, tettoMensile: 500 },
+             2026: { percentuale: 1, tettoMensile: 500 } },
+    finestraDa: '2024-09-01',
+    finestraA: '2026-04-30',
+    mesi: 24,
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico'],
+    condizioni: 'Under 35 mai assunti a tempo indeterminato. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile, con esonero pieno solo in caso di incremento occupazionale netto.',
+    fonte: 'D.L. 60/2024, art. 22 — proroga limitata dal D.L. 200/2025',
+    verificatoIl: '2026-08-21'
+  },
+
+  zes: {
+    nome: 'Bonus ZES Unica Mezzogiorno',
+    incide: 'datore',
+    descrizione: 'Esonero dei contributi a carico del datore per assunzioni stabili nelle aree della ZES unica.',
+    quote: { 2025: { percentuale: 1, tettoMensile: 650 },
+             2026: { percentuale: 1, tettoMensile: 650 } },
+    finestraDa: '2024-09-01',
+    finestraA: '2026-04-30',
+    mesi: 24,
+    regioni: REGIONI_MEZZOGIORNO,
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico', 'dirigente'],
+    condizioni: 'Personale non dirigenziale assunto a tempo indeterminato nelle aree della ZES unica. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile.',
+    fonte: 'D.L. 60/2024, art. 24 — proroga limitata dal D.L. 200/2025',
+    verificatoIl: '2026-08-21'
+  },
+
+  assunzione_madri: {
+    nome: 'Esonero per l’assunzione di madri con tre figli',
+    incide: 'datore',
+    descrizione: 'Esonero totale dei contributi a carico del datore per l’assunzione stabile di madri di almeno tre figli minori.',
+    quote: { 2026: { percentuale: 1, tettoAnnuo: 8000 } },
+    finestraDa: '2026-01-01',
+    finestraA: '2026-12-31',
+    rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico', 'dirigente'],
+    condizioni: 'Datori privati, assunzione a tempo indeterminato o trasformazione, di madri con almeno tre figli under 18 prive di impiego regolarmente retribuito da almeno sei mesi. Personale non dirigenziale, premi INAIL esclusi dall’esonero.',
+    fonte: 'L. 199/2025, art. 1, commi 210-213 — INPS circolare n. 82/2026',
+    verificatoIl: '2026-08-21'
+  },
+
+  madri_tre_figli: {
+    nome: 'Esonero lavoratrici madri con tre o più figli',
+    incide: 'lavoratore',
+    descrizione: 'Esonero totale della quota di contributi previdenziali a carico della lavoratrice.',
+    quote: { 2025: { percentuale: 1, tettoAnnuo: 3000 },
+             2026: { percentuale: 1, tettoAnnuo: 3000 } },
+    finestraDa: '2024-01-01',
+    finestraA: '2026-12-31',
+    rapportiEsclusi: ['tirocinio', 'determinato'],
+    profiliEsclusi: ['domestico'],
+    condizioni: 'Lavoratrici madri di almeno tre figli con rapporto a tempo indeterminato, fino al compimento dei 18 anni del figlio più piccolo. Il tetto di 3.000 € annui è ripartito su 12 mensilità.',
+    fonte: 'L. 213/2023, art. 1, comma 180 — resa strutturale dalla L. 207/2024',
+    verificatoIl: '2026-08-21'
+  }
+};
+
+/* Un esonero e' applicabile solo se la data odierna cade nella sua
+   finestra di vigenza e se il rapporto, il profilo e il territorio
+   rispettano le condizioni. */
+function statoEsonero(chiave, params, oggi) {
+  const e = ESONERI[chiave];
+  if (!e) return { applicabile: false, motivo: 'misura sconosciuta' };
+
+  const adesso = oggi || new Date();
+  const inizio = new Date(e.finestraDa);
+  const fine = new Date(e.finestraA + 'T23:59:59');
+
+  if (adesso < inizio) return { esonero: e, applicabile: false, scaduto: false,
+                                motivo: `non ancora in vigore: parte dal ${formattaData(e.finestraDa)}` };
+  if (adesso > fine) return { esonero: e, applicabile: false, scaduto: true,
+                              motivo: `finestra chiusa il ${formattaData(e.finestraA)}: non si applica alle assunzioni di oggi` };
+
+  if (e.rapportiEsclusi && e.rapportiEsclusi.includes(params.tipoRapporto))
+    return { esonero: e, applicabile: false, motivo: `non spetta per il rapporto selezionato` };
+  if (e.profiliEsclusi && e.profiliEsclusi.includes(params.profilo))
+    return { esonero: e, applicabile: false, motivo: `non spetta per l’inquadramento selezionato` };
+  if (e.regioni && !e.regioni.includes(params.regione))
+    return { esonero: e, applicabile: false, motivo: `riservato alle regioni del Mezzogiorno` };
+
+  const quota = e.quote[params.anno];
+  if (!quota) return { esonero: e, applicabile: false, motivo: `nessun importo definito per il ${params.anno}` };
+
+  return { esonero: e, applicabile: true, quota };
+}
+
+function formattaData(iso) {
+  return new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/* La decontribuzione Sud non e' cumulabile con i bonus del decreto
+   Coesione: e' una regola di legge, non una scelta di interfaccia. */
+const ESONERI_INCOMPATIBILI = [['sud_pmi', 'donne'], ['sud_pmi', 'giovani'], ['sud_pmi', 'zes'],
+                               ['donne', 'giovani'], ['donne', 'zes'], ['giovani', 'zes']];
+
+function esoneriInConflitto(scelti) {
+  for (const [a, b] of ESONERI_INCOMPATIBILI) {
+    if (scelti.includes(a) && scelti.includes(b)) return [a, b];
+  }
+  return null;
+}
+
+/* ====================================================================
    PARSING DEL DATASET UFFICIALE
    ==================================================================== */
 
@@ -17669,6 +17840,7 @@ function calcolaPremium(params) {
     contributoDatoreFondo: 0,
     tfrAlFondo: false,
     altreTrattenute: 0,
+    esoneri: [],
     regime: 'nessuno',
     impatriatiFigliMinori: false,
     ...params
@@ -17740,7 +17912,26 @@ function calcolaPremium(params) {
                          + accessoriAmmessi + accessoriOrdinari;
 
   const contributi = calcolaContributiLavoratore(baseContributiva, profilo, p.anno, p.massimaleAttivo);
-  const inps = contributi.totale;
+
+  /* Gli esoneri che incidono sulla quota del lavoratore aumentano il netto,
+     ma anche l'imponibile fiscale: cio' che non si versa all'INPS resta
+     reddito tassabile. Il tetto e' annuo e ripartito su 12 mensilita'. */
+  const esoneriScelti = Array.isArray(p.esoneri) ? p.esoneri : [];
+  let esoneroLavoratore = 0;
+  const esoneriApplicati = [];
+
+  for (const chiave of esoneriScelti) {
+    const stato = statoEsonero(chiave, p, p.oggi);
+    if (!stato.applicabile) continue;
+    if (stato.esonero.incide === 'lavoratore') {
+      const tetto = (stato.quota.tettoAnnuo || Infinity) * quotaAnno;
+      esoneroLavoratore += Math.min(contributi.ordinari * stato.quota.percentuale, tetto);
+    }
+    esoneriApplicati.push(chiave);
+  }
+  esoneroLavoratore = Math.min(esoneroLavoratore, contributi.ordinari);
+
+  const inps = contributi.totale - esoneroLavoratore;
 
   /* --- Imponibile fiscale --------------------------------------------- */
   // Fuori dall'imponibile IRPEF: premio a imposta sostitutiva, compensi
@@ -17872,7 +18063,19 @@ function calcolaPremium(params) {
   const tfr = rapporto.assimilato ? 0
     : (p.tfrAlFondo ? tfrLordo : tfrLordo - baseTfr * PREMIUM.TFR_CONTRIBUTO_FONDO);
 
-  const contributiDatore = contributi.baseApplicata * profilo.datore;
+  const contributiDatoreLordi = contributi.baseApplicata * profilo.datore;
+
+  let esoneroDatore = 0;
+  for (const chiave of esoneriApplicati) {
+    const stato = statoEsonero(chiave, p, p.oggi);
+    if (!stato.applicabile || stato.esonero.incide !== 'datore') continue;
+    const tetto = stato.quota.tettoAnnuo !== undefined
+      ? stato.quota.tettoAnnuo * quotaAnno
+      : stato.quota.tettoMensile * 12 * quotaAnno;
+    esoneroDatore += Math.min(contributiDatoreLordi * stato.quota.percentuale, tetto);
+  }
+  esoneroDatore = Math.min(esoneroDatore, contributiDatoreLordi);
+  const contributiDatore = contributiDatoreLordi - esoneroDatore;
   const fondoDatore = profilo.fondoDatore
     ? Math.min(contributi.baseApplicata, profilo.fondoTetto || Infinity) * profilo.fondoDatore
     : 0;
@@ -17895,6 +18098,7 @@ function calcolaPremium(params) {
     tipoRapporto: p.tipoRapporto, rapportoNome: rapporto.nome, assimilato: !!rapporto.assimilato,
     inps, contributiOrdinari: contributi.ordinari,
     contributoAggiuntivo: contributi.aggiuntivo, contributoFondo: contributi.fondo,
+    esoneriApplicati, esoneroLavoratore, esoneroDatore, contributiDatoreLordi,
     massimaleRaggiunto: contributi.massimaleRaggiunto, baseContributiva,
     baseContributivaApplicata: contributi.baseApplicata,
     imponibileLordo, imponibile, redditoComplessivo,
@@ -18693,7 +18897,8 @@ function renderPremium(r, baseline) {
       ['Retribuzione e variabili', euro2(r.ral + r.premioSostitutiva + r.premioOrdinario + r.accessoriAmmessi + r.accessoriOrdinari)],
       [r.tipoRapporto === 'determinato'
         ? `Contributi datore, NASpI inclusa (~${aliq(r.profilo.datore)})`
-        : `Contributi datore (~${aliq(r.profilo.datore)})`, euro2(r.contributiDatore)],
+        : `Contributi datore (~${aliq(r.profilo.datore)})`, euro2(r.contributiDatoreLordi)],
+      ...(r.esoneroDatore > 0 ? [['Esonero all’assunzione', '− ' + euro2(r.esoneroDatore)]] : []),
       ['INAIL (ipotesi 0,50%)', euro2(r.inail)],
       ['Quota TFR', euro2(r.tfr)],
       ['Welfare e benefit', euro2(r.fringeEsente + r.fringeImponibile + r.buoniTotale)]
@@ -18772,6 +18977,9 @@ function renderPremium(r, baseline) {
   if (r.versamentoLavoratore > 0) html += rigaCascata('Versamento al fondo pensione', r.fondoLavoratoreNonDedotto > 0
       ? `Trattenuto in busta paga, di cui ${euro(r.fondoLavoratoreNonDedotto)} non deducibile`
       : 'Trattenuto in busta paga', r.versamentoLavoratore, M, { tipo: 'negativo', spiega: S.fondo });
+  if (r.esoneroLavoratore > 0) html += rigaCascata('Esonero contributivo della lavoratrice',
+      'Quota di contributi non versata: aumenta il netto e l&rsquo;imponibile', r.esoneroLavoratore, M,
+      { tipo: 'positivo', spiega: S.esonero });
   if (r.contributoDatoreFondo > 0) html += rigaCascata('Contributo del datore al fondo', 'Non transita dalla busta: si accumula nel fondo', r.contributoDatoreFondo, M, { tipo: 'neutro' });
   if (r.bonusCuneo > 0) html += rigaCascata('Bonus cuneo fiscale', 'Somma esentasse', r.bonusCuneo, M, { tipo: 'positivo' });
   if (r.trattamentoIntegrativo > 0) html += rigaCascata('Trattamento integrativo', 'Ex bonus Renzi', r.trattamentoIntegrativo, M, { tipo: 'positivo' });
@@ -18924,6 +19132,18 @@ function spiegazioniPremium(r) {
         ['Valore dei benefit', euro2(r.fringeImponibile)],
         ['Soglia applicabile', euro2(r.figli > 0 ? PREMIUM.FRINGE_SOGLIA_CON_FIGLI : PREMIUM.FRINGE_SOGLIA)]
       ], ['Interamente imponibile', euro2(r.fringeImponibile)])
+    },
+    esonero: {
+      titolo: 'Esonero contributivo',
+      corpo: 'La quota di contributi esonerata non viene versata all’INPS, quindi resta nel netto. '
+        + 'Attenzione pero’: cio’ che non si versa resta reddito imponibile, quindi una parte '
+        + 'del vantaggio torna allo Stato come IRPEF. L’aliquota di computo ai fini pensionistici '
+        + 'resta piena: l’esonero non intacca la pensione futura.',
+      fonte: 'L. 213/2023 — resa strutturale dalla L. 207/2024',
+      html: formula([
+        ['Contributi dovuti', euro2(r.contributiOrdinari)],
+        ['Quota esonerata', euro2(r.esoneroLavoratore)]
+      ], ['Contributi effettivi', euro2(r.contributiOrdinari - r.esoneroLavoratore)])
     },
     trattenute: {
       titolo: 'Altre trattenute',
@@ -19422,6 +19642,45 @@ function eseguiTest() {
   check('Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo',
         soglieCentrate, soglieScarto);
 
+  // Un esonero fuori dalla propria finestra di vigenza non va applicato,
+  // e il motore deve accorgersene da solo confrontando le date.
+  const scenarioEsoneri = { ...scenarioBase, anno: 2026, ral: 30000, tipoRapporto: 'indeterminato' };
+  const conScaduto = calcolaPremium({ ...scenarioEsoneri, esoneri: ['giovani'] });
+  const senzaNulla = calcolaPremium(scenarioEsoneri);
+  check('Esoneri: una misura scaduta non viene applicata',
+        conScaduto.esoneroDatore === 0 && vicino(conScaduto.costoAzienda, senzaNulla.costoAzienda, 0.01),
+        `finestra chiusa il ${ESONERI.giovani.finestraA}`);
+
+  // L'esonero al datore non tocca la busta paga; quello alla lavoratrice sì
+  const conDonne = calcolaPremium({ ...scenarioEsoneri, esoneri: ['donne'] });
+  check('Esoneri: quello del datore riduce il costo, non il netto',
+        vicino(conDonne.nettoAnnuo, senzaNulla.nettoAnnuo, 0.01) &&
+        conDonne.costoAzienda < senzaNulla.costoAzienda &&
+        vicino(conDonne.esoneroDatore, 650 * 12, 0.01),
+        `costo ${euro(senzaNulla.costoAzienda)} → ${euro(conDonne.costoAzienda)}`);
+
+  // L'esonero della lavoratrice alza il netto ma anche l'imponibile:
+  // ciò che non si versa all'INPS resta reddito tassabile.
+  const conMadri = calcolaPremium({ ...scenarioEsoneri, esoneri: ['madri_tre_figli'] });
+  check('Esoneri: quello della lavoratrice alza netto e imponibile',
+        conMadri.nettoAnnuo > senzaNulla.nettoAnnuo &&
+        conMadri.imponibile > senzaNulla.imponibile &&
+        conMadri.esoneroLavoratore <= 3000.01 &&
+        conMadri.nettoAnnuo - senzaNulla.nettoAnnuo < conMadri.esoneroLavoratore,
+        `+${euro(conMadri.nettoAnnuo - senzaNulla.nettoAnnuo)} netti su ${euro(conMadri.esoneroLavoratore)} esonerati`);
+
+  // Il territorio conta: la decontribuzione Sud vale solo nel Mezzogiorno
+  const sudFuori = statoEsonero('sud_pmi', { ...scenarioEsoneri, regione: 'Lombardia' });
+  const sudDentro = statoEsonero('sud_pmi', { ...scenarioEsoneri, regione: 'Campania' });
+  check('Esoneri: la decontribuzione Sud vale solo nelle regioni previste',
+        !sudFuori.applicabile && sudDentro.applicabile &&
+        sudDentro.quota.tettoMensile === 125);
+
+  // Il cumulo vietato dalla legge non deve essere possibile
+  check('Esoneri: le misure non cumulabili sono riconosciute',
+        esoneriInConflitto(['sud_pmi', 'donne']) !== null &&
+        esoneriInConflitto(['donne', 'madri_tre_figli']) === null);
+
   // Senza retribuzione, welfare e compensi da soli genererebbero contributi
   // su una busta paga inesistente, cioè un netto negativo.
   const senzaStipendio = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 0,
@@ -19657,6 +19916,7 @@ function leggiParametriPremium() {
     contributoDatoreFondo: Math.max(0, parseFloat(el('p-fondo-datore').value) || 0),
     tfrAlFondo: el('p-tfr-fondo').checked,
     altreTrattenute: Math.max(0, parseFloat(el('p-trattenute').value) || 0),
+    esoneri: esoneriScelti,
     regime: el('p-regime').value,
     impatriatiFigliMinori: el('p-impatriati-figli').checked
   };
@@ -19665,6 +19925,7 @@ function leggiParametriPremium() {
 function aggiornaPremium() {
   const params = leggiParametriPremium();
   aggiornaNoteContestuali(params);
+  renderEsoneri(params);
   renderPremium(calcolaPremium(params), calcolaBase(params.ral));
   renderConfronto();
   scriviUrl();
@@ -19924,6 +20185,74 @@ el('btn-csv').addEventListener('click', async () => {
 
 el('btn-test').addEventListener('click', eseguiTest);
 
+
+/* ------------------------------------------- Esoneri all'assunzione */
+/* L'elenco si ridisegna a ogni cambio di parametro, perche' la spettanza
+   dipende da rapporto, inquadramento, regione e anno. Una misura non
+   applicabile resta visibile ma disattivata, con il motivo: nasconderla
+   lascerebbe credere che non esista. */
+function renderEsoneri(params) {
+  const contenitore = el('lista-esoneri');
+  const scelti = params.esoneri || [];
+
+  contenitore.innerHTML = Object.keys(ESONERI).map((chiave) => {
+    const stato = statoEsonero(chiave, params);
+    const e = stato.esonero;
+    const attivo = scelti.includes(chiave);
+    const quota = stato.quota;
+
+    const misura = quota
+      ? (quota.tettoAnnuo !== undefined
+          ? `${fmtPerc.format(quota.percentuale * 100)}% fino a ${euro(quota.tettoAnnuo)} l'anno`
+          : `${fmtPerc.format(quota.percentuale * 100)}% fino a ${euro(quota.tettoMensile)} al mese`)
+      : '';
+
+    return `
+      <label class="flex items-start gap-3 rounded-xl border p-3 transition ${
+        stato.applicabile ? 'border-slate-200 hover:border-brand-300 cursor-pointer'
+                          : 'border-slate-100 bg-slate-50 opacity-70 cursor-not-allowed'}">
+        <input type="checkbox" class="esonero mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+               data-esonero="${chiave}" ${attivo ? 'checked' : ''} ${stato.applicabile ? '' : 'disabled'} />
+        <span class="text-sm min-w-0">
+          <span class="font-semibold text-slate-700">${e.nome}</span>
+          ${stato.scaduto ? '<span class="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">scaduto</span>' : ''}
+          ${stato.applicabile ? `<span class="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">vigente</span>` : ''}
+          <span class="block text-xs text-slate-500 mt-0.5">
+            ${stato.applicabile ? `${misura} &middot; incide sui contributi ${e.incide === 'datore' ? 'del datore' : 'della lavoratrice'}` : stato.motivo}
+          </span>
+          <span class="block text-[11px] text-slate-400 mt-1">${e.fonte} &middot; verificato il ${formattaData(e.verificatoIl)}</span>
+        </span>
+      </label>`;
+  }).join('');
+
+  const conflitto = esoneriInConflitto(scelti);
+  const avviso = el('esoneri-conflitto');
+  if (conflitto) {
+    avviso.classList.remove('hidden');
+    avviso.textContent = `${ESONERI[conflitto[0]].nome} e ${ESONERI[conflitto[1]].nome} non sono cumulabili per legge: `
+      + 'il calcolo applica solo il primo dei due.';
+  } else {
+    avviso.classList.add('hidden');
+  }
+}
+
+/* La selezione vive fuori dal DOM perche' l'elenco viene ridisegnato */
+let esoneriScelti = [];
+
+document.addEventListener('change', (e) => {
+  const box = e.target.closest('.esonero');
+  if (!box) return;
+  const chiave = box.dataset.esonero;
+  esoneriScelti = box.checked
+    ? [...esoneriScelti.filter((x) => x !== chiave), chiave]
+    : esoneriScelti.filter((x) => x !== chiave);
+
+  // La legge esclude il cumulo: si tiene il primo selezionato
+  const conflitto = esoneriInConflitto(esoneriScelti);
+  if (conflitto) esoneriScelti = esoneriScelti.filter((x) => x !== conflitto[1]);
+
+  aggiornaPremium();
+});
 
 /* ------------------------------------------- Dal netto alla RAL */
 el('btn-inverti').addEventListener('click', () => {
