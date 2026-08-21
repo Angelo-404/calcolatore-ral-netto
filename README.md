@@ -463,6 +463,7 @@ Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il
 - **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
 - **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
+- **I controlli che non possono avere effetto non si vedono.** I giorni con buono e il tipo di buono compaiono quando il buono pasto ha un valore; la conversione in welfare quando c'è un premio; il contributo del datore e la destinazione del TFR quando il lavoratore versa al fondo. È lo stesso criterio già usato per il coefficiente ATECO nel regime ordinario e per la riduzione contributiva fuori dal forfetario: un campo che non produce alcun effetto non è una scelta, è rumore. Aprendo un link condiviso che li porta valorizzati, ricompaiono da soli.
 
 ### 6.14 Fondi pensione di settore
 
