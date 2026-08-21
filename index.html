@@ -20643,7 +20643,7 @@ function eseguiTest() {
   const collabBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 14000,
                                        mensilita: 12, tipoRapporto: 'collaboratore' });
   const dipBasso = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 14000, mensilita: 12 });
-  check('Co.co.co.: niente TFR ne’ cuneo, il trattamento integrativo resta',
+  check('Co.co.co.: niente TFR né cuneo, il trattamento integrativo resta',
         collab.tfr === 0 && collab.bonusCuneo === 0 && collab.ulterioreDetrazione === 0 &&
         collabBasso.trattamentoIntegrativo > 0 && dipBasso.bonusCuneo > 0,
         `TI ${euro2(collabBasso.trattamentoIntegrativo)}`);

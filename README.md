@@ -30,7 +30,7 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
 | Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 80 test eseguibili dalla pagina e riproducibili in Node |
-| "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **tre correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
+| "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **quattro correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
 
@@ -101,12 +101,12 @@ L'aliquota INPS piatta al 9,19% senza massimale è corretta nella fascia retribu
 
 | Soglia 2025 | Cosa cambia | Effetto sul netto della sezione Base |
 |---|---|---|
-| 55.448 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: +245,52 € a 80.000 € di RAL |
+| 55.448 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: a 80.000 € di RAL mancano 245,52 € di contributi, che sul netto valgono **133,73 €**. Meno del contributo, perché versarlo abbassa anche l'imponibile e quindi l'IRPEF |
 | 120.607 € | Opera il massimale contributivo per chi è privo di anzianità al 31/12/1995 | Sottostimato: i contributi continuano a crescere quando dovrebbero fermarsi |
 
 La sezione Base **non** implementa queste due regole, perché il profilo richiesto è quello standard. Piuttosto che presentare un numero impreciso come esatto, la interfaccia lo dichiara: superata la soglia compare un avviso che nomina la norma, quantifica lo scostamento e offre di ricalcolare nella sezione Premium, che applica entrambe le regole. La RAL viene trasferita e il massimale attivato automaticamente.
 
-A 200.000 € di RAL la differenza fra i due motori è di circa 4.000 € annui.
+A 200.000 € di RAL, con il massimale attivo, la scheda Avanzato restituisce **3.619,33 € di netto in più**: la scheda Task Jet HR continua a versare contributi che a quel livello dovrebbero essersi fermati.
 
 ### Sul criterio "a regime, per competenza"
 
@@ -186,46 +186,36 @@ Un calcolatore che restituisce una curva perfettamente monotona sta approssimand
 
 ## 5. Verifica
 
-La pagina include una suite di test eseguibile dal browser: sezione **Premium → Verifica del motore di calcolo → Esegui test**.
+La pagina include una suite di test eseguibile dal browser: scheda **Avanzato → Verifica del motore di calcolo → Esegui test**. L'elenco che segue è generato dai nomi reali dei test nel codice, nell'ordine in cui vengono eseguiti: se un test cambia nome o sparisce, la differenza si vede.
 
 | Test | Tipo |
 |---|---|
-| RAL 30.000 € → INPS 2.757,00 € | Valore di riferimento |
-| RAL 30.000 € → imponibile 27.243,00 € | Valore di riferimento |
-| RAL 30.000 € → netto annuo 23.425,52 € | Valore di riferimento |
-| Milano: esenzione sotto 23.000 € | Soglia normativa |
-| Milano: 0,80% sull'intero imponibile sopra soglia | Effetto scalino |
+| RAL 30.000 — INPS = 2.757,00 € | Valore di riferimento |
+| RAL 30.000 — imponibile = 27.243,00 € | Valore di riferimento |
+| RAL 30.000 — netto annuo = 23.425,52 € | Valore di riferimento |
+| Milano — esenzione sotto 23.000 € di imponibile | Soglia normativa |
+| Milano — 0,80% sull’intero imponibile sopra soglia | Effetto scalino |
 | IRPEF netta mai negativa (1k → 200k) | Invariante |
-| Monotonicità: rotture solo sulle 3 soglie note | Invariante |
+| Monotonicità: rotture solo sulle 3 soglie normative note | Invariante |
 | Quadratura: RAL − trattenute + bonus = netto | Riconciliazione contabile |
-| Cuneo: bonus esentasse fino a 20.000 € | Confine tra istituti |
-| Trattamento integrativo nullo per incapienti | Regola di legge |
-| Premium 2025 = motore Base sotto la prima fascia pensionabile | Non-regressione |
-| Sopra soglia lo scarto dal Base è solo l'aliquota aggiuntiva 1% | Non-regressione |
+| Cuneo: bonus esentasse fino a 20.000 € di imponibile | Confine tra istituti |
+| Trattamento integrativo nullo in caso di incapienza | Regola di legge |
+| «Avanzato» 2025 = «Task Jet HR» sotto la prima fascia pensionabile | Non-regressione |
+| Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1% | Non-regressione |
 | 2026 più conveniente del 2025 nello scaglione 28k–50k | Effetto della nuova aliquota |
 | Aliquota aggiuntiva 1% applicata sopra soglia | Regola contributiva |
 | Massimale contributivo blocca la contribuzione | Regola contributiva |
-| Impatriati: abbatte l'IRPEF ma non i contributi | Confine tra basi imponibili |
+| Impatriati: abbatte l’IRPEF ma non i contributi | Confine tra basi imponibili |
 | Ragguaglio ai giorni su retribuzione e detrazioni | Competenza temporale |
 | Fringe benefit: superata la soglia è tassato tutto | Soglia, non franchigia |
-| Dataset: 7.897 comuni e 21 regioni caricati | Integrità del dataset |
-| Dataset: Milano 0,80% con esenzione 23.000 € | Integrità del dataset |
-| Dataset: Lombardia allineata alla specifica del motore Base | Riconciliazione fonte/spec |
-| Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
-| Fondo pensione: deduce l'imposta, non gonfia le detrazioni | Confine fra reddito complessivo e imponibile |
+| Fondo pensione: deduce l’imposta, non gonfia le detrazioni | Confine fra reddito complessivo e imponibile |
 | Compensi accessori: imposta sostitutiva solo dal 2026 | Vigenza temporale dell'agevolazione |
-| Ogni provincia è associata a una regione esistente | Coerenza territoriale |
-| Inversione: la RAL trovata riproduce il netto richiesto | Correttezza dell'inversione |
-| Inversione: più RAL per lo stesso netto, sceglie la meno costosa | Effetto delle discontinuità |
-| Inversione: dichiara le richieste fuori scala | Robustezza |
-| Senza retribuzione il netto resta a zero, non va sotto | Caso limite |
-| Sweep su tutte le combinazioni di contratto e regime (400) | Copertura combinatoria |
 | Fondo: il contributo del datore spetta solo a chi versa | Regola dei fondi negoziali |
 | Fondo: tetto di deducibilità condiviso fra lavoratore e datore | Confine del tetto unico |
 | Fondo: il contributo aziendale oltre il tetto torna imponibile | Trattamento dell'eccedenza |
 | TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia | Destinazione del TFR |
 | Fondo: il versamento non supera quanto la busta contiene | Capienza della busta paga |
-| Sweep sulle combinazioni di previdenza complementare (96) | Copertura combinatoria |
+| Sweep sulle combinazioni di previdenza complementare | Copertura combinatoria (96 combinazioni) |
 | Altre trattenute: escono dal netto senza toccare le imposte | Assenza di effetto fiscale |
 | Altre trattenute: non superano il netto disponibile | Capienza della busta paga |
 | Ottimizzazione dal netto: stesso valore, costo decrescente | Correttezza dell'ottimizzatore |
@@ -238,26 +228,48 @@ La pagina include una suite di test eseguibile dal browser: sezione **Premium �
 | Tirocinio: niente cuneo né trattamento integrativo | Perimetro delle misure per il lavoro dipendente |
 | Welfare: quantifica TFR e pensione a cui si rinuncia | Completezza del confronto |
 | Soglie: individua il gradino raggiungibile e lo quantifica | Ottimizzazione sulle discontinuità |
-| Soglie: nessun suggerimento se l'imponibile è già basso | Assenza di consigli inutili |
+| Soglie: nessun suggerimento se l’imponibile è già basso | Assenza di consigli inutili |
 | Ottimizzazione: nessun premio promesso oltre la soglia di reddito | Coerenza fra promesso ed erogato |
-| Soglie: lo spostamento porta l'imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
+| Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
+| Aliquote per settore: la somma delle voci torna al totale di tabella | Riconciliazione fonte/tabella |
+| Aliquote per settore: la quota del datore è il totale meno quella del lavoratore | Definizione della quota del datore |
+| Composizione: le voci della barra sommano esattamente il lordo in busta | Fedeltà del grafico al calcolo |
+| Buoni pasto: i giorni con buono non superano i giorni di rapporto | Vincolo di realtà sui buoni |
+| Il netto non scende mai sotto zero, e lo scoperto viene dichiarato | Capienza della busta paga |
+| Profili storici: le chiavi dei vecchi link restano valide | Compatibilità dei link condivisi |
 | Esoneri: una misura scaduta non viene applicata | Disattivazione automatica |
 | Esoneri: quello del datore riduce il costo, non il netto | Confine fra costo e busta paga |
 | Esoneri: quello della lavoratrice alza netto e imponibile | Effetto fiscale dell'esonero |
 | Esoneri: la decontribuzione Sud vale solo nelle regioni previste | Requisito territoriale |
-| Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
-| Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
-| Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
 | Co.co.co.: 35,03% diviso un terzo e due terzi | Ripartizione dell'onere in Gestione separata |
 | Co.co.co.: niente TFR né cuneo, il trattamento integrativo resta | Confine fra istituti su un reddito assimilato |
 | Co.co.co.: il massimale di 122.295 € si applica da solo | Regola, non opzione |
+| Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
+| Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
+| Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
+| Senza retribuzione il netto resta a zero, non va sotto | Caso limite |
+| Sweep su tutte le combinazioni di contratto e regime | Copertura combinatoria (2.000 combinazioni) |
+| Ogni provincia è associata a una regione esistente | Coerenza territoriale |
+| Inversione: la RAL trovata riproduce il netto richiesto | Correttezza dell'inversione |
+| Inversione: più RAL per lo stesso netto, sceglie la meno costosa | Effetto delle discontinuità |
+| Inversione: dichiara le richieste fuori scala | Robustezza |
 | Forfetario: coefficiente ATECO, contributi dedotti, 15% sul resto | Catena di calcolo del regime |
 | Forfetario 5%: stessa base, imposta ridotta a un terzo | Isolamento dell'aliquota |
 | Forfetario: niente addizionali, il comune non cambia il netto | Perimetro dell'imposta sostitutiva |
 | Partita IVA: i contributi si fermano al massimale della Gestione separata | Tetto contributivo |
-| Partita IVA: detrazione dell'art. 13 comma 5, non quella dei dipendenti | Detrazione corretta per la categoria |
+| Partita IVA: detrazione dell’art. 13 comma 5, non quella dei dipendenti | Detrazione corretta per la categoria |
 | Ordinario: i costi abbattono reddito, contributi e imposte | Differenza sostanziale fra i due regimi |
-| Input 0 e input negativo senza `NaN`, anche in Premium (3 controlli) | Robustezza |
+| Gestioni INPS: a reddito zero il minimale resta dovuto, la Separata no | Minimale contributivo |
+| Gestioni INPS: oltre 56.224 € l’aliquota sale di un punto | Fascia superiore dell'aliquota |
+| Gestioni INPS: la riduzione del 35% vale solo nel forfetario | Perimetro dell'agevolazione |
+| Gestioni INPS: cambiare gestione cambia il netto | Effetto reale della scelta |
+| Dataset: 7.897 comuni e 21 regioni caricati | Integrità del dataset |
+| Dataset: Milano 0,80% con esenzione 23.000 € | Integrità del dataset |
+| Dataset: Lombardia allineata alla specifica di «Task Jet HR» | Riconciliazione fonte/spec |
+| Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
+| Input 0 gestito senza NaN | Robustezza |
+| Input negativo gestito senza NaN | Robustezza |
+| «Avanzato» con input 0 gestito senza NaN | Robustezza |
 
 **80 test su 80 superati.** Gli stessi controlli sono stati eseguiti fuori dal browser estraendo gli strati 1–3 del motore in un modulo Node.js, senza modificarne il codice.
 
@@ -290,7 +302,7 @@ Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 
 
 | RAL | Imponibile | IRPEF netta | Add. reg. | Add. com. | Bonus | Netto annuo | Netto/mese | Pressione |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 15.000 € | 13.621,50 | 1.177,95 | 167,54 | 0,00 | 1.921,94 | 14.197,95 | 1.092,15 | 5,4% |
+| 15.000 € | 13.621,50 | 1.177,95 | 167,54 | 0,00 | 1.921,94 | 14.197,95 | 1.092,15 | 5,3% |
 | 20.000 € | 18.162,00 | 1.366,70 | 234,46 | 0,00 | 871,78 | 17.432,61 | 1.340,97 | 12,8% |
 | 25.000 € | 22.702,50 | 1.826,65 | 306,20 | 0,00 | 0,00 | 20.569,65 | 1.582,28 | 17,7% |
 | 30.000 € | 27.243,00 | 3.221,60 | 377,94 | 217,94 | 0,00 | 23.425,52 | 1.801,96 | 21,9% |
@@ -298,7 +310,7 @@ Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 
 | 60.000 € | 54.486,00 | 16.068,98 | 845,91 | 435,89 | 0,00 | 37.135,22 | 2.856,56 | 38,1% |
 | 100.000 € | 90.810,00 | 31.688,30 | 1.474,31 | 726,48 | 0,00 | 56.920,91 | 4.378,53 | 43,1% |
 
-A 15.000 € di RAL la pressione fiscale è 5,4% e a 10.000 € è **negativa**: i bonus esentasse superano il prelievo. Il valore non è un errore di calcolo, è il risultato corretto del cuneo fiscale a redditi bassi.
+A 15.000 € di RAL la pressione fiscale è 5,3% e a 10.000 € è **negativa** (−5,2%): i bonus esentasse superano il prelievo. Il valore non è un errore di calcolo, è il risultato corretto del cuneo fiscale a redditi bassi.
 
 ---
 
@@ -392,13 +404,13 @@ Esempio reale prodotto dal motore, vicino allo scalino di Milano:
 
 ### 6.8 Confronto fra scenari
 
-Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e una tabella di differenze su netto, valore totale percepito, prelievo, costo azienda ed efficienza.
+Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e una tabella di differenze su netto, netto più welfare, prelievo, costo azienda ed efficienza.
 
 Serve a confrontare due offerte, due città, i due anni d'imposta, oppure più RAL contro meno RAL più welfare.
 
 ### 6.9 Scenario condivisibile
 
-Ogni parametro vive nell'indirizzo: `?sezione=premium&anno=2025&comune=L219&ral=62000&profilo=dirigente&massimale=1`. La simulazione si configura e si manda per link, e alla riapertura lo stato è identico. Nell'URL finiscono solo i parametri diversi dal valore predefinito, per tenerlo leggibile.
+Ogni parametro vive nell'indirizzo: `?sezione=premium&anno=2025&comune=L219&ral=62000&profilo=industria|dirigente|oltre50&massimale=1`. La simulazione si configura e si manda per link, e alla riapertura lo stato è identico. Nell'URL finiscono solo i parametri diversi dal valore predefinito, per tenerlo leggibile.
 
 Selezionare un comune **allinea automaticamente la regione**: senza questo vincolo era possibile calcolare Torino con l'addizionale regionale della Lombardia. Un test verifica che tutte le 107 province del dataset ricadano in una delle 21 regioni.
 
@@ -435,7 +447,7 @@ Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il
 
 **«Netto + welfare» non è uno stipendio più alto.** Sommare denaro e benefit produce un numero solo, e un numero solo si legge come stipendio. La card non promette: la cifra non è verde, sotto compare una barra con la proporzione fra le due metà e una riga in ambra dichiara quanta parte è welfare vincolato nell'uso.
 
-**Il delta dichiara con chi si confronta.** La differenza mostrata accanto al netto annuo non è rispetto a una simulazione precedente: è rispetto al profilo fisso della sezione Base, a parità di RAL. Quando i parametri diversi sono più d'uno il testo lo dice, e la spiegazione avverte che il numero li somma tutti e non è attribuibile a nessuno in particolare, rimandando al confronto fra scenari.
+**Il delta dichiara con chi si confronta.** La differenza mostrata accanto al netto annuo non è rispetto a una simulazione precedente: è rispetto al profilo fisso della scheda Task Jet HR, a parità di RAL. Quando i parametri diversi sono più d'uno il testo lo dice, e la spiegazione avverte che il numero li somma tutti e non è attribuibile a nessuno in particolare, rimandando al confronto fra scenari.
 
 ### 6.13 Uso quotidiano
 
@@ -576,7 +588,7 @@ Il lavoro autonomo ha una sezione propria, accanto a Base e Premium, e un motore
 
 | Regime | Come si arriva al netto |
 |---|---|
-| **Ordinario** | Fatturato − costi = reddito; contributi Gestione separata 26,07%, deducibili; IRPEF a scaglioni con la detrazione dell'**art. 13, comma 5** (non quella dei dipendenti: a 20.000 € vale circa la metà); addizionali regionale e comunale |
+| **Ordinario** | Fatturato − costi = reddito; contributi della gestione previdenziale scelta, deducibili; IRPEF a scaglioni con la detrazione dell'**art. 13, comma 5** (non quella dei dipendenti: a 20.000 € vale circa la metà); addizionali regionale e comunale |
 | **Forfetario 15%** | Reddito = fatturato × coefficiente ATECO dell'allegato 4 (dal 40% all'86%); contributi sul reddito così determinato e deducibili; imposta sostitutiva del 15% al posto di IRPEF, addizionali e IRAP |
 | **Forfetario 5%** | Identico al precedente con aliquota al 5%, per i primi cinque anni di una nuova attività |
 
@@ -683,6 +695,7 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | Taglio del cuneo fiscale 2025: bonus esentasse fino a 20.000 € e ulteriore detrazione 20.000–40.000 € | L. 207/2024 (Legge di Bilancio 2025); istruzioni operative Agenzia delle Entrate |
 | Trattamento integrativo (1.200 € annui) e condizione di capienza | D.L. 3/2020 conv. L. 21/2020, come modificato dal D.Lgs. 216/2023 |
 | Aliquota contributiva 9,19% a carico del lavoratore | Circolari INPS sulle aliquote contributive del settore privato (FPLD) |
+| Aliquote totali per settore, qualifica e dimensione: industria, edilizia, artigianato, commercio, pubblici esercizi, logistica | Tabelle INPS delle aliquote contributive, edizione 2026; scomposizione per voce dalla tabella INPS di gennaio 2023 (IVS 33%, NASpI 1,61%, CUAF 0,68%, CIG, fondo di garanzia TFR 0,20%, malattia, maternità) |
 | Addizionale regionale IRPEF Lombardia, scaglioni 1,23% / 1,58% / 1,72% / 1,73% | Legge regionale Lombardia sull'addizionale IRPEF; elenco aliquote pubblicato dal MEF — Dipartimento delle Finanze |
 | Addizionale comunale IRPEF Milano, 0,80% con esenzione fino a 23.000 € | Delibera comunale di Milano sulle aliquote dell'addizionale; regolamento comunale e anagrafe MEF delle aliquote |
 | Soglie fringe benefit (1.000 € / 2.000 € con figli) | TUIR art. 51, comma 3; L. 207/2024 (Legge di Bilancio 2025), che le fissa per il triennio 2025-2027 |
@@ -704,9 +717,9 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | **Aliquote di tutti i 7.897 comuni** | MEF — Dipartimento delle Finanze, [anagrafe delle delibere comunali](https://www1.finanze.gov.it/finanze2/dipartimentopolitichefiscali/fiscalitalocale/addirpef_newDF/download/tabella.htm) (CSV per anno d'imposta) |
 | **Aliquote di tutte le 21 regioni e province autonome** | MEF — Dipartimento delle Finanze, [ricerca aliquote regionali](https://www1.finanze.gov.it/finanze2/dipartimentopolitichefiscali/fiscalitalocale/addregirpef/sceltaregione.htm) |
 
-### Tre correzioni prodotte dalla verifica sulle fonti
+### Quattro correzioni prodotte dalla verifica sulle fonti
 
-La prima versione del prototipo usava, per i territori diversi da Milano e Lombardia, valori ricostruiti a memoria e dichiarati come indicativi. Il confronto con l'anagrafe ufficiale ne ha corretti tre:
+La prima versione del prototipo usava, per i territori diversi da Milano e Lombardia, valori ricostruiti a memoria e dichiarati come indicativi. Il confronto con l'anagrafe ufficiale, e con le circolari INPS, ne ha corretti quattro:
 
 | Dato | Prima versione | Fonte ufficiale |
 |---|---|---|
@@ -780,8 +793,7 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 ├── build/
 │   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
-│   └── verifica_dataset.py         # Controlli di integrita', gira in CI
-├── build/
+│   ├── verifica_dataset.py         # Controlli di integrita', gira in CI
 │   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
 └── .github/workflows/
     ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
