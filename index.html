@@ -119,7 +119,70 @@
   @media (prefers-reduced-motion: no-preference) {
     #popover-spiega { animation: fade .14s ease both; }
   }
-  @media print { .no-print { display: none !important; } body { background: #fff !important; } }
+  /* ------------------------------------------------------------ STAMPA
+     Su carta non si compila niente: i campi devono leggersi come valori di
+     un documento, non come caselle da riempire. Cio' che serve solo a
+     interagire sparisce, cio' che porta un dato resta e diventa testo.   */
+  @page { margin: 14mm; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; }
+
+    /* L'intestazione appiccicata coprirebbe la prima riga di ogni pagina */
+    header { position: static !important; border-bottom: 1px solid #cbd5e1; }
+
+    /* Pulsanti, cursori e ricerche: azioni senza senso su carta */
+    button, input[type="range"], #p-comune-risultati { display: none !important; }
+
+    /* I campi diventano il valore che contengono */
+    input, select, textarea {
+      border: 0 !important; background: transparent !important; box-shadow: none !important;
+      padding: 0 !important; color: #0f172a !important; font-weight: 700;
+      -webkit-appearance: none; appearance: none;
+    }
+    /* Le caselle di spunta restano riconoscibili: dicono cosa era attivo */
+    input[type="checkbox"] { -webkit-appearance: auto; appearance: auto; }
+
+    /* Un menu a tendina largo quanto la sua colonna tronca la voce scelta:
+       su carta si dimensiona sul testo, che e' l'unica cosa che resta. E le
+       coppie di campi affiancati si impilano, perche' meta' colonna non
+       basta a "Impiegato, quadro, intermedio". Vale solo nella colonna dei
+       parametri: le card dei risultati restano affiancate. */
+    select { width: auto !important; max-width: 100%; text-overflow: clip; }
+    .lg\:col-span-2 .grid-cols-2 { grid-template-columns: 1fr !important; gap: .75rem !important; }
+
+    /* Le card scure diventano leggibili in bianco e nero. La regola e'
+       ristretta a chi ha anche text-white, cioe' alle card: gli stessi
+       colori servono ai segmenti della barra della composizione, che
+       devono restare colorati. */
+    .bg-slate-900.text-white, .bg-brand-600.text-white {
+      background: #fff !important; color: #0f172a !important; border: 1px solid #cbd5e1;
+    }
+    .bg-slate-900.text-white *, .bg-brand-600.text-white * { color: #0f172a !important; }
+
+    /* Ombre e bordi arrotondati non aggiungono nulla alla carta */
+    [class*="shadow"] { box-shadow: none !important; }
+
+    /* Le tendine chiuse restano chiuse: se sono chiuse, dentro c'e' il
+       valore predefinito, e un documento non elenca cio' che non e' stato
+       scelto. Quelle aperte stampano, senza la freccia. */
+    .freccia { display: none !important; }
+
+    /* Colori che portano significato: la barra della composizione, le
+       pastiglie di stato, le differenze in verde e rosso */
+    .bg-brand-600, .bg-slate-400, .bg-rose-500, .bg-amber-500, .bg-rose-300,
+    .bg-indigo-400, .bg-slate-700, .bg-slate-800, .bg-amber-400,
+    [class*="bg-emerald-1"], [class*="bg-amber-1"], [class*="bg-rose-1"], [class*="bg-slate-2"] {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    /* Niente righe spezzate a meta' fra una pagina e l'altra */
+    tr, li, .rounded-2xl, .rounded-xl { break-inside: avoid; }
+    h1, h2, h3 { break-after: avoid; }
+
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 10px; color: #64748b; }
+  }
 </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
@@ -187,7 +250,7 @@
         </div>
         <input id="ral-slider" type="range" min="8000" max="150000" step="500" value="30000"
                class="w-full mt-5 cursor-pointer" aria-label="Selettore RAL" />
-        <div class="flex justify-between text-[11px] text-slate-400 mt-1 num"><span>8.000 &euro;</span><span>150.000 &euro;</span></div>
+        <div class="no-print flex justify-between text-[11px] text-slate-400 mt-1 num"><span>8.000 &euro;</span><span>150.000 &euro;</span></div>
         <div class="flex flex-wrap gap-2 mt-4 no-print">
           <button data-preset="25000" class="preset text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition">25k</button>
           <button data-preset="30000" class="preset text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition">30k</button>
@@ -202,7 +265,7 @@
                        hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition">
           Calcola
         </button>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Il calcolo &egrave; comunque aggiornato in tempo reale a ogni digitazione</p>
+        <p class="no-print text-[11px] text-slate-400 mt-2 text-center">Il calcolo &egrave; comunque aggiornato in tempo reale a ogni digitazione</p>
       </div>
 
       <!-- Segnala i casi in cui il profilo standard non è più adeguato -->
@@ -323,7 +386,7 @@
     <div class="lg:col-span-2 space-y-5">
 
       <!-- Dal netto alla RAL -->
-      <div class="bg-slate-900 text-white rounded-2xl shadow-sm p-6 space-y-4">
+      <div class="no-print bg-slate-900 text-white rounded-2xl shadow-sm p-6 space-y-4">
         <div>
           <h3 class="font-bold">Dal netto alla RAL</h3>
           <p class="text-xs text-slate-400 mt-1">
