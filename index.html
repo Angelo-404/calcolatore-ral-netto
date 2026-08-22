@@ -207,7 +207,7 @@
 
       <!-- Segnala i casi in cui il profilo standard non è più adeguato -->
       <div id="base-avviso" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5">
-        <h4 class="font-bold text-amber-900 text-sm">Oltre il perimetro del profilo standard</h4>
+        <h3 class="font-bold text-amber-900 text-sm">Oltre il perimetro del profilo standard</h3>
         <p id="base-avviso-testo" class="text-sm text-amber-900/90 mt-1.5"></p>
         <button id="btn-vai-premium"
                 class="no-print mt-3 text-xs font-semibold px-3 py-2 rounded-lg bg-amber-900 text-white hover:bg-amber-800 transition">
@@ -217,7 +217,7 @@
 
       <div class="bg-brand-600 text-white rounded-2xl shadow-lg p-6">
         <p class="text-brand-100 text-sm font-semibold uppercase tracking-wider">Netto mensile</p>
-        <p id="out-netto-mese" class="num text-4xl sm:text-5xl font-extrabold mt-1 leading-tight">&euro; 0</p>
+        <p id="out-netto-mese" class="num text-4xl sm:text-5xl font-extrabold mt-1 leading-tight" role="status" aria-live="polite">&euro; 0</p>
         <p class="text-brand-100 text-sm mt-1">su 13 mensilit&agrave;</p>
         <div class="h-px bg-white/20 my-5"></div>
         <div class="grid grid-cols-2 gap-4">
@@ -333,9 +333,11 @@
         <div class="flex gap-2">
           <div class="relative flex-1">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
+            <label for="p-netto-obiettivo" class="sr-only">Cifra netta desiderata</label>
             <input id="p-netto-obiettivo" type="number" min="0" max="50000" step="50" placeholder="2.500"
                    class="num w-full pl-8 pr-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
+          <label for="p-netto-periodo" class="sr-only">Periodo di riferimento della cifra netta</label>
           <select id="p-netto-periodo" class="px-2 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option value="mese" selected>al mese</option>
             <option value="anno">all'anno</option>
@@ -647,7 +649,7 @@
     <!-- ============================= RISULTATI ============================= -->
     <div class="lg:col-span-3 space-y-6">
 
-      <div id="pm-alert" class="hidden rounded-2xl border p-4 text-sm"></div>
+      <div id="pm-alert" role="alert" class="hidden rounded-2xl border p-4 text-sm"></div>
 
       <!-- Barra del confronto: sta in cima ai risultati perche' il ciclo vero
            e' blocca, cambia un parametro, leggi. Averla in fondo alla pagina
@@ -668,7 +670,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="bg-slate-900 text-white rounded-2xl shadow-lg p-6">
           <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
-          <p id="pm-netto-mese" class="num text-3xl font-extrabold mt-1">&euro; 0</p>
+          <p id="pm-netto-mese" class="num text-3xl font-extrabold mt-1" role="status" aria-live="polite">&euro; 0</p>
           <p id="pm-mensilita-label" class="text-slate-400 text-xs mt-1">su 13 mensilit&agrave;</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
@@ -885,7 +887,7 @@
       </div>
 
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-        <h4 class="font-bold text-slate-900 text-sm">Fonti e limiti dichiarati</h4>
+        <h3 class="font-bold text-slate-900 text-sm">Fonti e limiti dichiarati</h3>
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
           <li>Addizionali regionali e comunali: anagrafe delle delibere del <strong>MEF &mdash; Dipartimento delle Finanze</strong>, 7.897 comuni. Dove il comune non ha ancora deliberato per il 2026, resta in vigore l'aliquota 2025.</li>
           <li>Minimali, massimale contributivo e aliquota aggiuntiva 1%: <strong>circolari INPS</strong>.</li>
@@ -980,7 +982,7 @@
       </div>
 
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-        <h4 class="font-bold text-slate-900 text-sm">Cosa &egrave; modellato, e cosa no</h4>
+        <h3 class="font-bold text-slate-900 text-sm">Cosa &egrave; modellato, e cosa no</h3>
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
           <li>La previdenza si sceglie fra <strong>quattro gestioni INPS</strong>: Gestione Separata per professionisti e collaboratori, artigiani e commercianti. Le prime calcolano sul reddito effettivo, le altre due hanno un <strong>minimale</strong> e restano dovute anche a reddito zero.</li>
           <li>La <strong>collaborazione coordinata e continuativa</strong> non sta qui: il collaboratore non ha partita IVA e il committente versa due terzi dei contributi. Si simula in <strong>Avanzato</strong>, scegliendola fra i tipi di rapporto.</li>
@@ -998,7 +1000,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="bg-slate-900 text-white rounded-2xl p-5">
           <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
-          <p id="a-netto-mese" class="num text-3xl font-extrabold mt-1">&euro; 0</p>
+          <p id="a-netto-mese" class="num text-3xl font-extrabold mt-1" role="status" aria-live="polite">&euro; 0</p>
           <p class="text-slate-400 text-xs mt-1">fatturato meno contributi e imposte, diviso dodici</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
@@ -22543,6 +22545,26 @@ function mostraSezione(nome) {
 
 Object.keys(SEZIONI).forEach((nome) => {
   el(SEZIONI[nome].tab).addEventListener('click', () => mostraSezione(nome));
+});
+
+/* Dichiarare role="tablist" e' una promessa: chi usa la tastiera si aspetta
+   che le frecce spostino la selezione fra le schede e che Home e Fine
+   portino agli estremi. Senza questo blocco il markup prometteva un
+   comportamento che non c'era. */
+const nomiSezioni = Object.keys(SEZIONI);
+nomiSezioni.forEach((nome, i) => {
+  el(SEZIONI[nome].tab).addEventListener('keydown', (e) => {
+    const passo = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    let destinazione = null;
+    if (passo !== undefined) destinazione = (i + passo + nomiSezioni.length) % nomiSezioni.length;
+    else if (e.key === 'Home') destinazione = 0;
+    else if (e.key === 'End') destinazione = nomiSezioni.length - 1;
+    if (destinazione === null) return;
+
+    e.preventDefault();
+    mostraSezione(nomiSezioni[destinazione]);
+    el(SEZIONI[nomiSezioni[destinazione]].tab).focus();
+  });
 });
 
 /* ------------------------------------------------------ Bootstrap */

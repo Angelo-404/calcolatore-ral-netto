@@ -49,15 +49,11 @@ jobs:
           body-path: report.txt
           delete-branch: true
 
-      # Strada alternativa al collegamento GitHub-Vercel: se nel repository
-      # esiste il segreto VERCEL_TOKEN, il sito viene ridistribuito da qui.
-      # Se invece la Vercel GitHub App e' installata, il deploy parte da solo
-      # alla fusione della pull request e questo passo resta inerte.
-      - name: Ridistribuisci su Vercel
-        if: steps.dataset.outputs.cambiato == 'si' && env.VERCEL_TOKEN != ''
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel deploy --prod --yes --token "$VERCEL_TOKEN"
+      # Qui il workflow si ferma, di proposito. La pubblicazione avviene alla
+      # fusione della pull request, per mano di chi l'ha letta: un dato
+      # fiscale non entra in produzione senza che una persona lo guardi, ed e'
+      # quello che il sito dichiara in fondo alla pagina. Un passo di deploy
+      # diretto da qui avrebbe scavalcato proprio quella promessa.
 
       - name: Nessuna novita'
         if: steps.dataset.outputs.cambiato == 'no'

@@ -468,6 +468,8 @@ Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il
 ### 6.13 Uso quotidiano
 
 - **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
+- **Le schede si navigano con le frecce.** Dichiarare `role="tablist"` è una promessa verso chi usa la tastiera: frecce per spostarsi, Home e Fine per gli estremi, e il pannello che segue il fuoco. Senza quel blocco il markup prometteva un comportamento che non c'era.
+- **Il netto viene annunciato quando cambia.** Le tre cifre principali — una per scheda — sono regioni `aria-live`, e gli avvisi contestuali sono `role="alert"`: chi non vede lo schermo digita e sente il risultato, invece di doverlo andare a cercare. Ogni controllo di modulo ha un nome accessibile, anche i due del riquadro «Dal netto alla RAL», dove l'etichetta era solo visiva.
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce una versione pulita, senza pulsanti né controlli.
 - **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
 - **Le opzioni di dettaglio stanno in una tendina, non sparite.** Giorni e tipo di buono, modalità di erogazione del premio, contributo del datore e destinazione del TFR: sono nove controlli che a riposo non hanno nulla su cui agire. Nasconderli del tutto li avrebbe resi irraggiungibili — un campo invisibile non si compila — quindi restano dietro una riga con la freccia, sempre apribile. La tendina segue il valore: è aperta finché c'è qualcosa da vedere e si richiude quando tutto torna a zero. Conta anche ciò che sta dentro — i giorni con buono diversi dai 220 predefiniti, la spunta sui buoni cartacei, il contributo del datore — altrimenti si chiuderebbe sotto le dita di chi sta compilando un'opzione senza aver ancora toccato la voce principale. Vale anche all'apertura di un link condiviso, che porta i valori e con essi le tendine giuste già aperte.
@@ -797,6 +799,8 @@ I dati territoriali si aggiornano da soli. Un workflow GitHub Actions gira il 1�
 2. Ricostruisce il dataset e lo reinserisce in `index.html`.
 3. Esegue `build/verifica_dataset.py`: 21 regioni, oltre 7.500 comuni, anagrafe e tariffe allineate, nessuna aliquota oltre il tetto di legge, Milano ancora allo 0,80% con esenzione a 23.000 €.
 4. Apre una pull request **solo se qualcosa è cambiato davvero**, allegando il report della ricostruzione.
+
+E qui si ferma. La pubblicazione avviene alla fusione della pull request, per mano di chi l'ha letta: è la stessa promessa che il sito fa in fondo alla pagina, e un passo di deploy diretto dal workflow l'avrebbe scavalcata.
 
 Il controllo di integrità è verificato al contrario: alterando l'aliquota di Milano lo script fallisce con codice 1 e blocca la pull request. Un controllo che non fallisce mai non protegge nulla.
 
