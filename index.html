@@ -191,6 +191,13 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
 
+<!-- Chi naviga da tastiera non deve attraversare intestazione e schede per
+     arrivare ai numeri: il primo elemento focalizzabile della pagina porta
+     dritto al contenuto, e si mostra solo quando prende il fuoco. -->
+<a href="#contenuto"
+   class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2
+          focus:rounded-xl focus:bg-brand-600 focus:text-white focus:font-semibold focus:shadow-lg">Vai al contenuto</a>
+
 <!-- ============================== HEADER ============================== -->
 <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center gap-4 justify-between">
@@ -216,7 +223,25 @@
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+<main id="contenuto" tabindex="-1" class="max-w-6xl mx-auto px-4 sm:px-6 py-8 focus:outline-none">
+
+<!-- Gli importi cambiano a ogni tasto premuto: dichiararli aria-live faceva
+     leggere allo screen reader ogni cifra intermedia. L'annuncio esce da qui,
+     una volta sola, quando chi digita si e' fermato. -->
+<p id="annuncio" role="status" aria-live="polite" class="sr-only"></p>
+
+<!-- Il calcolo vive nel browser: senza JavaScript la pagina mostrerebbe zeri
+     ovunque senza spiegare perche'. Meglio dirlo. -->
+<noscript>
+  <div class="rounded-2xl border border-amber-300 bg-amber-50 p-5 mb-6">
+    <h2 class="font-bold text-amber-900">JavaScript &egrave; disattivato</h2>
+    <p class="text-sm text-amber-900/90 mt-1.5">
+      Il calcolo avviene interamente nel browser, senza server: e' anche la ragione per cui gli importi inseriti
+      non vengono trasmessi da nessuna parte. Con JavaScript disattivato la pagina resta ferma su valori a zero.
+      Per usare il calcolatore serve riattivarlo per questo sito.
+    </p>
+  </div>
+</noscript>
 
 <!-- ============================ PANEL BASE ============================ -->
 <section id="panel-base" role="tabpanel" aria-labelledby="tab-base" class="fade-in">
@@ -284,7 +309,7 @@
 
       <div class="bg-brand-600 text-white rounded-2xl shadow-lg p-6">
         <p class="text-brand-100 text-sm font-semibold uppercase tracking-wider">Netto mensile</p>
-        <p id="out-netto-mese" class="num text-4xl sm:text-5xl font-extrabold mt-1 leading-tight" role="status" aria-live="polite">&euro; 0</p>
+        <p id="out-netto-mese" class="num text-4xl sm:text-5xl font-extrabold mt-1 leading-tight">&euro; 0</p>
         <p class="text-brand-100 text-sm mt-1">su 13 mensilit&agrave;</p>
         <div class="h-px bg-white/20 my-5"></div>
         <div class="grid grid-cols-2 gap-4">
@@ -741,7 +766,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="bg-slate-900 text-white rounded-2xl shadow-lg p-6">
           <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
-          <p id="pm-netto-mese" class="num text-3xl font-extrabold mt-1" role="status" aria-live="polite">&euro; 0</p>
+          <p id="pm-netto-mese" class="num text-3xl font-extrabold mt-1">&euro; 0</p>
           <p id="pm-mensilita-label" class="text-slate-400 text-xs mt-1">su 13 mensilit&agrave;</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
@@ -1071,7 +1096,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="bg-slate-900 text-white rounded-2xl p-5">
           <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Netto mensile</p>
-          <p id="a-netto-mese" class="num text-3xl font-extrabold mt-1" role="status" aria-live="polite">&euro; 0</p>
+          <p id="a-netto-mese" class="num text-3xl font-extrabold mt-1">&euro; 0</p>
           <p class="text-slate-400 text-xs mt-1">fatturato meno contributi e imposte, diviso dodici</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
@@ -19352,6 +19377,14 @@ const perc = (n) => fmtPerc.format(n || 0) + ' %';
 
 const el = (id) => document.getElementById(id);
 
+/* Annuncio per chi non guarda lo schermo: una frase intera a calcolo fermo,
+   non la sequenza dei valori intermedi. */
+let timerAnnuncio = null;
+function annuncia(testo) {
+  clearTimeout(timerAnnuncio);
+  timerAnnuncio = setTimeout(() => { el('annuncio').textContent = testo; }, 700);
+}
+
 /* ====================================================================
    SPIEGAZIONI CONTESTUALI
    ----------------------------------------------------------------------
@@ -19423,6 +19456,7 @@ function rigaCascata(voce, nota, annuo, mensilita, opts = {}) {
 
 function renderBase(r) {
   el('out-netto-mese').textContent = euro(r.nettoMensile);
+  annuncia(`Netto mensile ${euro(r.nettoMensile)}, netto annuo ${euro(r.nettoAnnuo)}.`);
   el('out-netto-anno').textContent = euro(r.nettoAnnuo);
   el('out-pressione').textContent = perc(r.pressioneFiscale);
 
@@ -19767,6 +19801,7 @@ function renderPremium(r, baseline, params) {
   const S = spiegazioniPremium(r);
 
   el('pm-netto-mese').textContent = euro(r.nettoMensile);
+  annuncia(`Netto mensile ${euro(r.nettoMensile)}, netto annuo ${euro(r.nettoAnnuo)}.`);
   el('pm-netto-anno').textContent = euro(r.nettoAnnuo);
   el('pm-mensilita-label').textContent = `su ${M} mensilità`;
   el('pm-valore').textContent = euro(r.valoreTotale);
@@ -22610,6 +22645,7 @@ function aggiornaAutonomo() {
     : 'Importo al netto dell’IVA.';
 
   el('a-netto-mese').textContent = euro(r.nettoMensile);
+  annuncia(`Netto mensile ${euro(r.nettoMensile)}, netto annuo ${euro(r.nettoAnnuo)}.`);
   el('a-netto-anno').textContent = euro(r.nettoAnnuo);
   el('a-pressione').textContent = r.compenso > 0
     ? `${fmtPerc.format(r.pressione)}% fra contributi e imposte`
