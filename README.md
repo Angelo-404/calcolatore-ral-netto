@@ -43,7 +43,7 @@ start index.html      # Windows
 open index.html       # macOS
 ```
 
-Requisito unico: connessione a Internet al primo caricamento, per la CDN di Tailwind CSS.
+Nessun requisito di rete: foglio di stile, dataset e motore di calcolo stanno dentro il file. La pagina funziona aperta da disco, senza connessione.
 
 Il motore di calcolo è esposto in console per ispezione diretta durante la valutazione:
 
@@ -64,7 +64,7 @@ MotoreFiscale.calcolaBase(30000)
 |---|---|---|
 | Distribuzione | Un solo `index.html` | Un valutatore deve poter aprire il file con un doppio click. Nessun `npm install`, nessun ambiente da ricostruire, nessuna versione di Node da allineare. |
 | Runtime | JavaScript nativo, ES2020 | Il dominio del problema è aritmetica pura su un input scalare. Un framework aggiungerebbe superficie senza risolvere alcun problema reale. |
-| Stile | Tailwind CSS via CDN | Design system coerente senza build step. È l'unica dipendenza esterna e riguarda esclusivamente la presentazione: rimuovendola il motore continua a funzionare. |
+| Stile | Tailwind CSS compilato e incorporato | Design system coerente, senza dipendenze a runtime: il foglio contiene le sole classi usate dal markup (23 KB) e viaggia dentro il file. La CDN faceva compilare il CSS nel browser del visitatore, con una richiesta a un terzo e un istante di pagina senza stile. Il CSS è contenuto generato da `build/costruisci_css.js`, e un workflow verifica a ogni push che corrisponda al markup. |
 | Grafici | SVG generato a runtime | Evita di importare una libreria di charting da centinaia di kB per una singola curva. |
 | Stato | Ricalcolo puro su evento `input` | Nessuno stato mutabile condiviso: ogni digitazione produce un ricalcolo completo e deterministico. |
 
@@ -264,7 +264,8 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Gestioni INPS: oltre 56.224 € l’aliquota sale di un punto | Fascia superiore dell'aliquota |
 | Gestioni INPS: la riduzione del 35% vale solo nel forfetario | Perimetro dell'agevolazione |
 | Gestioni INPS: cambiare gestione cambia il netto | Effetto reale della scelta |
-| Dataset: 7.897 comuni e 21 regioni caricati | Integrità del dataset |
+| Versione: l'impronta del motore corrisponde a quella dichiarata | La versione in pagina non resta indietro rispetto al codice |
+| Dataset: anagrafe, tariffe e regioni coerenti fra loro | Integrità del dataset |
 | Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni | Integrità del dataset |
 | Dataset: Lombardia allineata alla specifica di «Task Jet HR» | Riconciliazione fonte/spec |
 | Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
@@ -272,7 +273,7 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Input negativo gestito senza NaN | Robustezza |
 | «Avanzato» con input 0 gestito senza NaN | Robustezza |
 
-**80 test su 80 superati.** Gli stessi calcoli si riproducono fuori dal browser: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta come modulo Node ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
+**81 test su 81 superati.** Gli stessi calcoli si riproducono fuori dal browser: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta come modulo Node ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
 
 ```bash
 python build/estrai_motore.py
@@ -469,7 +470,10 @@ Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il
 
 - **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
 - **Le schede si navigano con le frecce.** Dichiarare `role="tablist"` è una promessa verso chi usa la tastiera: frecce per spostarsi, Home e Fine per gli estremi, e il pannello che segue il fuoco. Senza quel blocco il markup prometteva un comportamento che non c'era.
-- **Il netto viene annunciato quando cambia.** Le tre cifre principali — una per scheda — sono regioni `aria-live`, e gli avvisi contestuali sono `role="alert"`: chi non vede lo schermo digita e sente il risultato, invece di doverlo andare a cercare. Ogni controllo di modulo ha un nome accessibile, anche i due del riquadro «Dal netto alla RAL», dove l'etichetta era solo visiva.
+- **Il netto viene annunciato a digitazione ferma.** Marcare `aria-live` le cifre stesse faceva leggere allo screen reader ogni valore intermedio, una volta per tasto premuto. L'annuncio esce ora da una sola regione invisibile, 700 ms dopo l'ultima modifica, come frase intera: «Netto mensile …, netto annuo …». Gli avvisi contestuali restano `role="alert"`. Ogni controllo di modulo ha un nome accessibile, anche i due del riquadro «Dal netto alla RAL», dove l'etichetta era solo visiva.
+- **Il primo tasto della pagina salta al contenuto.** Un collegamento nascosto finché non prende il fuoco evita di attraversare intestazione e schede a ogni caricamento.
+- **La ricerca del comune è un combobox vero.** Frecce per percorrere i risultati, Invio per scegliere, Esc per rinunciare, `aria-activedescendant` per dire quale opzione è attiva. E se il campo resta su un testo che non corrisponde al comune in uso, al termine della digitazione torna a dire quale comune sta davvero calcolando: prima si poteva leggere «Roma» mentre il calcolo era di Milano.
+- **Contrasto conforme AA.** Il grigio più chiaro (`slate-400`, 2,6:1 su bianco) è rimasto solo dentro le card scure, dove supera 7:1; sul chiaro tutto il testo secondario è salito a `slate-500`.
 - **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce un documento, non un modulo compilato: su carta non c'è niente da compilare, quindi i campi perdono bordo e sfondo e restano il valore che contengono, i menu a tendina mostrano la voce scelta per intero, pulsanti e cursori spariscono e le card scure diventano leggibili in bianco e nero. Restano i colori che portano un significato — la barra della composizione, le pastiglie di stato, le differenze in verde e rosso — e nessuna riga si spezza fra due pagine. Sparisce anche il riquadro *Dal netto alla RAL*, che è uno strumento e non un risultato.
 - **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
 - **Le opzioni di dettaglio stanno in una tendina, non sparite.** Giorni e tipo di buono, modalità di erogazione del premio, contributo del datore e destinazione del TFR: sono nove controlli che a riposo non hanno nulla su cui agire. Nasconderli del tutto li avrebbe resi irraggiungibili — un campo invisibile non si compila — quindi restano dietro una riga con la freccia, sempre apribile. La tendina segue il valore: è aperta finché c'è qualcosa da vedere e si richiude quando tutto torna a zero. Conta anche ciò che sta dentro — i giorni con buono diversi dai 220 predefiniti, la spunta sui buoni cartacei, il contributo del datore — altrimenti si chiuderebbe sotto le dita di chi sta compilando un'opzione senza aver ancora toccato la voce principale. Vale anche all'apertura di un link condiviso, che porta i valori e con essi le tendine giuste già aperte.
@@ -712,9 +716,14 @@ Restano tre fatti veri, dichiarati nel piè di pagina:
 
 - lo stato della simulazione vive nell'indirizzo, quindi **condividere il link significa condividere i parametri** — RAL e carichi di famiglia compresi. È la conseguenza meno ovvia della scelta di rendere ogni scenario un link, e vale la pena dirla;
 - l'hosting su Vercel registra gli accessi nei log tecnici, come qualunque hosting;
-- il foglio di stile arriva dalla CDN di Tailwind, che riceve l'indirizzo IP del visitatore. È l'unica risorsa esterna della pagina.
+- **nessun'altra risorsa esterna**: la pagina non contatta alcun terzo. Il foglio di stile di Tailwind è compilato in fase di preparazione e incorporato nel file, quindi nessuna CDN vede l'indirizzo IP di chi visita.
 
 Per uno strumento che tratta stipendi e situazione familiare, dire dove finiscono i numeri conta quanto calcolarli bene.
+
+L'hosting serve la pagina con una `Content-Security-Policy` che consente soltanto risorse della stessa origine (`vercel.json`): siccome
+non c'è più alcuna risorsa esterna, la politica non è una dichiarazione d'intenti ma una regola che il browser applica. Nella stessa
+configurazione viaggiano `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, una `Permissions-Policy`
+che nega fotocamera, microfono e posizione, e `frame-ancestors 'none'`, che impedisce di incorniciare il calcolatore in un altro sito.
 
 ---
 
@@ -827,20 +836,30 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 
 ```
 .
-├── index.html                      # SPA completa: motore, dataset MEF incorporato, UI, suite di test
+├── index.html                      # SPA completa: motore, dataset MEF incorporato, foglio di stile, UI, suite di test
 ├── README.md                       # Questo documento
+├── vercel.json                     # Header di sicurezza e di cache serviti dall'hosting
 ├── build/
 │   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
 │   ├── verifica_dataset.py         # Controlli di integrita', gira in CI
 │   ├── estrai_motore.py            # Estrae il motore come modulo Node, per la verifica fuori dal browser
+│   ├── costruisci_css.js           # Compila il foglio Tailwind e lo incorpora in index.html
 │   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
 └── .github/workflows/
     ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
+    ├── verifica-css.yml            # Il CSS incorporato corrisponde al markup, a ogni push
     └── sorveglia-norme.yml         # Sorveglia le circolari INPS ogni lunedi'
 ```
 
-`index.html` pesa circa **567 KB**, di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 316 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
+Il foglio di stile si rigenera quando cambiano le classi del markup:
+
+```bash
+node build/costruisci_css.js             # ricompila e reincorpora
+node build/costruisci_css.js --verifica  # non scrive: dice solo se e' rimasto indietro
+```
+
+`index.html` pesa circa **642 KB** (**182 KB** compressi in transito), di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali e **23 KB** il foglio di stile compilato: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 367 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
 
 Il repository è collegato a Vercel: ogni push sul ramo `main` pubblica il sito, e ogni pull request genera un'anteprima con indirizzo proprio. La pull request aperta dal workflow di aggiornamento dati è quindi ispezionabile prima di essere accettata.
 
