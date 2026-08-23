@@ -29,8 +29,25 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
 | Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 80 test eseguibili dalla pagina e riproducibili in Node |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 81 test eseguibili dalla pagina e riproducibili in Node |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **quattro correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
+
+---
+
+## Come leggere questo documento
+
+Il documento è lungo perché documenta un dominio lungo. Se il tempo è poco, quattro sezioni rispondono a quello che la
+prova chiede di valutare, e si leggono in una decina di minuti:
+
+| Se vuoi vedere | Vai a | Perché |
+|---|---|---|
+| Che le logiche sono capite, non copiate | [§4 — Precisione del motore](#4-precisione-del-motore-di-calcolo) | I quattro punti dove la normativa è controintuitiva: il cuneo che cambia natura a 20.000 €, l'effetto scalino di Milano, la capienza, le tre discontinuità della curva |
+| Come sono state cercate le fonti | [§8 — Fonti normative](#8-fonti-normative) e le [quattro correzioni](#quattro-correzioni-prodotte-dalla-verifica-sulle-fonti) che ha prodotto | Ogni istituto con la sua fonte primaria, e i quattro punti in cui leggere la norma ha smentito il calcolo che c'era |
+| Come è stato verificato | [§5.1 — Difetti emersi dal collaudo](#51-difetti-emersi-dal-collaudo-combinatorio) | Non l'elenco dei test che passano, ma i difetti che il collaudo ha trovato e come sono stati chiusi |
+| Dove il prototipo si ferma | [§6.22](#622-cosa-non-è-conoscibile-e-come-viene-dichiarato) e [§7 — Perimetro](#7-perimetro-del-prototipo) | Cosa non è modellato, cosa non è conoscibile, e la differenza fra le due cose |
+
+Il resto è documentazione di dettaglio: §6 descrive i parametri della scheda Avanzato uno per uno, §9 la pipeline che
+importa le aliquote dal MEF, §10 la struttura dei file.
 
 ---
 
