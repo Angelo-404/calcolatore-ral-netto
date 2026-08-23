@@ -19,6 +19,7 @@ import sys
 
 QUI = os.path.dirname(os.path.abspath(__file__))
 INDEX = os.path.join(os.path.dirname(QUI), 'index.html')
+README = os.path.join(os.path.dirname(QUI), 'README.md')
 DATASET = os.path.join(QUI, 'dataset.js')
 
 INIZIO = '/* === INIZIO DATI MEF: rigenerato da build/aggiorna_index.py === */'
@@ -50,6 +51,32 @@ def blocco_nuovo():
             + FINE)
 
 
+def conta_comuni():
+    """Quanti comuni contiene il dataset appena ricostruito."""
+    dataset = io.open(DATASET, encoding='utf-8').read()
+    anagrafe = re.search(r'const COMUNI_ANAGRAFE = `(.*?)`;', dataset, re.S)
+    if not anagrafe:
+        raise SystemExit("Anagrafe non trovata in dataset.js: formato cambiato.")
+    return len(anagrafe.group(1).strip().splitlines())
+
+
+def allinea_conteggio(quanti):
+    """Riporta il numero dei comuni nella documentazione.
+
+    La pagina lo legge dal dataset a ogni caricamento, quindi non puo'
+    sbagliarlo. Il README invece e' testo: senza questo passo continuerebbe a
+    citare il conteggio del giorno in cui e' stato scritto, e i comuni si
+    fondono. Si riscrive solo il numero, non le frasi che lo contengono.
+    """
+    formattato = '{:,}'.format(quanti).replace(',', '.')
+    testo = io.open(README, encoding='utf-8').read()
+    nuovo = re.sub(r'\b\d{1,2}\.\d{3} comuni\b', formattato + ' comuni', testo)
+    if nuovo == testo:
+        return False
+    io.open(README, 'w', encoding='utf-8').write(nuovo)
+    return True
+
+
 def main():
     solo_verifica = '--verifica' in sys.argv
 
@@ -77,6 +104,8 @@ def main():
 
     io.open(INDEX, 'w', encoding='utf-8').write(testo[:a] + nuovo + testo[b:])
     print('index.html aggiornato con le nuove delibere.')
+    if allinea_conteggio(conta_comuni()):
+        print('README.md riallineato: il numero dei comuni e cambiato.')
     return 10
 
 

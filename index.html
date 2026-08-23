@@ -1122,7 +1122,7 @@
 
       <div class="p-6">
         <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-amber-100 text-amber-800">con una conferma</span>
-        <p class="font-semibold text-slate-800 mt-2">Aliquote dei 7.897 comuni</p>
+        <p class="font-semibold text-slate-800 mt-2">Aliquote dei <span class="stat-comuni">7.897</span> comuni</p>
         <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
           Un processo automatico le ricontrolla sull&rsquo;anagrafe MEF il 1&deg; e il 15 di ogni mese e, se qualche comune
           ha deliberato, prepara l&rsquo;aggiornamento. Ma si ferma l&igrave;: <strong>un dato fiscale non entra in produzione
@@ -1406,7 +1406,7 @@ function calcolaBase(ral) {
 
    Fonti dei dati incorporati:
    - Addizionali regionali e comunali: MEF, Dipartimento delle Finanze,
-     anagrafe delle delibere (7.897 comuni, 21 regioni/province autonome).
+     anagrafe delle delibere (tutti i comuni italiani, 21 regioni/province autonome).
    - Minimali, massimali e aliquota aggiuntiva 1%: circolari INPS.
    - Aliquote e istituti IRPEF: TUIR, L. 207/2024, Legge di Bilancio 2026.
    ====================================================================== */
@@ -21054,8 +21054,15 @@ function eseguiTest() {
 
   // Integrità del dataset ufficiale
   const milano = COMUNI_PER_CODICE.get('F205');
-  check('Dataset: 7.897 comuni e 21 regioni caricati',
-        COMUNI.length === 7897 && Object.keys(REGIONI).length === 21,
+  /* Non si controlla un numero fisso: i comuni si fondono e il conteggio
+     cambia per via legittima. Si controlla che le tre parti del dataset
+     descrivano la stessa anagrafe, e che nessuna riga si sia persa. */
+  const righeAnagrafe = COMUNI_ANAGRAFE.split('\n').length;
+  check('Dataset: anagrafe, tariffe e regioni coerenti fra loro',
+        COMUNI.length === righeAnagrafe &&
+        COMUNI_TARIFFE_2025.split('\n').length === righeAnagrafe &&
+        COMUNI.every((c) => c.codice && c.nome && c.provincia) &&
+        Object.keys(REGIONI).length === 21,
         `${COMUNI.length} comuni · ${Object.keys(REGIONI).length} regioni`);
   check('Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni',
         [2025, 2026].every((a) => milano[a].esenzione === 23000 &&
@@ -21389,7 +21396,13 @@ function popolaSelect() {
     .map((k) => `<option value="${k}"${k === 'Lombardia' ? ' selected' : ''}>${k}</option>`)
     .join('');
 
-  el('stat-comuni').textContent = String(COMUNI.length).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  /* Il conteggio dei comuni non si scrive a mano da nessuna parte: i comuni
+     italiani si fondono, il dataset lo registra e la pagina lo deve dire nel
+     numero giusto senza che nessuno se ne ricordi. */
+  const quanti = String(COMUNI.length).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  el('stat-comuni').textContent = quanti;
+  document.querySelectorAll('.stat-comuni').forEach((n) => { n.textContent = quanti; });
+  el('p-comune-search').placeholder = `Cerca fra ${quanti} comuni…`;
 
   const milano = COMUNI_PER_CODICE.get('F205');
   el('p-comune-search').value = `${milano.nome} (${milano.provincia})`;
@@ -21441,7 +21454,7 @@ function allineaRegioneAlComune(codiceComune) {
   if (regione && REGIONI[regione]) el('p-regione').value = regione;
 }
 
-/* ------------------------------------ Ricerca fra i 7.897 comuni */
+/* ------------------------------------- Ricerca fra i comuni italiani */
 const comuneSearch = el('p-comune-search');
 const comuneRisultati = el('p-comune-risultati');
 
