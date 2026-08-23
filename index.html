@@ -501,6 +501,7 @@
           <input id="p-giorni" type="number" min="1" max="365" step="1" value="365"
                  class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           <p class="text-[11px] text-slate-500 mt-1">Giorni di calendario, 365 se il rapporto copre tutto l'anno. Non sono i giorni di presenza: assunzione o cessazione in corso d'anno ragguagliano detrazioni e cuneo.</p>
+        <p id="p-correzioni" role="alert" class="hidden text-[11px] font-medium text-amber-700 mt-2"></p>
         </div>
 
         <label class="flex items-start gap-3 cursor-pointer">
@@ -21203,7 +21204,24 @@ ralInput.addEventListener('keydown', (e) => {
 });
 
 /* ------------------------------------------------ Parametri premium */
+/* I campi numerici hanno un intervallo di validita', e finora chi lo superava
+   veniva riportato dentro in silenzio: 400 giorni diventavano 365 senza che
+   la pagina lo dicesse. La scheda base l'errore lo dichiara; qui accadeva il
+   contrario. Il valore si corregge lo stesso, ma la correzione si annuncia. */
+let correzioniParametri = [];
+
+function entroLimiti(id, minimo, massimo, predefinito, frase) {
+  const grezzo = parseFloat(el(id).value);
+  if (el(id).value.trim() === '' || Number.isNaN(grezzo)) return predefinito;
+  const dentro = Math.min(massimo, Math.max(minimo, grezzo));
+  if (dentro !== grezzo) {
+    correzioniParametri.push(`${frase}: il calcolo usa ${dentro}.`);
+  }
+  return dentro;
+}
+
 function leggiParametriPremium() {
+  correzioniParametri = [];
   return {
     anno: annoCorrente,
     ral: Math.max(0, parseFloat(el('p-ral').value) || 0),
@@ -21213,8 +21231,8 @@ function leggiParametriPremium() {
     massimaleAttivo: el('p-massimale').checked,
     regione: el('p-regione').value,
     comune: comuneCorrente,
-    giorniLavorati: Math.min(365, Math.max(1, parseInt(el('p-giorni').value, 10) || 365)),
-    partTime: Math.min(100, Math.max(1, parseFloat(el('p-parttime').value) || 100)),
+    giorniLavorati: entroLimiti('p-giorni', 1, 365, 365, 'I giorni di rapporto vanno da 1 a 365'),
+    partTime: entroLimiti('p-parttime', 1, 100, 100, 'Il part-time va dall’1% al 100%'),
     coniugeACarico: el('p-coniuge').checked,
     figli: Math.max(0, parseInt(el('p-figli').value, 10) || 0),
     altriFamiliari: Math.max(0, parseInt(el('p-altri').value, 10) || 0),
@@ -21237,6 +21255,8 @@ function leggiParametriPremium() {
 
 function aggiornaPremium() {
   const params = leggiParametriPremium();
+  el('p-correzioni').textContent = correzioniParametri.join(' ');
+  el('p-correzioni').classList.toggle('hidden', correzioniParametri.length === 0);
   aggiornaNoteContestuali(params);
   renderEsoneri(params);
   renderPremium(calcolaPremium(params), calcolaBase(params.ral), params);
