@@ -49,6 +49,10 @@
      al contenitore .overflow-x-auto della tabella, dove deve stare. */
   .grid > * { min-width: 0; }
 
+  /* L'opzione raggiunta con le frecce deve vedersi: chi guarda lo schermo
+     segue l'evidenziazione, chi non lo guarda segue aria-activedescendant. */
+  .comune-opt[aria-selected="true"] { background: #eef4ff; }
+
   /* --- Spiegazioni contestuali --- */
   .spiega {
     display: inline-grid; place-items: center; vertical-align: middle;
@@ -700,9 +704,12 @@
 
         <div class="relative">
           <label for="p-comune-search" class="block text-sm font-semibold text-slate-700 mb-1.5">Comune</label>
-          <input id="p-comune-search" type="text" autocomplete="off" placeholder="Cerca fra 7.897 comuni…"
+          <input id="p-comune-search" type="text" autocomplete="off" placeholder="Cerca fra i comuni italiani…"
+                 role="combobox" aria-expanded="false" aria-controls="p-comune-risultati"
+                 aria-autocomplete="list" aria-haspopup="listbox"
                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          <ul id="p-comune-risultati" class="hidden absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          <ul id="p-comune-risultati" role="listbox" aria-label="Comuni trovati"
+              class="hidden absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
           <p id="p-comune-nota" class="text-[11px] text-slate-500 mt-1.5"></p>
         </div>
       </div>
@@ -952,7 +959,7 @@
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
         <h3 class="font-bold text-slate-900 text-sm">Fonti e limiti dichiarati</h3>
         <ul class="mt-2 space-y-1.5 text-sm text-slate-600 list-disc list-inside">
-          <li>Addizionali regionali e comunali: anagrafe delle delibere del <strong>MEF &mdash; Dipartimento delle Finanze</strong>, 7.897 comuni. Dove il comune non ha ancora deliberato per il 2026, resta in vigore l'aliquota 2025.</li>
+          <li>Addizionali regionali e comunali: anagrafe delle delibere del <strong>MEF &mdash; Dipartimento delle Finanze</strong>, <span class="stat-comuni">7.897</span> comuni. Dove il comune non ha ancora deliberato per il 2026, resta in vigore l'aliquota 2025.</li>
           <li>Minimali, massimale contributivo e aliquota aggiuntiva 1%: <strong>circolari INPS</strong>.</li>
           <li>Aliquote contributive per <strong>settore, qualifica e dimensione aziendale</strong>: tabelle INPS delle aliquote contributive, edizione 2026. La quota a carico del datore &egrave; la differenza fra il totale di tabella e la quota del lavoratore. Fanno eccezione agricoltura e lavoro domestico, che restano stime dichiarate.</li>
           <li>Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.</li>
@@ -21478,10 +21485,10 @@ function cercaComuni(query) {
 
 function mostraRisultatiComuni(lista) {
   if (!lista.length) {
-    comuneRisultati.classList.add('hidden');
+    chiudiElencoComuni();
     return;
   }
-  comuneRisultati.innerHTML = lista.map((c) => {
+  comuneRisultati.innerHTML = lista.map((c, i) => {
     const regola = c[annoCorrente];
     const sintesi = !regola.scaglioni.length
       ? 'nessuna aliquota'
@@ -21493,26 +21500,113 @@ function mostraRisultatiComuni(lista) {
               class="comune-opt w-full text-left px-4 py-2.5 hover:bg-brand-50 transition flex items-center justify-between gap-3">
         <span class="font-medium text-slate-700">${c.nome} <span class="text-slate-400 text-xs">(${c.provincia})</span></span>
         <span class="text-xs text-slate-500 num">${sintesi}${regola.esenzione > 0 ? ' · es. ' + euro(regola.esenzione) : ''}</span>
-      </button></li>`;
+      </li>`;
   }).join('');
   comuneRisultati.classList.remove('hidden');
+  comuneSearch.setAttribute('aria-expanded', 'true');
+  evidenza = -1;
+}
+
+/* Indice dell'opzione raggiunta con le frecce: -1 quando nessuna lo e'. */
+let evidenza = -1;
+
+function chiudiElencoComuni() {
+  comuneRisultati.classList.add('hidden');
+  comuneSearch.setAttribute('aria-expanded', 'false');
+  comuneSearch.removeAttribute('aria-activedescendant');
+  evidenza = -1;
+}
+
+function evidenziaOpzione(indice) {
+  const opzioni = [...comuneRisultati.children];
+  if (!opzioni.length) return;
+  evidenza = (indice + opzioni.length) % opzioni.length;
+  opzioni.forEach((o, i) => o.setAttribute('aria-selected', String(i === evidenza)));
+  const attiva = opzioni[evidenza];
+  comuneSearch.setAttribute('aria-activedescendant', attiva.id);
+  if (attiva.scrollIntoView) attiva.scrollIntoView({ block: 'nearest' });
+}
+
+function etichettaComune(codice) {
+  const c = COMUNI_PER_CODICE.get(codice);
+  return c ? `${c.nome} (${c.provincia})` : '';
+}
+
+function scegliComune(codice) {
+  if (!COMUNI_PER_CODICE.has(codice)) return;
+  comuneCorrente = codice;
+  comuneSearch.value = etichettaComune(codice);
+  chiudiElencoComuni();
+  allineaRegioneAlComune(codice);
+  aggiornaPremium();
+}
+
+/* Il campo e' una casella di testo, ma il calcolo usa il comune scelto
+   dall'elenco. Chi scriveva «Roma» e cliccava altrove restava con «Roma»
+   sotto gli occhi e Milano nei numeri. Quando il campo perde il fuoco si
+   riallinea: se il testo individua un comune solo lo si adotta, altrimenti
+   torna a dire quale comune sta davvero calcolando. */
+function riallineaCampoComune() {
+  if (comuneSearch.value.trim() === etichettaComune(comuneCorrente)) {
+    chiudiElencoComuni();
+    return;
+  }
+  const candidati = cercaComuni(comuneSearch.value);
+  const esatti = candidati.filter((c) =>
+    normalizza(c.nome) === normalizza(comuneSearch.value.trim()));
+  const scelto = esatti.length === 1 ? esatti[0]
+               : (candidati.length === 1 ? candidati[0] : null);
+  if (scelto) scegliComune(scelto.codice);
+  else comuneSearch.value = etichettaComune(comuneCorrente);
 }
 
 comuneSearch.addEventListener('input', () => mostraRisultatiComuni(cercaComuni(comuneSearch.value)));
 comuneSearch.addEventListener('focus', () => comuneSearch.select());
+comuneSearch.addEventListener('blur', () => {
+  // Il click su un risultato passa prima per il blur del campo: si aspetta
+  // che l'elenco abbia avuto la sua occasione di rispondere.
+  setTimeout(riallineaCampoComune, 150);
+});
+
+/* Dichiarare role="combobox" e' una promessa: le frecce percorrono l'elenco,
+   Invio sceglie, Esc rinuncia. Prima l'elenco esisteva solo per il mouse. */
+comuneSearch.addEventListener('keydown', (e) => {
+  const aperto = !comuneRisultati.classList.contains('hidden');
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!aperto) { mostraRisultatiComuni(cercaComuni(comuneSearch.value)); return; }
+    evidenziaOpzione(evidenza + (e.key === 'ArrowDown' ? 1 : -1));
+    return;
+  }
+  if (!aperto) return;
+  if (e.key === 'Enter') {
+    const opzioni = [...comuneRisultati.children];
+    const scelta = opzioni[evidenza >= 0 ? evidenza : 0];
+    if (scelta) { e.preventDefault(); scegliComune(scelta.dataset.codice); }
+    return;
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    comuneSearch.value = etichettaComune(comuneCorrente);
+    chiudiElencoComuni();
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    evidenziaOpzione(e.key === 'Home' ? 0 : comuneRisultati.children.length - 1);
+  }
+});
+
 comuneRisultati.addEventListener('click', (e) => {
-  const btn = e.target.closest('.comune-opt');
-  if (!btn) return;
-  comuneCorrente = btn.dataset.codice;
-  const c = COMUNI_PER_CODICE.get(comuneCorrente);
-  comuneSearch.value = `${c.nome} (${c.provincia})`;
-  comuneRisultati.classList.add('hidden');
-  allineaRegioneAlComune(comuneCorrente);
-  aggiornaPremium();
+  const opt = e.target.closest('.comune-opt');
+  if (!opt) return;
+  scegliComune(opt.dataset.codice);
+});
+comuneRisultati.addEventListener('mousemove', (e) => {
+  const opt = e.target.closest('.comune-opt');
+  if (opt) evidenziaOpzione([...comuneRisultati.children].indexOf(opt));
 });
 document.addEventListener('click', (e) => {
   if (!comuneRisultati.contains(e.target) && e.target !== comuneSearch) {
-    comuneRisultati.classList.add('hidden');
+    chiudiElencoComuni();
   }
 });
 
@@ -22319,7 +22413,7 @@ function leggiUrl() {
   evidenziaAnnoAttivo();
 
   const c = COMUNI_PER_CODICE.get(comuneCorrente);
-  if (c) el('p-comune-search').value = c.nome + ' (' + c.provincia + ')';
+  if (c) el('p-comune-search').value = `${c.nome} (${c.provincia})`;
   if (!q.has('regione')) allineaRegioneAlComune(comuneCorrente);
 
   popolaProfiloContributivo(el('p-profilo').value);
