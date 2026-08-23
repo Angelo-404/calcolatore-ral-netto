@@ -780,8 +780,16 @@
           <p id="pm-mensilita-label" class="text-slate-400 text-xs mt-1">su 13 mensilit&agrave;</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto annuo</p>
-          <p id="pm-netto-anno" class="num text-3xl font-extrabold mt-1 text-slate-900">&euro; 0</p>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto annuo</p>
+              <p id="pm-netto-anno" class="num text-3xl font-extrabold mt-1 text-slate-900">&euro; 0</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pressione fiscale<span id="tip-pm-pressione"></span></p>
+              <p id="pm-pressione" class="num text-xl font-bold mt-1 text-slate-900">0,0 %</p>
+            </div>
+          </div>
           <p id="pm-delta" class="text-xs mt-1 text-slate-500">&mdash;<span id="tip-delta"></span></p>
         </div>
       </div>
@@ -1232,8 +1240,8 @@
    l'impronta del motore con quella registrata qui sotto e fallisce quando le
    due divergono. E' lo stesso principio applicato alle norme: cio' che non si
    puo' automatizzare, lo si puo' almeno rendere impossibile da dimenticare. */
-const ENGINE_VERSION = '2.0.0';
-const IMPRONTA_MOTORE = '33657a4e';
+const ENGINE_VERSION = '2.0.1';
+const IMPRONTA_MOTORE = '0eb51aef';
 
 const COSTANTI = {
   ALIQUOTA_INPS: 0.0919,
@@ -18856,7 +18864,7 @@ function calcolaPremium(params) {
     buoniGiorniEffettivi, buoniRagguagliati, nettoScoperto,
     buoniElettronici: p.buoniElettronici,
     welfareEsente, valoreTotale,
-    nettoAnnuo, nettoMensile, pressioneFiscale, mensilita,
+    nettoAnnuo, nettoMensile, pressioneFiscale, lordoDiRiferimento, mensilita,
     altreTrattenute, altreTrattenuteRichieste, altreTrattenuteNonCapienti, nettoPrimaTrattenute,
     tfr, contributiDatore, fondoDatore, inail, costoAzienda, efficienza,
     sottoMinimale, minimaleMese: A.minimaleMese,
@@ -19820,6 +19828,7 @@ function renderPremium(r, baseline, params) {
   el('pm-netto-mese').textContent = euro(r.nettoMensile);
   annuncia(`Netto mensile ${euro(r.nettoMensile)}, netto annuo ${euro(r.nettoAnnuo)}.`);
   el('pm-netto-anno').textContent = euro(r.nettoAnnuo);
+  el('pm-pressione').textContent = perc(r.pressioneFiscale);
   el('pm-mensilita-label').textContent = `su ${M} mensilità`;
   el('pm-valore').textContent = euro(r.valoreTotale);
   /* Sommare euro in busta ed euro di welfare da' un numero solo, ma le due
@@ -19843,6 +19852,19 @@ function renderPremium(r, baseline, params) {
   el('pm-costo').textContent = euro(r.costoAzienda);
   el('pm-efficienza').textContent = r.efficienza > 0 ? perc(r.efficienza) : '—';
 
+  el('tip-pm-pressione').innerHTML = bottoneSpiegazione({
+    titolo: 'Pressione fiscale',
+    corpo: 'Quanto del lordo non arriva in busta, fra contributi e imposte. Il lordo di riferimento non è solo '
+      + 'la RAL: comprende il premio di risultato e i compensi accessori, che sono retribuzione tassata. '
+      + 'Restano fuori il welfare esente, che non è reddito, e le altre trattenute — sindacato, prestiti, '
+      + 'cessioni — che sono destinazioni dello stipendio, non prelievo: spostano il netto in busta, non la '
+      + 'pressione. A redditi bassi può risultare negativa, perché il cuneo restituisce più di quanto il '
+      + 'prelievo sottragga.',
+    html: formula([
+      ['Lordo di riferimento', euro2(r.lordoDiRiferimento)],
+      ['− netto prima delle trattenute non fiscali', euro2(r.nettoPrimaTrattenute)]
+    ], ['Prelievo sul lordo', perc(r.pressioneFiscale)])
+  });
   el('tip-valore').innerHTML = bottoneSpiegazione({
     titolo: 'Netto e welfare, sommati',
     corpo: '<strong>Non è uno stipendio più alto.</strong> È la somma di due cose che non si spendono '
