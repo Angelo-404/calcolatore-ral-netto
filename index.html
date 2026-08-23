@@ -247,14 +247,14 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <label for="ral-input" class="block text-sm font-semibold text-slate-700 mb-2">RAL &mdash; Retribuzione Annua Lorda</label>
         <div class="relative">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
           <input id="ral-input" type="number" min="0" max="1000000" step="500" value="30000" inputmode="decimal"
                  class="num w-full pl-9 pr-4 py-3 text-2xl font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl
                         focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition" />
         </div>
         <input id="ral-slider" type="range" min="8000" max="150000" step="500" value="30000"
                class="w-full mt-5 cursor-pointer" aria-label="Selettore RAL" />
-        <div class="no-print flex justify-between text-[11px] text-slate-400 mt-1 num"><span>8.000 &euro;</span><span>150.000 &euro;</span></div>
+        <div class="no-print flex justify-between text-[11px] text-slate-500 mt-1 num"><span>8.000 &euro;</span><span>150.000 &euro;</span></div>
         <div class="flex flex-wrap gap-2 mt-4 no-print">
           <button data-preset="25000" class="preset text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition">25k</button>
           <button data-preset="30000" class="preset text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition">30k</button>
@@ -269,7 +269,7 @@
                        hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition">
           Calcola
         </button>
-        <p class="no-print text-[11px] text-slate-400 mt-2 text-center">Il calcolo &egrave; comunque aggiornato in tempo reale a ogni digitazione</p>
+        <p class="no-print text-[11px] text-slate-500 mt-2 text-center">Il calcolo &egrave; comunque aggiornato in tempo reale a ogni digitazione</p>
       </div>
 
       <!-- Segnala i casi in cui il profilo standard non è più adeguato -->
@@ -306,17 +306,17 @@
         <p id="out-quota-trattenute" class="text-xs text-slate-500 mt-1">&mdash;</p>
         <div class="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-100">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Contributi INPS</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Contributi INPS</p>
             <p id="out-tot-contributi" class="num text-lg font-bold text-slate-900 mt-0.5">&euro; 0</p>
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Imposte</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Imposte</p>
             <p id="out-tot-imposte" class="num text-lg font-bold text-slate-900 mt-0.5">&euro; 0</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">IRPEF netta + addizionali</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">IRPEF netta + addizionali</p>
           </div>
         </div>
         <div id="box-bonus" class="hidden mt-5 pt-5 border-t border-slate-100">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Bonus e integrazioni ricevuti</p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Bonus e integrazioni ricevuti</p>
           <p id="out-tot-bonus" class="num text-lg font-bold text-emerald-600 mt-0.5">&euro; 0</p>
         </div>
       </div>
@@ -421,8 +421,8 @@
           </button>
         </div>
         <p class="text-[11px] text-slate-400 leading-relaxed">
-          <strong class="text-slate-300">Trova la RAL</strong> cerca la retribuzione che produce quella cifra.
-          <strong class="text-slate-300">Ottimizza</strong> cerca il modo meno costoso per l'azienda di consegnarla.
+          <strong class="text-slate-200">Trova la RAL</strong> cerca la retribuzione che produce quella cifra.
+          <strong class="text-slate-200">Ottimizza</strong> cerca il modo meno costoso per l'azienda di consegnarla.
         </p>
         <p id="p-netto-esito" class="hidden text-xs leading-relaxed"></p>
       </div>
@@ -446,7 +446,7 @@
         <div>
           <label id="p-ral-label" for="p-ral" class="block text-sm font-semibold text-slate-700 mb-1.5">RAL contrattuale</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-ral" type="number" min="0" max="2000000" step="500" value="45000"
                    class="num w-full pl-9 pr-4 py-2.5 font-bold text-lg bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -491,7 +491,7 @@
             <div class="relative">
               <input id="p-parttime" type="number" min="1" max="100" step="1" value="100"
                      class="num w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">%</span>
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">%</span>
             </div>
           </div>
         </div>
@@ -538,7 +538,7 @@
         <div>
           <label for="p-fringe" class="block text-sm font-semibold text-slate-700 mb-1.5">Fringe benefit annui</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-fringe" type="number" min="0" max="100000" step="100" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -548,13 +548,13 @@
         <div>
           <label for="p-buoni" class="block text-sm font-semibold text-slate-700 mb-1.5">Buono pasto / giorno</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-buoni" type="number" min="0" max="30" step="0.5" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
         </div>
         <details id="p-det-buoni" class="tendina -mt-2">
-          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Giorni e tipo di buono</summary>
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Giorni e tipo di buono</summary>
           <div class="pt-2 space-y-3">
             <div>
               <label for="p-buoni-giorni" class="block text-sm font-semibold text-slate-700 mb-1.5">Giorni con buono</label>
@@ -563,7 +563,7 @@
             </div>
             <label class="flex items-center gap-3 cursor-pointer">
               <input id="p-buoni-el" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-              <span class="text-sm text-slate-600">Buoni pasto elettronici <span id="p-buoni-nota" class="text-slate-400"></span></span>
+              <span class="text-sm text-slate-600">Buoni pasto elettronici <span id="p-buoni-nota" class="text-slate-500"></span></span>
             </label>
           </div>
         </details>
@@ -571,24 +571,24 @@
         <div>
           <label for="p-premio" class="block text-sm font-semibold text-slate-700 mb-1.5">Premio di risultato</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-premio" type="number" min="0" max="100000" step="100" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
           <p id="p-premio-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
         <details id="p-det-premio" class="tendina -mt-2">
-          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Come viene erogato il premio</summary>
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Come viene erogato il premio</summary>
           <label class="flex items-center gap-3 cursor-pointer pt-2">
             <input id="p-premio-welfare" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-            <span class="text-sm text-slate-600">Convertito in welfare aziendale <span class="text-slate-400">(esente da imposte e contributi)</span></span>
+            <span class="text-sm text-slate-600">Convertito in welfare aziendale <span class="text-slate-500">(esente da imposte e contributi)</span></span>
           </label>
         </details>
 
         <div>
           <label for="p-accessori" class="block text-sm font-semibold text-slate-700 mb-1.5">Straordinari, notturni e festivi</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-accessori" type="number" min="0" max="100000" step="100" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -598,7 +598,7 @@
         <div>
           <label for="p-fondo" class="block text-sm font-semibold text-slate-700 mb-1.5">Previdenza complementare</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-fondo" type="number" min="0" max="20000" step="100" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -606,21 +606,21 @@
         </div>
 
         <details id="p-det-fondo" class="tendina -mt-2">
-          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Contributo del datore e destinazione del TFR</summary>
+          <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"><svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l6 6-6 6" /></svg>Contributo del datore e destinazione del TFR</summary>
           <div class="pt-2 space-y-3">
             <div>
               <label for="p-fondo-datore" class="block text-sm font-semibold text-slate-700 mb-1.5">Contributo del datore al fondo</label>
               <div class="relative">
                 <input id="p-fondo-datore" type="number" min="0" max="20" step="0.05" value="0"
                        class="num w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">%</span>
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">%</span>
               </div>
               <p id="p-fondo-datore-nota" class="text-[11px] text-slate-500 mt-1"></p>
             </div>
             <label class="flex items-start gap-3 cursor-pointer">
               <input id="p-tfr-fondo" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
               <span class="text-sm text-slate-600">TFR destinato al fondo pensione
-                <span class="block text-[11px] text-slate-400">Non si accantona pi&ugrave; in azienda</span>
+                <span class="block text-[11px] text-slate-500">Non si accantona pi&ugrave; in azienda</span>
               </span>
             </label>
           </div>
@@ -629,7 +629,7 @@
         <div>
           <label for="p-trattenute" class="block text-sm font-semibold text-slate-700 mb-1.5">Altre trattenute annue</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="p-trattenute" type="number" min="0" max="100000" step="50" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -655,7 +655,7 @@
         </div>
         <label id="p-impatriati-box" class="hidden items-center gap-3 cursor-pointer">
           <input id="p-impatriati-figli" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-          <span class="text-sm text-slate-600">Con figlio minore <span class="text-slate-400">(imponibile al 40% anzich&eacute; 50%)</span></span>
+          <span class="text-sm text-slate-600">Con figlio minore <span class="text-slate-500">(imponibile al 40% anzich&eacute; 50%)</span></span>
         </label>
       </div>
 
@@ -756,12 +756,12 @@
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto + welfare<span id="tip-valore"></span></p>
           <p id="pm-valore" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
           <div id="pm-valore-barra" class="hidden mt-2 h-1.5 rounded-full overflow-hidden bg-slate-100 flex"></div>
-          <p id="pm-valore-nota" class="text-[11px] text-slate-400 mt-1"></p>
+          <p id="pm-valore-nota" class="text-[11px] text-slate-500 mt-1"></p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">TFR / anno</p>
           <p id="pm-tfr" class="num text-lg font-bold mt-1 text-slate-900">&euro; 0</p>
-          <p id="pm-tfr-dove" class="text-[11px] text-slate-400 mt-0.5">accantonato in azienda</p>
+          <p id="pm-tfr-dove" class="text-[11px] text-slate-500 mt-0.5">accantonato in azienda</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">
@@ -815,7 +815,7 @@
         <div id="vista-composizione" class="mt-4">
           <div class="flex h-4 w-full rounded-full overflow-hidden bg-slate-100" id="pm-bar-composizione" role="img" aria-label="Composizione del lordo"></div>
           <ul id="pm-legend-composizione" class="mt-4 space-y-2 text-sm"></ul>
-          <p id="pm-composizione-nota" class="text-[11px] text-slate-400 mt-3"></p>
+          <p id="pm-composizione-nota" class="text-[11px] text-slate-500 mt-3"></p>
         </div>
 
         <div id="vista-curva" class="hidden mt-3">
@@ -852,7 +852,7 @@
           </label>
           <div class="flex gap-2">
             <div class="relative flex-1">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
               <input id="ott-budget" type="number" min="0" max="1000000" step="500" placeholder="50.000"
                      class="num w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
@@ -885,7 +885,7 @@
         </div>
         <div id="confronto-vuoto" class="px-6 py-8 text-center">
           <p class="text-sm text-slate-500">Nessuno scenario bloccato.</p>
-          <p class="text-xs text-slate-400 mt-1">Utile per confrontare due offerte, due citt&agrave; o i due anni d'imposta.</p>
+          <p class="text-xs text-slate-500 mt-1">Utile per confrontare due offerte, due citt&agrave; o i due anni d'imposta.</p>
         </div>
         <div id="confronto-tabella" class="hidden overflow-x-auto">
           <table class="w-full text-sm">
@@ -999,7 +999,7 @@
         <div>
           <label for="a-compenso" class="block text-sm font-semibold text-slate-700 mb-1.5">Fatturato annuo</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="a-compenso" type="number" min="0" max="2000000" step="500" value="50000"
                    class="num w-full pl-9 pr-4 py-2.5 font-bold text-lg bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -1029,7 +1029,7 @@
         <div id="a-riga-costi">
           <label for="a-costi" class="block text-sm font-semibold text-slate-700 mb-1.5">Costi deducibili nell'anno</label>
           <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold pointer-events-none">&euro;</span>
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold pointer-events-none">&euro;</span>
             <input id="a-costi" type="number" min="0" max="2000000" step="500" value="0"
                    class="num w-full pl-9 pr-4 py-2.5 font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -19414,7 +19414,7 @@ function rigaCascata(voce, nota, annuo, mensilita, opts = {}) {
     <tr class="${sfondo}">
       <td class="${indent} py-3 ${opts.indent ? 'pr-6' : ''}">
         <span class="${opts.forte ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}">${voce}</span>${bottoneSpiegazione(opts.spiega)}
-        ${nota ? `<span class="block text-xs text-slate-400 mt-0.5">${nota}</span>` : ''}
+        ${nota ? `<span class="block text-xs text-slate-500 mt-0.5">${nota}</span>` : ''}
       </td>
       <td class="num px-4 py-3 text-right ${peso} ${colore}">${segno}${euro2(Math.abs(annuo))}</td>
       <td class="num px-6 py-3 text-right text-slate-500">${segno}${euro2(Math.abs(annuo) / mensilita)}</td>
@@ -19707,7 +19707,7 @@ function renderComposizione(r) {
         <span class="text-slate-600">${v.label}</span>
       </span>
       <span class="num font-semibold ${v.testo}">${euro(v.valore)}
-        <span class="text-slate-400 font-normal ml-1">${fmtPerc.format((v.valore / totale) * 100)}%</span>
+        <span class="text-slate-500 font-normal ml-1">${fmtPerc.format((v.valore / totale) * 100)}%</span>
       </span>
     </li>`).join('');
 }
@@ -19780,7 +19780,7 @@ function renderPremium(r, baseline, params) {
        <div class="bg-amber-400" style="width:${((1 - quotaBusta) * 100).toFixed(1)}%"></div>`
     : '';
   el('pm-valore-nota').className = r.welfareEsente > 0
-    ? 'text-[11px] text-amber-700 mt-1' : 'text-[11px] text-slate-400 mt-1';
+    ? 'text-[11px] text-amber-700 mt-1' : 'text-[11px] text-slate-500 mt-1';
   el('pm-valore-nota').textContent = r.welfareEsente > 0
     ? `${euro(r.welfareEsente)} in welfare: vincolato nell'uso, non fa pensione`
     : 'tutto denaro in busta paga';
@@ -19991,7 +19991,7 @@ function renderComposizionePremium(r) {
         <span class="text-slate-600">${v.label}</span>
       </span>
       <span class="num font-semibold ${v.testo} whitespace-nowrap">${euro(v.valore)}
-        <span class="text-slate-400 font-normal ml-1">${fmtPerc.format((v.valore / totale) * 100)}%</span>
+        <span class="text-slate-500 font-normal ml-1">${fmtPerc.format((v.valore / totale) * 100)}%</span>
       </span>
     </li>`).join('');
 
@@ -21113,7 +21113,7 @@ function eseguiTest() {
           <li class="flex items-start gap-2 text-sm">
             <span class="${r.esito ? 'text-emerald-600' : 'text-rose-600'} font-bold">${r.esito ? '✓' : '✗'}</span>
             <span class="text-slate-700">${r.nome}
-              ${r.dettaglio ? `<span class="text-slate-400 text-xs ml-1">${r.dettaglio}</span>` : ''}
+              ${r.dettaglio ? `<span class="text-slate-500 text-xs ml-1">${r.dettaglio}</span>` : ''}
             </span>
           </li>`).join('')}
       </ul>
@@ -21322,7 +21322,7 @@ function aggiornaNoteContestuali(p) {
       ${profilo.fondo ? `<span>${profilo.fondoNome} <strong class="num text-slate-700">${aliq(profilo.fondo)}</strong></span>` : ''}
     </div>
     ${voci ? `<ul class="mt-2 pt-2 border-t border-slate-200 space-y-0.5 text-[11px] text-slate-500">${voci}</ul>` : ''}
-    <p class="text-[11px] ${profilo.stima ? 'text-amber-700' : 'text-slate-400'} mt-2">
+    <p class="text-[11px] ${profilo.stima ? 'text-amber-700' : 'text-slate-500'} mt-2">
       ${profilo.stima ? 'Stima parametrica. ' : ''}${profilo.fonte}${
         SETTORI_CONTRIBUTIVI[profilo.settore].nota ? ' · ' + SETTORI_CONTRIBUTIVI[profilo.settore].nota : ''}
     </p>`;
@@ -21515,10 +21515,9 @@ function mostraRisultatiComuni(lista) {
       : (regola.scaglioni.length === 1 && regola.scaglioni[0].fino === Infinity
           ? fmtPerc.format(regola.scaglioni[0].aliquota * 100) + '%'
           : 'a scaglioni');
-    return `<li>
-      <button type="button" data-codice="${c.codice}"
-              class="comune-opt w-full text-left px-4 py-2.5 hover:bg-brand-50 transition flex items-center justify-between gap-3">
-        <span class="font-medium text-slate-700">${c.nome} <span class="text-slate-400 text-xs">(${c.provincia})</span></span>
+    return `<li role="option" id="comune-opt-${i}" aria-selected="false" data-codice="${c.codice}"
+        class="comune-opt cursor-pointer px-4 py-2.5 hover:bg-brand-50 transition flex items-center justify-between gap-3">
+        <span class="font-medium text-slate-700">${c.nome} <span class="text-slate-500 text-xs">(${c.provincia})</span></span>
         <span class="text-xs text-slate-500 num">${sintesi}${regola.esenzione > 0 ? ' · es. ' + euro(regola.esenzione) : ''}</span>
       </li>`;
   }).join('');
@@ -21786,7 +21785,7 @@ function renderEsoneri(params) {
           <span class="block text-xs text-slate-500 mt-0.5">
             ${stato.applicabile ? `${misura} &middot; incide sui contributi ${e.incide === 'datore' ? 'del datore' : 'della lavoratrice'}` : stato.motivo}
           </span>
-          <span class="block text-[11px] text-slate-400 mt-1">${e.fonte} &middot; verificato il ${formattaData(e.verificatoIl)}</span>
+          <span class="block text-[11px] text-slate-500 mt-1">${e.fonte} &middot; verificato il ${formattaData(e.verificatoIl)}</span>
         </span>
       </label>`;
   };
@@ -21803,7 +21802,7 @@ function renderEsoneri(params) {
     + (scadute.length ? `
       <details class="tendina">
         <summary class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-1">
-          <svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="none"
+          <svg class="freccia h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 20 20" fill="none"
                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M7 4l6 6-6 6" /></svg>
           ${scadute.length} misur${scadute.length === 1 ? 'a scaduta' : 'e scadute'}
@@ -21997,7 +21996,7 @@ function dipingiOttimizzazione() {
           ${indice === ottStato.indiceConsigliato
             ? '<span class="ml-1.5 align-middle text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">consigliato</span>'
             : ''}
-          <span class="block text-xs text-slate-400 mt-0.5">${p.descrizione}</span>
+          <span class="block text-xs text-slate-500 mt-0.5">${p.descrizione}</span>
           ${bloccato ? '<span class="block text-xs text-amber-700 mt-1">Il premio agevolato non spetta oltre '
             + euro(PREMIUM.PREMIO_REDDITO_MAX) + ' di reddito: questo pacchetto non è applicabile.</span>' : ''}
         </td>
@@ -22005,7 +22004,7 @@ function dipingiOttimizzazione() {
         <td class="num px-3 py-3 text-right text-slate-600">${euro(p.nettoCassa)}</td>
         <td class="num px-3 py-3 text-right text-emerald-700">${p.welfare > 0 ? euro(p.welfare) : '—'}</td>
         <td class="num px-3 py-3 text-right font-bold text-slate-900">${euro(p.costoAzienda)}</td>
-        <td class="num px-6 py-3 text-right font-bold ${indice === 0 ? 'text-slate-400' : (ottStato.modo === 'netto' ? (deltaCosto < -0.5 ? 'text-emerald-600' : 'text-slate-400') : (deltaValore > 0.5 ? 'text-emerald-600' : 'text-slate-400'))}">
+        <td class="num px-6 py-3 text-right font-bold ${indice === 0 ? 'text-slate-500' : (ottStato.modo === 'netto' ? (deltaCosto < -0.5 ? 'text-emerald-600' : 'text-slate-500') : (deltaValore > 0.5 ? 'text-emerald-600' : 'text-slate-500'))}">
           ${indice === 0 ? 'riferimento'
             : ottStato.modo === 'netto'
               ? (deltaCosto < -0.5 ? '− ' + euro(Math.abs(deltaCosto)) : '—')
@@ -22061,7 +22060,7 @@ function dipingiOttimizzazione() {
     ${bloccoRinunce(riferimento, scelto, params)}
     ${bloccoSoglie(params, scelto)}
     <div class="px-6 py-4 border-t border-slate-200">
-      <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+      <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
         Quanto arriva al lavoratore per ogni euro speso
       </p>
       <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600">
@@ -22071,7 +22070,7 @@ function dipingiOttimizzazione() {
         <span>Premio in welfare <strong class="num text-emerald-700">${fmtPerc2.format(efficienza.premioWelfare)} €</strong></span>
         <span>Premio in denaro <strong class="num">${fmtPerc2.format(efficienza.premioDenaro)} €</strong></span>
       </div>
-      <p class="text-[11px] text-slate-400 mt-2">
+      <p class="text-[11px] text-slate-500 mt-2">
         Valori misurati sul motore, non stimati: a ogni strumento viene aggiunta una quota e si osserva
         la variazione reale di costo e di valore ricevuto.
       </p>
@@ -22097,7 +22096,7 @@ function dipingiOttimizzazione() {
    busta non alimenta pensione ne' TFR. Va detto accanto al risparmio. */
 function bloccoRinunce(riferimento, scelto, params) {
   const intestazione = (sottotitolo) => `
-    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
       Cosa cambia per il lavoratore
     </p>
     <p class="text-xs text-slate-500 mt-0.5 mb-3">${sottotitolo}</p>`;
@@ -22173,7 +22172,7 @@ function bloccoSoglie(params, scelto) {
     if (!piena) return '';
     return `
       <div class="px-6 py-4 border-t border-slate-200 bg-slate-50">
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Soglia raggiungibile
         </p>
         <p class="text-sm text-slate-600 mt-1.5">
@@ -22237,7 +22236,7 @@ function rigaConfronto(voce, a, b, formatta, invertiColore) {
   const delta = b - a;
   const trascurabile = Math.abs(delta) < 0.5;
   const positivo = invertiColore ? delta < 0 : delta > 0;
-  const colore = trascurabile ? 'text-slate-400' : positivo ? 'text-emerald-600' : 'text-rose-600';
+  const colore = trascurabile ? 'text-slate-500' : positivo ? 'text-emerald-600' : 'text-rose-600';
   const segno = trascurabile ? '' : delta > 0 ? '+ ' : '− ';
   return '<tr>'
     + '<td class="px-6 py-3 font-medium text-slate-700">' + voce + '</td>'
@@ -22260,7 +22259,7 @@ function pastiglia(voce, a, b, formatta, invertiColore) {
   const delta = b - a;
   const trascurabile = Math.abs(delta) < 0.5;
   const positivo = invertiColore ? delta < 0 : delta > 0;
-  const colore = trascurabile ? 'text-slate-400' : positivo ? 'text-emerald-600' : 'text-rose-600';
+  const colore = trascurabile ? 'text-slate-500' : positivo ? 'text-emerald-600' : 'text-rose-600';
   const segno = trascurabile ? '' : delta > 0 ? '+ ' : '− ';
   return `<span class="inline-flex items-baseline gap-1.5">
       <span class="text-slate-500">${voce}</span>
@@ -22297,7 +22296,7 @@ function renderConfronto() {
 
   el('tbody-confronto').innerHTML =
       '<tr class="bg-slate-50">'
-    + '<td class="px-6 py-2 text-xs text-slate-400 align-top">Parametri</td>'
+    + '<td class="px-6 py-2 text-xs text-slate-500 align-top">Parametri</td>'
     + '<td class="px-4 py-2 text-right text-xs text-slate-500 align-top">' + descriviScenario(scenarioBloccato.params) + '</td>'
     + '<td class="px-4 py-2 text-right text-xs text-slate-500 align-top">' + descriviScenario(paramsB) + '</td>'
     + '<td class="px-6 py-2"></td>'
@@ -22599,7 +22598,7 @@ function aggiornaAutonomo() {
     + (r.contributiSuMinimale
         ? ` <strong class="text-amber-700">Il reddito è sotto il minimale: i contributi restano quelli del minimale, non scendono.</strong>`
         : '')
-    + `<span class="block text-slate-400 mt-0.5">${gest.fonte}</span>`;
+    + `<span class="block text-slate-500 mt-0.5">${gest.fonte}</span>`;
   el('a-coefficiente-nota').textContent = forfetario
     ? `Codici ATECO ${p.gruppo.ateco} — imponibile ${fmtPerc.format(p.coefficiente * 100)}% del fatturato`
     : '';
@@ -22683,7 +22682,7 @@ function aggiornaAutonomo() {
           ${attuale ? '<span class="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">selezionato</span>' : ''}
         </td>
         <td class="num px-4 py-3 text-right font-semibold text-slate-900">${euro2(alt.nettoAnnuo)}</td>
-        <td class="num px-6 py-3 text-right ${delta > 0.005 ? 'text-emerald-600' : delta < -0.005 ? 'text-rose-600' : 'text-slate-400'}">
+        <td class="num px-6 py-3 text-right ${delta > 0.005 ? 'text-emerald-600' : delta < -0.005 ? 'text-rose-600' : 'text-slate-500'}">
           ${Math.abs(delta) < 0.005 ? '—' : (delta > 0 ? '+ ' : '− ') + euro2(Math.abs(delta))}
         </td>
       </tr>`;
