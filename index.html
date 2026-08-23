@@ -1120,7 +1120,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-5">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Netto annuo</p>
           <p id="a-netto-anno" class="num text-3xl font-extrabold mt-1 text-slate-900">&euro; 0</p>
-          <p id="a-pressione" class="text-xs mt-1 text-slate-500">&mdash;</p>
+          <p id="a-pressione" class="text-xs mt-1 text-slate-500">&mdash;<span id="tip-a-pressione"></span></p>
         </div>
       </div>
 
@@ -22675,10 +22675,145 @@ function rigaAutonomo(voce, nota, annuo, opts = {}) {
   return rigaCascata(voce, nota, annuo, 12, opts);
 }
 
+/* Le derivazioni della scheda P.IVA. Qui servono piu' che altrove: l'ordine
+   dei fattori e' invertito rispetto al lavoro dipendente - i contributi si
+   calcolano sul reddito e poi si deducono - e nel forfetario il reddito non
+   e' quello che si e' guadagnato, ma una percentuale del fatturato. */
+function spiegazioniAutonomo(r, gestione) {
+  const S = {};
+
+  S.reddito = r.forfetario ? {
+    titolo: 'Reddito imponibile forfetario',
+    corpo: 'Nel forfetario il reddito non si misura: si presume. Al fatturato si applica il coefficiente di '
+      + 'redditività del proprio codice ATECO, e quella percentuale <em>è</em> il reddito, qualunque cifra '
+      + 'dicano le spese effettive. Chi ha costi bassi ci guadagna, chi ne ha molti ci perde: la convenienza '
+      + 'del regime si decide qui, prima ancora delle aliquote.',
+    html: formula([
+      ['Fatturato', euro2(r.compenso)],
+      ['× coefficiente ATECO', fmtPerc.format(r.coefficiente * 100) + '%']
+    ], ['Reddito imponibile', euro2(r.redditoLordo)])
+  } : {
+    titolo: 'Reddito d’impresa o di lavoro autonomo',
+    corpo: 'Nell’ordinario il reddito è quello effettivo: fatturato meno costi documentati. È la base sia dei '
+      + 'contributi sia delle imposte, e da qui in avanti i due calcoli si intrecciano, perché i contributi '
+      + 'sono deducibili.',
+    html: formula([
+      ['Fatturato', euro2(r.compenso)],
+      ['− costi deducibili', euro2(r.costi)]
+    ], ['Reddito', euro2(r.redditoLordo)])
+  };
+
+  S.contributi = {
+    titolo: 'Contributi previdenziali',
+    corpo: 'Chi lavora in proprio versa da solo tutta la contribuzione: non c’è un datore che ne paghi due terzi. '
+      + 'E l’ordine è inverso rispetto alla busta paga: qui i contributi si calcolano sul reddito e vengono poi '
+      + 'dedotti dall’imponibile fiscale, mentre in busta paga si tolgono dalla RAL per ottenere l’imponibile.'
+      + (r.contributiSuMinimale
+          ? ' In questo scenario il reddito è sotto il minimale della gestione: il contributo non scende sotto '
+            + 'quella soglia, e resta dovuto anche a reddito zero.'
+          : '')
+      + (r.massimaleRaggiunto
+          ? ' Oltre il massimale la contribuzione si ferma: il reddito eccedente non versa e non accredita.'
+          : ''),
+    html: formula(r.contributiSuMinimale
+      ? [['Reddito', euro2(r.redditoLordo)],
+         ['Minimale della gestione', euro2(r.minimaleGestione)],
+         ['Base applicata: il maggiore dei due', euro2(r.minimaleGestione)]]
+      : [['Base contributiva', euro2(r.baseContributiva)],
+         ['Aliquota', fmtPerc2.format(gestione.aliquota * 100) + '%']],
+      ['Contributi dovuti', euro2(r.contributi)]),
+    fonte: gestione.fonte
+  };
+
+  if (r.riduzioneContributiva > 0) {
+    S.riduzione = {
+      titolo: 'Riduzione contributiva del 35%',
+      corpo: 'È una facoltà dei forfetari iscritti alle gestioni artigiani e commercianti, e va chiesta all’INPS: '
+        + 'non si applica da sola. Non è denaro regalato: l’accredito pensionistico si riduce nella stessa '
+        + 'proporzione, quindi si versa meno oggi e si matura meno domani.',
+      html: formula([
+        ['Contributi pieni', euro2(r.contributi + r.riduzioneContributiva)],
+        ['− riduzione del 35%', euro2(r.riduzioneContributiva)]
+      ], ['Contributi versati', euro2(r.contributi)])
+    };
+  }
+
+  S.imponibile = {
+    titolo: 'Imponibile fiscale',
+    corpo: 'I contributi previdenziali sono interamente deducibili: si tolgono dal reddito prima di calcolare '
+      + 'l’imposta. È il motivo per cui una contribuzione alta si ripaga in parte da sola, abbassando l’imposta '
+      + 'dovuta sullo stesso reddito.',
+    html: formula([
+      ['Reddito', euro2(r.redditoLordo)],
+      ['− contributi dedotti', euro2(r.contributi)]
+    ], ['Imponibile', euro2(r.imponibile)])
+  };
+
+  if (r.forfetario) {
+    const aliquota = r.regimeAutonomo === 'forfettario5' ? FORFETTARIO.aliquotaStartUp : FORFETTARIO.aliquota;
+    S.imposta = {
+      titolo: 'Imposta sostitutiva',
+      corpo: 'Un’unica imposta prende il posto di IRPEF, addizionale regionale, addizionale comunale e IRAP. '
+        + 'Nessuno scaglione e nessuna detrazione: un’aliquota piatta sull’imponibile. Il 5% è riservato ai primi '
+        + 'cinque anni di una nuova attività, a condizioni che questo prototipo non verifica.',
+      html: formula([
+        ['Imponibile', euro2(r.imponibile)],
+        ['× aliquota', fmtPerc.format(aliquota * 100) + '%']
+      ], ['Imposta sostitutiva', euro2(r.impostaSostitutiva)])
+    };
+  } else {
+    S.irpef = {
+      titolo: 'IRPEF lorda',
+      corpo: 'Gli stessi scaglioni del lavoro dipendente: cambia la base su cui si applicano, non la tariffa. '
+        + descrizioneScaglioni(r.anno),
+      html: formula([
+        ['Imponibile', euro2(r.imponibile)]
+      ], ['IRPEF lorda', euro2(r.irpefLorda)])
+    };
+    S.detrazione = {
+      titolo: 'Detrazione da lavoro autonomo',
+      corpo: 'È quella dell’art. 13, comma 5, del TUIR, non quella dei dipendenti del comma 1: più bassa, e non '
+        + 'cumulabile con essa. Non spettano nemmeno il trattamento integrativo e il taglio del cuneo, che si '
+        + 'rivolgono ai titolari di reddito di lavoro dipendente. È la ragione per cui, a parità di imponibile, '
+        + 'un autonomo in regime ordinario paga più di un dipendente.',
+      html: formula([
+        ['IRPEF lorda', euro2(r.irpefLorda)],
+        ['− detrazione spettante', euro2(r.detrazione)]
+      ], ['IRPEF netta', euro2(r.irpefNetta)])
+    };
+  }
+
+  S.netto = {
+    titolo: 'Netto',
+    corpo: 'Quello che resta dopo contributi e imposte. Non è uno stipendio: non ci sono TFR, mensilità '
+      + 'aggiuntive, ferie retribuite né malattia pagata, e l’imposta si versa per acconti e saldo, con una '
+      + 'cassa che questo prototipo non simula.',
+    html: formula([
+      ['Fatturato', euro2(r.compenso)],
+      ['− contributi', euro2(r.contributi)],
+      ['− imposte', euro2(r.imposte)]
+    ], ['Netto annuo', euro2(r.nettoAnnuo)])
+  };
+
+  S.pressione = {
+    titolo: 'Prelievo fra contributi e imposte',
+    corpo: 'Quanta parte del fatturato, al netto dei costi, se ne va fra previdenza e fisco. Non è confrontabile '
+      + 'con la pressione fiscale di un dipendente: là il datore versa due terzi dei contributi e la cifra di '
+      + 'partenza è la RAL, qui la contribuzione è tutta a carico di chi fattura.',
+    html: formula([
+      ['Base di calcolo', euro2(r.compenso - r.costi)],
+      ['Contributi + imposte', euro2(r.contributi + r.imposte)]
+    ], ['Prelievo', fmtPerc.format(r.pressione) + '%'])
+  };
+
+  return S;
+}
+
 function aggiornaAutonomo() {
   const p = leggiParametriAutonomo();
   const r = calcolaAutonomo(p);
   const forfetario = r.forfetario;
+  apriRegistroSpiegazioni('a');
 
   // I controlli che non hanno effetto nel regime scelto spariscono invece di
   // restare li' a suggerire che qualcosa cambi: il coefficiente non esiste
@@ -22715,9 +22850,11 @@ function aggiornaAutonomo() {
   el('a-netto-mese').textContent = euro(r.nettoMensile);
   annuncia(`Netto mensile ${euro(r.nettoMensile)}, netto annuo ${euro(r.nettoAnnuo)}.`);
   el('a-netto-anno').textContent = euro(r.nettoAnnuo);
-  el('a-pressione').textContent = r.compenso > 0
+  const S = spiegazioniAutonomo(r, GESTIONI_PREVIDENZIALI[r.gestione] || GESTIONI_PREVIDENZIALI.separata_professionisti);
+  el('a-pressione').innerHTML = (r.compenso > 0
     ? `${fmtPerc.format(r.pressione)}% fra contributi e imposte`
-    : '—';
+    : '—') + '<span id="tip-a-pressione"></span>';
+  el('tip-a-pressione').innerHTML = r.compenso > 0 ? bottoneSpiegazione(S.pressione) : '';
   el('a-sottotitolo').textContent = `${r.regimeNome} · anno ${r.anno} · importi annui e mensili`;
 
   const righe = [
@@ -22729,10 +22866,10 @@ function aggiornaAutonomo() {
   if (forfetario) {
     righe.push(rigaAutonomo('Reddito imponibile forfetario',
       `Fatturato × ${fmtPerc.format(r.coefficiente * 100)}%: i costi effettivi non entrano nel calcolo`,
-      r.redditoLordo, { evidenzia: true }));
+      r.redditoLordo, { evidenzia: true, spiega: S.reddito }));
   } else {
     righe.push(rigaAutonomo('Reddito d’impresa o di lavoro autonomo',
-      'Base su cui si calcolano contributi e imposte', r.redditoLordo, { evidenzia: true }));
+      'Base su cui si calcolano contributi e imposte', r.redditoLordo, { evidenzia: true, spiega: S.reddito }));
   }
   const gestioneCorrente = GESTIONI_PREVIDENZIALI[r.gestione] || GESTIONI_PREVIDENZIALI.separata_professionisti;
   const notaContributi = r.contributiSuMinimale
@@ -22741,30 +22878,33 @@ function aggiornaAutonomo() {
         ? `${fmtPerc2.format(gestioneCorrente.aliquota * 100)}%, fermi al massimale di ${euro(gestioneCorrente.massimale)}`
         : `${fmtPerc2.format(gestioneCorrente.aliquota * 100)}% sul reddito`
           + (gestioneCorrente.aliquotaOltre ? `, ${fmtPerc2.format(gestioneCorrente.aliquotaOltre * 100)}% oltre ${euro(gestioneCorrente.sogliaFascia)}` : ''));
-  righe.push(rigaAutonomo(`Contributi — ${r.gestioneNome}`, notaContributi, r.contributi, { tipo: 'negativo' }));
+  righe.push(rigaAutonomo(`Contributi — ${r.gestioneNome}`, notaContributi, r.contributi,
+    { tipo: 'negativo', spiega: S.contributi }));
   if (r.riduzioneContributiva > 0) {
     righe.push(rigaAutonomo('Riduzione contributiva del 35%',
       'Già applicata sopra: abbassa anche l’accredito ai fini pensionistici',
-      r.riduzioneContributiva, { tipo: 'neutro', indent: true }));
+      r.riduzioneContributiva, { tipo: 'neutro', indent: true, spiega: S.riduzione }));
   }
   righe.push(rigaAutonomo('Imponibile fiscale',
-    'Reddito al netto dei contributi, che sono deducibili', r.imponibile, { evidenzia: true }));
+    'Reddito al netto dei contributi, che sono deducibili', r.imponibile,
+    { evidenzia: true, spiega: S.imponibile }));
 
   if (forfetario) {
     const aliquota = r.regimeAutonomo === 'forfettario5' ? FORFETTARIO.aliquotaStartUp : FORFETTARIO.aliquota;
     righe.push(rigaAutonomo('Imposta sostitutiva',
       `${fmtPerc.format(aliquota * 100)}% al posto di IRPEF, addizionali e IRAP`,
-      r.impostaSostitutiva, { tipo: 'negativo' }));
+      r.impostaSostitutiva, { tipo: 'negativo', spiega: S.imposta }));
   } else {
-    righe.push(rigaAutonomo('IRPEF lorda', `Scaglioni ${r.anno}`, r.irpefLorda, { tipo: 'negativo' }));
+    righe.push(rigaAutonomo('IRPEF lorda', `Scaglioni ${r.anno}`, r.irpefLorda,
+      { tipo: 'negativo', spiega: S.irpef }));
     righe.push(rigaAutonomo('Detrazione da lavoro autonomo',
       'Art. 13, comma 5, TUIR: più bassa di quella dei dipendenti', r.detrazione,
-      { tipo: 'positivo', indent: true }));
+      { tipo: 'positivo', indent: true, spiega: S.detrazione }));
     righe.push(rigaAutonomo('Addizionale regionale', r.regioneNome, r.addReg, { tipo: 'negativo' }));
     righe.push(rigaAutonomo('Addizionale comunale', r.comuneNome, r.addCom, { tipo: 'negativo' }));
   }
   righe.push(rigaAutonomo('Netto', 'Quanto resta dopo contributi e imposte', r.nettoAnnuo,
-    { forte: true, evidenzia: true }));
+    { forte: true, evidenzia: true, spiega: S.netto }));
   el('a-dettaglio').innerHTML = righe.join('');
 
   /* Il confronto fra i tre regimi e' il motivo per cui questa sezione
