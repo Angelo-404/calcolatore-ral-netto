@@ -18788,7 +18788,7 @@ function calcolaPremium(params) {
     massimaleRaggiunto: contributi.massimaleRaggiunto, baseContributiva,
     baseContributivaApplicata: contributi.baseApplicata,
     imponibileLordo, imponibile, redditoComplessivo,
-    regimeAbbattuto: regime.abbattuto, regimeNome: REGIMI[p.regime].nome,
+    regimeAbbattuto: regime.abbattuto, regimeNome: (REGIMI[p.regime] || REGIMI.nessuno).nome,
     fondoPensioneDeducibile, versamentoLavoratore, versamentoRichiesto,
     versamentoNonCapiente, fondoLavoratoreNonDedotto,
     contributoDatoreFondo, fondoDatoreEccedente, tfrAlFondo: !!p.tfrAlFondo,
@@ -18950,7 +18950,7 @@ function calcolaAutonomo(params) {
 
   return {
     anno: p.anno, compenso, costi, regimeAutonomo: p.regimeAutonomo,
-    regimeNome: REGIMI_AUTONOMI[p.regimeAutonomo].nome,
+    regimeNome: (REGIMI_AUTONOMI[p.regimeAutonomo] || REGIMI_AUTONOMI.ordinario).nome,
     forfetario, coefficiente: forfetario ? p.coefficiente : null,
     redditoLordo, baseContributiva, contributi, imponibile,
     irpefLorda, detrazione, irpefNetta, addReg, addCom, impostaSostitutiva,
@@ -21193,7 +21193,7 @@ function leggiParametriPremium() {
   return {
     anno: annoCorrente,
     ral: Math.max(0, parseFloat(el('p-ral').value) || 0),
-    mensilita: parseInt(el('p-mensilita').value, 10),
+    mensilita: parseInt(el('p-mensilita').value, 10) || COSTANTI.MENSILITA,
     profilo: el('p-profilo').value,
     tipoRapporto: el('p-rapporto').value,
     massimaleAttivo: el('p-massimale').checked,
@@ -21303,7 +21303,7 @@ function aggiornaNoteContestuali(p) {
     ? `Reddito oltre ${euro(PREMIUM.PREMIO_REDDITO_MAX)}: nessuna agevolazione, tassazione ordinaria.`
     : `Imposta sostitutiva ${fmtPerc.format(A.premiAliquota * 100)}% nel ${p.anno}, fino a ${euro(A.premiLimite)}.`;
 
-  const reg = REGIONI[p.regione];
+  const reg = REGIONI[p.regione] || REGIONI.Lombardia;
   el('p-regione-nota').textContent = reg.scaglioni.length === 1
     ? `Aliquota unica ${fmtPerc.format(reg.scaglioni[0].aliquota * 100)}%`
     : 'Scaglioni: ' + reg.scaglioni.map((s) => fmtPerc.format(s.aliquota * 100) + '%').join(' · ');
@@ -22288,7 +22288,15 @@ function leggiUrl() {
 
   for (const chiave of Object.keys(CAMPI_URL)) {
     const nodo = el(CAMPI_URL[chiave][0]);
-    if (nodo && q.has(chiave)) nodo.value = q.get(chiave);
+    if (!nodo || !q.has(chiave)) continue;
+    const valore = q.get(chiave);
+    /* Una tendina accetta soltanto i valori che ha davvero. Assegnarne uno
+       inventato la lascia senza selezione, e da li' in poi il motore cerca
+       una chiave che non esiste in nessuna tabella: l'indirizzo sbagliato
+       non deve poter spegnere la pagina. Il valore ignoto si scarta e
+       resta il predefinito. */
+    if (nodo.tagName === 'SELECT' && ![...nodo.options].some((o) => o.value === valore)) continue;
+    nodo.value = valore;
   }
   for (const chiave of Object.keys(INTERRUTTORI_URL)) {
     const nodo = el(INTERRUTTORI_URL[chiave][0]);
@@ -22449,7 +22457,7 @@ function aggiornaAutonomo() {
   el('a-riga-coefficiente').classList.toggle('hidden', !forfetario);
   el('a-riga-costi').classList.toggle('hidden', forfetario);
   el('a-riga-regione').classList.toggle('hidden', forfetario);
-  el('a-regime-nota').textContent = REGIMI_AUTONOMI[p.regimeAutonomo].nota;
+  el('a-regime-nota').textContent = (REGIMI_AUTONOMI[p.regimeAutonomo] || REGIMI_AUTONOMI.ordinario).nota;
 
   /* La riduzione del 35% e' una facolta' dei soli forfetari iscritti alle
      gestioni artigiani e commercianti: dove non spetta, la casella non
