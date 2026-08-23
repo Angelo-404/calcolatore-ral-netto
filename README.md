@@ -839,6 +839,7 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 ├── index.html                      # SPA completa: motore, dataset MEF incorporato, foglio di stile, UI, suite di test
 ├── README.md                       # Questo documento
 ├── vercel.json                     # Header di sicurezza e di cache serviti dall'hosting
+├── LICENSE                         # MIT
 ├── build/
 │   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
@@ -870,3 +871,9 @@ cd build && python build_dataset.py
 ```
 
 Da una cartella vuota, produce un `dataset.js` **identico byte per byte** a quello incorporato in `index.html`, insieme a un report di controllo: numero di comuni, quanti hanno deliberato per l'anno corrente, quanti ereditano l'anno precedente, e le aliquote di alcuni comuni di riferimento.
+
+---
+
+## 11. Licenza
+
+[MIT](LICENSE). Il codice si può leggere, riusare e modificare; i calcoli restano una stima previsionale, non un cedolino.
