@@ -28,8 +28,8 @@ I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale d
 | "mostra tutte le voci trattenute al lordo" | Tabella **Dettaglio del calcolo**: cascata riga per riga da RAL a netto, con valore annuo e quota mensile per ogni voce |
 | Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
 | Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
-| Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.5 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 81 test eseguibili dalla pagina e riproducibili in Node |
+| Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.6 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
+| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 91 test eseguibili dalla pagina, riproducibili in Node e verificati in CI a ogni push |
 | "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **quattro correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
 
 ---
@@ -41,7 +41,7 @@ prova chiede di valutare, e si leggono in una decina di minuti:
 
 | Se vuoi vedere | Vai a | Perché |
 |---|---|---|
-| Che le logiche sono capite, non copiate | [§4 — Precisione del motore](#4-precisione-del-motore-di-calcolo) | I quattro punti dove la normativa è controintuitiva: il cuneo che cambia natura a 20.000 €, l'effetto scalino di Milano, la capienza, le tre discontinuità della curva |
+| Che le logiche sono capite, non copiate | [§4 — Precisione del motore](#4-precisione-del-motore-di-calcolo) | I punti dove la normativa è controintuitiva: il cuneo che cambia natura a 20.000 €, l'effetto scalino di Milano, la capienza, il taglio di 75 € sul trattamento integrativo, il pavimento della detrazione, le quattro discontinuità della curva |
 | Come sono state cercate le fonti | [§8 — Fonti normative](#8-fonti-normative) e le [quattro correzioni](#quattro-correzioni-prodotte-dalla-verifica-sulle-fonti) che ha prodotto | Ogni istituto con la sua fonte primaria, e i quattro punti in cui leggere la norma ha smentito il calcolo che c'era |
 | Come è stato verificato | [§5.1 — Difetti emersi dal collaudo](#51-difetti-emersi-dal-collaudo-combinatorio) | Non l'elenco dei test che passano, ma i difetti che il collaudo ha trovato e come sono stati chiusi |
 | Dove il prototipo si ferma | [§6.22](#622-cosa-non-è-conoscibile-e-come-viene-dichiarato) e [§7 — Perimetro](#7-perimetro-del-prototipo) | Cosa non è modellato, cosa non è conoscibile, e la differenza fra le due cose |
@@ -184,21 +184,37 @@ La quota di detrazione persa per incapienza è calcolata, esposta in una riga de
 
 ### 4.4 Trattamento integrativo e incapienza
 
-Il trattamento integrativo (ex bonus Renzi, 1.200 € annui) **non spetta agli incapienti**: la condizione di legge è che l'imposta lorda superi la detrazione da lavoro dipendente. Poiché la detrazione minima è 1.955 € e l'aliquota del primo scaglione è 23%, il punto di pareggio cade esattamente a **8.500 € di imponibile** — la no tax area.
+Il trattamento integrativo (ex bonus Renzi, 1.200 € annui) **non spetta agli incapienti**: la condizione di legge è che l'imposta lorda superi la detrazione da lavoro dipendente. La detrazione però non entra nel confronto per intero. L'art. 1, comma 3 della L. 234/2021 la vuole **diminuita di 75 € rapportati al periodo di lavoro nell'anno**: il taglio fu introdotto proprio perché la detrazione minima era appena salita a 1.955 € e senza di esso una fascia di redditi bassi sarebbe rimasta fuori dal trattamento.
 
-Sotto quella soglia il motore restituisce `trattamentoIntegrativo = 0`, non 1.200 €. Tra 15.000 e 28.000 € spetta la sola quota di detrazioni eccedente l'imposta lorda, con tetto a 1.200 €.
+Il pareggio cade quindi dove l'imposta lorda raggiunge 1.880 €, cioè a **8.173,91 € di imponibile** (1.880 / 0,23) e non a 8.500 € come suggerirebbe la detrazione piena. Fra i due valori c'è una fascia di circa 370 € di RAL in cui il trattamento spetta per intero: ignorarla vuol dire sbagliare quel netto di 1.200 €.
 
-### 4.5 Le tre discontinuità della curva
+```js
+const soglia = Math.max(0, detrazioniBase - T.TAGLIO_DETRAZIONE * quotaAnno);
+return irpefLorda > soglia ? T.IMPORTO : 0;
+```
 
-Il netto **non è una funzione monotona crescente della RAL**. La normativa produce tre punti in cui a un aumento di lordo corrisponde una diminuzione di netto. Il motore le riproduce fedelmente e la suite di test le asserisce come comportamento atteso:
+Sotto quel punto il motore restituisce `trattamentoIntegrativo = 0`, non 1.200 €. Tra 15.000 e 28.000 € spetta la sola quota di detrazioni eccedente l'imposta lorda, con tetto a 1.200 € — e al confronto concorrono **soltanto** le detrazioni degli articoli 12 e 13 del TUIR. L'ulteriore detrazione del cuneo, che nasce fuori dal testo unico (L. 207/2024, art. 1, comma 6), resta fuori: l'elenco del D.L. 3/2020 è chiuso. Nel profilo standard la differenza non si vede, perché senza carichi di famiglia il confronto non è mai in bilico; con coniuge e figli a carico vale fino a 1.000 €.
+
+### 4.5 Il pavimento della detrazione da lavoro dipendente
+
+La detrazione dell'art. 13 si rapporta ai giorni di durata del rapporto, ma il ragguaglio ha un limite inferiore scritto nella stessa lettera a): l'importo effettivamente spettante non scende sotto **690 €**, che diventano **1.380 €** nei rapporti a tempo determinato. Su un contratto di tre mesi la moltiplicazione secca darebbe 482,05 €, e il lavoratore pagherebbe imposta su una detrazione che la legge non ammette.
+
+Il correttivo di fascia da 65 € segue la regola opposta: la norma dice espressamente che **non** è rapportato al periodo di lavoro. Chi lavora sei mesi ne prende 65, non 32,50. Per questo la detrazione è calcolata in due pezzi distinti, `detrazioneScaglione()` e `correttivoFascia()`, invece che in un'unica funzione moltiplicata per la quota d'anno.
+
+### 4.6 Le quattro discontinuità della curva
+
+Il netto **non è una funzione monotona crescente della RAL**. La normativa produce quattro punti in cui a un aumento di lordo corrisponde una diminuzione di netto. Il motore le riproduce fedelmente e la suite di test le asserisce come comportamento atteso:
 
 | Soglia (imponibile) | RAL corrispondente | Perdita netta | Causa |
 |---|---|---|---|
+| 8.500 € | ≈ 9.361 € | −152,22 € | Il bonus del cuneo scende dal 7,1% al 5,3% |
 | 15.000 € | ≈ 16.519 € | −129,35 € | Decadenza del trattamento integrativo, non compensata dal gradino di detrazione |
 | 23.000 € | ≈ 25.328 € | −183,40 € | Effetto scalino dell'addizionale comunale di Milano |
 | 35.000 € | ≈ 38.543 € | −64,61 € | Decadenza del correttivo di fascia da 65 € |
 
-Un calcolatore che restituisce una curva perfettamente monotona sta approssimando la normativa. Il test `Monotonicità: rotture solo sulle 3 soglie normative note` verifica su 250.000 punti che esistano **esattamente** queste tre discontinuità e nessun'altra: qualunque rottura aggiuntiva sarebbe un bug di implementazione.
+La prima è comparsa insieme alla correzione del §4.4, e vale la pena dire perché. Il gradino del cuneo a 8.500 € è sempre esistito; finché il trattamento integrativo scattava nello stesso identico punto, i suoi 1.200 € lo coprivano e la curva sembrava continua. Spostato il trattamento al punto giusto, il gradino è rimasto scoperto. Non è una discontinuità nuova: è una discontinuità che una soglia sbagliata teneva nascosta.
+
+Un calcolatore che restituisce una curva perfettamente monotona sta approssimando la normativa. Il test `Monotonicità: rotture solo sulle 4 soglie normative note` verifica su 250.000 punti che esistano **esattamente** queste quattro discontinuità e nessun'altra, confrontando l'imponibile **al centesimo**: la versione precedente arrotondava al migliaio e avrebbe confuso 8.500 € con 9.000 €.
 
 ---
 
@@ -214,11 +230,15 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Milano — esenzione sotto 23.000 € di imponibile | Soglia normativa |
 | Milano — 0,80% sull’intero imponibile sopra soglia | Effetto scalino |
 | IRPEF netta mai negativa (1k → 200k) | Invariante |
-| Monotonicità: rotture solo sulle 3 soglie normative note | Invariante |
+| Monotonicità: rotture solo sulle 4 soglie normative note | Invariante |
 | Quadratura: RAL − trattenute + bonus = netto | Riconciliazione contabile |
 | Cuneo: bonus esentasse fino a 20.000 € di imponibile | Confine tra istituti |
 | Trattamento integrativo nullo in caso di incapienza | Regola di legge |
+| Trattamento integrativo: il pareggio è la detrazione meno 75 € | Regola di legge |
 | «Avanzato» 2026 = «Task Jet HR» sotto la prima fascia pensionabile | Non-regressione |
+| Trattamento integrativo: l’ulteriore detrazione del cuneo non conta | Perimetro delle detrazioni rilevanti |
+| Detrazione art. 13: il pavimento regge al ragguaglio ai giorni | Minimo di legge sulla detrazione |
+| Correttivo di fascia: 65 € interi, non rapportati ai giorni | Ciò che il ragguaglio non tocca |
 | Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1% | Non-regressione |
 | 2026 più conveniente del 2025 nello scaglione 28k–50k | Effetto della nuova aliquota |
 | Aliquota aggiuntiva 1% applicata sopra soglia | Regola contributiva |
@@ -247,6 +267,7 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Welfare: quantifica TFR e pensione a cui si rinuncia | Completezza del confronto |
 | Soglie: individua il gradino raggiungibile e lo quantifica | Ottimizzazione sulle discontinuità |
 | Soglie: nessun suggerimento se l’imponibile è già basso | Assenza di consigli inutili |
+| Soglie: anche il gradino del cuneo a 8.500 € è un’occasione misurata | Ottimizzazione sulla nuova discontinuità |
 | Ottimizzazione: nessun premio promesso oltre la soglia di reddito | Coerenza fra promesso ed erogato |
 | Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
 | Aliquote per settore: la somma delle voci torna al totale di tabella | Riconciliazione fonte/tabella |
@@ -264,6 +285,7 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Co.co.co.: il massimale di 122.295 € si applica da solo | Regola, non opzione |
 | Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
 | Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
+| Esoneri: l’esclusione regge sulla chiave composta del profilo | Ambito soggettivo sul percorso reale |
 | Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
 | Senza retribuzione il netto resta a zero, non va sotto | Caso limite |
 | Sweep su tutte le combinazioni di contratto e regime | Copertura combinatoria (2.000 combinazioni) |
@@ -280,8 +302,12 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Gestioni INPS: a reddito zero il minimale resta dovuto, la Separata no | Minimale contributivo |
 | Gestioni INPS: oltre 56.224 € l’aliquota sale di un punto | Fascia superiore dell'aliquota |
 | Gestioni INPS: la riduzione del 35% vale solo nel forfetario | Perimetro dell'agevolazione |
+| Gestioni INPS: la riduzione non tocca il contributo di maternità | Perimetro della riduzione |
+| Partita IVA: sotto il minimale il netto si ferma a zero e lo scoperto è dichiarato | Capienza e scoperto |
+| Partita IVA: nessuno scoperto quando il fatturato copre i contributi | Assenza di falsi allarmi |
+| Partita IVA: fatturato − costi − contributi − imposte + scoperto = netto | Riconciliazione contabile |
 | Gestioni INPS: cambiare gestione cambia il netto | Effetto reale della scelta |
-| Versione: l'impronta del motore corrisponde a quella dichiarata | La versione in pagina non resta indietro rispetto al codice |
+| Versione: l'impronta del motore corrisponde alla v2.1.0 | La versione in pagina non resta indietro rispetto al codice |
 | Dataset: anagrafe, tariffe e regioni coerenti fra loro | Integrità del dataset |
 | Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni | Integrità del dataset |
 | Dataset: Lombardia allineata alla specifica di «Task Jet HR» | Riconciliazione fonte/spec |
@@ -290,7 +316,16 @@ La pagina include una suite di test eseguibile dal browser: scheda **Avanzato �
 | Input negativo gestito senza NaN | Robustezza |
 | «Avanzato» con input 0 gestito senza NaN | Robustezza |
 
-**81 test su 81 superati.** Gli stessi calcoli si riproducono fuori dal browser: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta come modulo Node ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
+**91 test su 91 superati.** La stessa suite gira anche senza browser, ed è il modo in cui la esegue la CI:
+
+```bash
+node build/prova_motore.js
+# 91/91 test superati
+```
+
+`build/prova_motore.js` ritaglia da `index.html` il motore e la funzione `eseguiTest()`, mette al posto del DOM il minimo indispensabile e riporta l'esito con un codice di uscita. Il ritaglio è volutamente fragile: se la pagina cambia struttura lo script si ferma con un messaggio, invece di eseguire una suite monca e dichiararla superata. Fino alla revisione che ha prodotto questa versione la suite esisteva ma **non girava da nessuna parte** se non a mano, dietro un bottone: 81 test verdi che nessuno eseguiva prima di un commit. Il workflow `verifica-motore.yml` la esegue adesso a ogni push, insieme ai controlli di integrità del dataset.
+
+Gli stessi calcoli si riproducono anche come modulo: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
 
 ```bash
 python build/estrai_motore.py
@@ -299,6 +334,8 @@ node -e "const m=require('./build/motore_estratto.js'); console.log(m.calcolaBas
 ```
 
 I sette valori di riferimento della tabella più sotto sono stati riprodotti così, tutti e sette al centesimo. Se un giorno il taglio non fosse più possibile — perché il motore ha cominciato a toccare il DOM — lo script si ferma invece di produrre un modulo monco.
+
+**Reimplementazione indipendente.** Il motore Base è stato riscritto da zero a partire dal testo delle norme, senza guardare il codice esistente, e confrontato con l'originale su **ogni RAL intera da 0 a 300.000 €**: 300.001 confronti, nessuna differenza oltre il milionesimo di euro. È il controllo che ha fatto emergere il trattamento integrativo del §4.4, perché la suite non poteva accorgersene: asseriva la regola così com'era stata implementata.
 
 **Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **36.505 valutazioni**: 24.000 combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; 4.608 combinazioni di welfare, carichi di famiglia e periodo variate sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
 
@@ -321,6 +358,24 @@ Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione,
 | 220 buoni pasto in un rapporto di un giorno | I giorni con buono erano un campo indipendente dalla durata del rapporto. L'eccedenza imponibile dei buoni superava la retribuzione maturata e spingeva il netto sotto zero | I giorni con buono si contano sulle presenze, che non possono superare i giorni in cui il rapporto esiste: il numero viene ridotto e l'interfaccia lo dichiara |
 | Detrazione da lavoro dipendente a reddito zero | La detrazione dell'art. 13 spetta perché al reddito concorrono redditi di lavoro dipendente: senza imponibile non ne matura nessuna. Il motore ne dichiarava comunque 1.955 €, che la capienza azzerava — quindi il netto era giusto — ma la cascata mostrava 1.955 € di «detrazioni non godute» su una busta paga inesistente | La funzione restituisce zero sotto il primo euro di imponibile. Emerso dalla reimplementazione indipendente del §5, non dalla suite |
 | Netto negativo con fringe benefit su rapporto brevissimo | Il valore imponibile del welfare può superare la retribuzione maturata: le ritenute non avevano da cosa essere trattenute | Una busta paga non va in rosso: il netto si ferma a zero e la parte scoperta viene dichiarata, come già accadeva per il fondo pensione e per le altre trattenute |
+
+### 5.2 Difetti emersi dalla revisione sulle fonti
+
+I difetti del §5.1 li aveva trovati il collaudo: erano casi limite in cui il motore produceva un numero impossibile. Quelli che seguono no. Il motore rispondeva un numero perfettamente plausibile, e sbagliato — e la suite lo confermava, perché asseriva la regola come era stata scritta, non come sta nella norma. Sono emersi rileggendo il testo di legge accanto al codice e riscrivendo il motore Base da zero.
+
+| Difetto | Causa | Correzione |
+|---|---|---|
+| Esoneri applicati a dirigenti, lavoro domestico e agricoltura | `profiliEsclusi` elencava chiavi piatte (`'dirigente'`) confrontate con `Array.includes` contro la chiave composta che l'interfaccia produce davvero (`'industria\|dirigente\|fino50'`): il confronto non combaciava mai, e l'esclusione non scattava. Il test la dichiarava funzionante perché passava una chiave storica che nessuna tendina genera — **verde su un percorso che non esiste** | L'esclusione guarda `settoriEsclusi` e `qualificheEscluse` sul profilo normalizzato. Il test usa ora le chiavi composte, e un secondo test verifica l'esclusione fino al risultato del motore |
+| Trattamento integrativo negato a chi ne ha diritto | La condizione confrontava l'imposta lorda con la detrazione piena, mentre la L. 234/2021 la vuole diminuita di 75 €. Fra 9.002 e 9.370 € di RAL il motore restituiva 0 invece di 1.200 € | Il taglio entra nel confronto, ragguagliato al periodo. Il pareggio scende da 8.500 a 8.173,91 € di imponibile e fa riemergere il gradino del cuneo descritto al §4.6 |
+| Detrazione sotto il minimo di legge sui rapporti brevi | Il ragguaglio ai giorni era una moltiplicazione secca, senza il pavimento di 690 € (1.380 € a tempo determinato) dell'art. 13. Su novanta giorni la detrazione scendeva a 482,05 €: circa 208 € di imposta in più, che diventano 898 € su un contratto a termine | `detrazioneDipendentePeriodo()` applica il pavimento dentro la prima fascia. Il tipo di rapporto, che prima non incideva sulla detrazione, ora alza il minimo |
+| Correttivo di fascia ragguagliato ai giorni | I 65 € venivano moltiplicati per la quota d'anno, ma la norma dice che l'importo non è rapportato al periodo di lavoro | Scaglione e correttivo sono due funzioni separate: solo il primo si ragguaglia |
+| Trattamento integrativo riconosciuto grazie a una detrazione che non conta | Al confronto fra 15.000 e 28.000 € concorreva anche l'ulteriore detrazione del cuneo, che il D.L. 3/2020 non elenca. Con coniuge e due figli a carico faceva comparire un trattamento che non spetta | Al confronto restano le sole detrazioni degli articoli 12 e 13 |
+| Perdita nascosta sotto il minimale della partita IVA | Il netto era troncato a zero con `Math.max`. Un artigiano a fatturato nullo leggeva «0 €» invece di un debito di 4.521,36 € verso l'INPS: il numero grande mentiva proprio nel caso in cui contava di più | Lo scoperto viene calcolato, mostrato nella cascata e dichiarato in un avviso, come già avveniva nella scheda Avanzato |
+| La spiegazione del netto della partita IVA non quadrava | I passi mostrati nel popover erano fatturato − contributi − imposte: i costi deducibili non comparivano, quindi in regime ordinario la somma mancava il totale di tutto il loro importo. Con lo scoperto appena introdotto sarebbe sbagliata anche in perdita | I passi si costruiscono su ciò che esiste davvero nello scenario, e un test verifica l'identità contabile su 441 combinazioni di gestione, regime e fatturato |
+| Riduzione del 35% applicata al contributo di maternità | La riduzione del forfetario veniva calcolata sul totale. È la sola contribuzione previdenziale a scendere: la maternità è un importo fisso a copertura di una prestazione | La riduzione colpisce la sola quota IVS |
+| La suite non girava da nessuna parte | Esisteva solo dietro un bottone nella pagina. La CI verificava il foglio di stile, non i conti: una modifica al motore poteva arrivare in produzione senza che un test fosse mai eseguito | `build/prova_motore.js` la esegue fuori dal browser e `verifica-motore.yml` la lancia a ogni push, insieme ai controlli sul dataset |
+
+Il filo comune è uno solo, e vale la pena dirlo: **una suite di test non può trovare un errore di lettura della norma.** Può solo confermare che il codice fa quello che l'autore credeva dicesse la legge. Per questo i due controlli che hanno prodotto questa sezione sono di natura diversa dalla suite — la riscrittura indipendente del motore e la rilettura del testo di legge accanto al codice — e per questo il test dei dirigenti era verde mentre l'esclusione non funzionava.
 
 Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
 
@@ -422,7 +477,7 @@ Tutti e tre riducono l'imponibile IRPEF e **nessuno riduce la base contributiva*
 
 La domanda che in un'azienda di HR si fa ogni giorno è l'inversa di quella che i calcolatori sanno rispondere: *"il candidato chiede 2.500 € netti al mese, che RAL devo mettere nell'offerta?"*.
 
-L'inversione avviene per bisezione sul motore stesso, ma il caso interessante nasce dalle discontinuità del §4.5. Un salto verso il basso **non** lascia buchi nell'insieme dei netti raggiungibili: fa attraversare due volte lo stesso livello. La conseguenza pratica è che alcune cifre nette corrispondono a **più RAL diverse**.
+L'inversione avviene per bisezione sul motore stesso, ma il caso interessante nasce dalle discontinuità del §4.6. Un salto verso il basso **non** lascia buchi nell'insieme dei netti raggiungibili: fa attraversare due volte lo stesso livello. La conseguenza pratica è che alcune cifre nette corrispondono a **più RAL diverse**.
 
 Esempio reale prodotto dal motore, vicino allo scalino di Milano:
 
@@ -705,6 +760,9 @@ Dichiarati anche nell'interfaccia, non solo qui:
 
 - Le aliquote contributive vengono dalle **tabelle INPS** e si scelgono su tre assi — settore, qualifica, dimensione dell'organico — perché sono i tre che le determinano. La quota a carico del datore è la differenza fra il totale di tabella e la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate solo agricoltura e lavoro domestico.
 - Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.
+- La detrazione per figli a carico vale per i **21–30 anni**: sotto i 21 il posto lo prende l'Assegno Unico, dai 30 la detrazione cessa. L'eccezione per i figli con disabilità accertata, che non ha limite d'età, non è modellata perché il calcolatore non chiede l'età dei figli né la loro condizione. La detrazione per altri familiari spetta dal 2025 ai soli **ascendenti conviventi**: il campo va compilato con quelli, non con fratelli o generi.
+- Il premio di risultato agevolato spetta a chi ha avuto un reddito di lavoro dipendente non superiore a 80.000 € **nell'anno precedente**. Il motore usa la RAL dello scenario corrente, che è l'unico reddito che conosce: su una carriera stabile le due cifre coincidono, su un anno di forte variazione no.
+- La **riduzione contributiva del 50% per 36 mesi** riservata a chi si è iscritto per la prima volta alle gestioni artigiani e commercianti non è modellata. Non è una dimenticanza: la misura si conta in mesi dalla data di iscrizione, e il motore della partita IVA ragiona per anno d'imposta senza conoscere quella data. Modellarla avrebbe richiesto di indovinare la finestra di vigenza oltre il 2025, e un dato fiscale indovinato è peggio di un dato assente. Chi ne ha diritto deve ridurre a mano la voce dei contributi.
 - Il taglio forfettario di 440 € sulle detrazioni al 19% per redditi oltre 200.000 € non è modellato, perché il calcolatore non gestisce oneri detraibili: senza oneri, non c'è nulla da tagliare.
 - Il fringe benefit da auto aziendale va inserito come importo già valorizzato: il motore non calcola le tabelle ACI.
 - Per la partita IVA la previdenza si sceglie fra tre **gestioni INPS**. Artigiani e commercianti hanno un minimale di 18.808 €: sotto quel reddito il contributo non scende, e a reddito zero restano dovuti 4.521,36 € o 4.611,64 €. Chi versa a una **cassa professionale** di categoria non è ancora coperto e non deve usare la Gestione Separata come approssimazione. I contributi sono imputati per competenza, senza acconti e saldo. L'IVA resta fuori dal calcolo.
@@ -752,9 +810,12 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 |---|---|
 | Assetto a tre scaglioni IRPEF, aliquote 23% / 35% / 43% nel 2025 e 23% / 33% / 43% dal 2026 | TUIR — D.P.R. 917/1986, art. 11; tre scaglioni introdotti dal D.Lgs. 216/2023 e resi strutturali dalla L. 207/2024; seconda aliquota ridotta al 33% dalla Legge di Bilancio 2026 |
 | Detrazioni per lavoro dipendente e correttivo di fascia | TUIR, art. 13 |
+| Pavimento della detrazione ragguagliata ai giorni: 690 €, 1.380 € nei rapporti a termine | TUIR, art. 13, comma 1, lett. a) |
+| Correttivo di fascia da 65 €: non rapportato al periodo di lavoro nell'anno | D.Lgs. 216/2023, art. 2, comma 2, reso strutturale dalla L. 207/2024 |
 | Detrazioni per carichi di famiglia (sezione Premium) | TUIR, art. 12 |
 | Taglio del cuneo fiscale 2025: bonus esentasse fino a 20.000 € e ulteriore detrazione 20.000–40.000 € | L. 207/2024 (Legge di Bilancio 2025); istruzioni operative Agenzia delle Entrate |
 | Trattamento integrativo (1.200 € annui) e condizione di capienza | D.L. 3/2020 conv. L. 21/2020, come modificato dal D.Lgs. 216/2023 |
+| Taglio di 75 € alla detrazione dell'art. 13 ai soli fini del trattamento integrativo | L. 234/2021, art. 1, comma 3 |
 | Aliquota contributiva 9,19% a carico del lavoratore | Circolari INPS sulle aliquote contributive del settore privato (FPLD) |
 | Aliquote totali per settore, qualifica e dimensione: industria, edilizia, artigianato, commercio, pubblici esercizi, logistica | Tabelle INPS delle aliquote contributive, edizione 2026; scomposizione per voce dalla tabella INPS di gennaio 2023 (IVS 33%, NASpI 1,61%, CUAF 0,68%, CIG, fondo di garanzia TFR 0,20%, malattia, maternità) |
 | Addizionale regionale IRPEF Lombardia, scaglioni 1,23% / 1,58% / 1,72% / 1,73% | Legge regionale Lombardia sull'addizionale IRPEF; elenco aliquote pubblicato dal MEF — Dipartimento delle Finanze |
@@ -768,7 +829,7 @@ Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria las
 | Aliquota aggiuntiva 1% | Art. 3-ter D.L. 384/1992, conv. L. 438/1992 |
 | Gestione separata: 35,03% per i collaboratori (un terzo e due terzi), 26,07% per i professionisti, massimale 122.295 € | INPS, circolare n. 8 del 3 febbraio 2026 |
 | Artigiani 24% e commercianti 24,48% (25% e 25,48% oltre 56.224 €), minimale 18.808 €, maternità 7,44 €, contributi fissi 4.521,36 € e 4.611,64 € | INPS, circolare n. 14 del 9 febbraio 2026 |
-| Riduzione contributiva del 35% per i forfetari iscritti alle gestioni artigiani e commercianti | L. 190/2014, art. 1 comma 77 |
+| Riduzione contributiva del 35% per i forfetari iscritti alle gestioni artigiani e commercianti, applicata alla sola quota IVS | L. 190/2014, art. 1 comma 77; INPS, circolare n. 35/2016 |
 | Detrazione per redditi di lavoro autonomo | TUIR, art. 13, comma 5 |
 | Regime forfetario: soglia 85.000 €, imposta sostitutiva 15% e 5%, coefficienti di redditività per gruppo ATECO | L. 190/2014, art. 1, commi 54-89 e **allegato 4** |
 | Imposta sostitutiva su premi di risultato (5% nel 2025, 1% nel 2026) e sui compensi accessori | L. 208/2015; Legge di Bilancio 2026 |
@@ -793,7 +854,7 @@ Sono esattamente il tipo di errore che un valore "plausibile" nasconde e che sol
 
 **Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati in Node.js sul motore estratto da `index.html`, con la procedura riproducibile descritta al §5.
 
-**Reimplementazione indipendente.** Il motore semplice è stato riscritto una seconda volta partendo dalle norme e non dal codice — INPS al 9,19%, i tre scaglioni, la detrazione dell'art. 13 con il correttivo di fascia, le due nature del cuneo, la capienza, il trattamento integrativo, gli scaglioni lombardi e lo scalino di Milano — e le due implementazioni sono state confrontate **su ogni RAL da 0 a 250.000 € a passo di un euro**, undici campi per volta: **2.750.011 confronti**. La riscrittura ha fatto emergere un difetto, corretto al §5.1: a reddito zero il motore dichiarava 1.955 € di detrazioni non godute su una busta paga inesistente. Le tre discontinuità del §4.5 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
+**Reimplementazione indipendente.** Il motore semplice è stato riscritto una seconda volta partendo dalle norme e non dal codice — INPS al 9,19%, i tre scaglioni, la detrazione dell'art. 13 con il correttivo di fascia, le due nature del cuneo, la capienza, il trattamento integrativo, gli scaglioni lombardi e lo scalino di Milano — e le due implementazioni sono state confrontate **su ogni RAL da 0 a 250.000 € a passo di un euro**, undici campi per volta: **2.750.011 confronti**. La riscrittura ha fatto emergere quattro difetti, corretti al §5.1 e al §5.2: a reddito zero il motore dichiarava 1.955 € di detrazioni non godute su una busta paga inesistente; il trattamento integrativo ignorava il taglio di 75 € della L. 234/2021; il ragguaglio della detrazione ai giorni non conosceva il proprio pavimento; il correttivo di fascia veniva ragguagliato mentre la norma dice il contrario. Le quattro discontinuità del §4.6 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
 
 ---
 
@@ -862,10 +923,12 @@ Quello che l'architettura garantisce è che quel lavoro umano costi il minimo po
 │   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
 │   ├── verifica_dataset.py         # Controlli di integrita', gira in CI
 │   ├── estrai_motore.py            # Estrae il motore come modulo Node, per la verifica fuori dal browser
+│   ├── prova_motore.js             # Esegue la suite della pagina senza browser, per la CI
 │   ├── costruisci_css.js           # Compila il foglio Tailwind e lo incorpora in index.html
 │   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
 └── .github/workflows/
     ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
+    ├── verifica-motore.yml         # Suite di regressione e integrita' del dataset, a ogni push
     ├── verifica-css.yml            # Il CSS incorporato corrisponde al markup, a ogni push
     └── sorveglia-norme.yml         # Sorveglia le circolari INPS ogni lunedi'
 ```
@@ -877,7 +940,17 @@ node build/costruisci_css.js             # ricompila e reincorpora
 node build/costruisci_css.js --verifica  # non scrive: dice solo se e' rimasto indietro
 ```
 
-`index.html` pesa circa **642 KB** (**182 KB** compressi in transito), di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali e **23 KB** il foglio di stile compilato: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 367 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
+Prima di un commit che tocca il motore, i tre controlli che gira anche la CI:
+
+```bash
+node build/prova_motore.js       # 91/91 test superati
+python build/verifica_dataset.py # integrita' delle aliquote territoriali
+node build/costruisci_css.js --verifica
+```
+
+Se cambia una formula, l'impronta del motore non corrisponde piu' a quella dichiarata e un test lo dice: vanno aggiornate `ENGINE_VERSION` e `IMPRONTA_MOTORE` in testa allo script, con il valore che il messaggio d'errore riporta. E' un attrito voluto, e serve a rendere visibile in pagina che il motore e' cambiato.
+
+`index.html` pesa circa **663 KB** (**184 KB** compressi in transito), di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali e **23 KB** il foglio di stile compilato: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 388 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
 
 Il repository è collegato a Vercel: ogni push sul ramo `main` pubblica il sito, e ogni pull request genera un'anteprima con indirizzo proprio. La pull request aperta dal workflow di aggiornamento dati è quindi ispezionabile prima di essere accettata.
 

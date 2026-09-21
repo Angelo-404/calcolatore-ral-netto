@@ -32,6 +32,10 @@
 /* === FINE CSS TAILWIND === */
 
 /* --- Stile proprio della pagina: vince sulle utility, quindi viene dopo --- */
+  /* Inter non viene scaricato: la CSP non ammette font di terze parti e la
+     pagina non deve dipendere da una richiesta esterna per essere leggibile.
+     Resta in testa alla catena perche' chi ce l'ha installato lo usa; tutti
+     gli altri cadono sul font di sistema, che e' la resa prevista. */
   body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
   .num { font-variant-numeric: tabular-nums; }
   input[type=number]::-webkit-outer-spin-button,
@@ -711,16 +715,16 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label for="p-figli" class="block text-sm font-semibold text-slate-700 mb-1.5">Figli a carico 21+</label>
+            <label for="p-figli" class="block text-sm font-semibold text-slate-700 mb-1.5">Figli a carico 21&ndash;30</label>
             <input id="p-figli" type="number" min="0" max="10" step="1" value="0"
                    class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <p class="text-[11px] text-slate-500 mt-1">Sotto i 21 anni: solo Assegno Unico</p>
+            <p class="text-[11px] text-slate-500 mt-1">Sotto i 21 anni solo Assegno Unico; dai 30 la detrazione cessa, salvo disabilit&agrave;</p>
           </div>
           <div>
-            <label for="p-altri" class="block text-sm font-semibold text-slate-700 mb-1.5">Altri familiari</label>
+            <label for="p-altri" class="block text-sm font-semibold text-slate-700 mb-1.5">Ascendenti conviventi</label>
             <input id="p-altri" type="number" min="0" max="10" step="1" value="0"
                    class="num w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <p class="text-[11px] text-slate-500 mt-1">750 &euro; teorici pro capite</p>
+            <p class="text-[11px] text-slate-500 mt-1">750 &euro; teorici pro capite: dal 2025 spetta solo per gli ascendenti conviventi</p>
           </div>
         </div>
       </div>
@@ -1240,8 +1244,8 @@
    l'impronta del motore con quella registrata qui sotto e fallisce quando le
    due divergono. E' lo stesso principio applicato alle norme: cio' che non si
    puo' automatizzare, lo si puo' almeno rendere impossibile da dimenticare. */
-const ENGINE_VERSION = '2.0.1';
-const IMPRONTA_MOTORE = '0eb51aef';
+const ENGINE_VERSION = '2.1.0';
+const IMPRONTA_MOTORE = '7e550e6d';
 
 const COSTANTI = {
   ALIQUOTA_INPS: 0.0919,
@@ -1258,7 +1262,14 @@ const COSTANTI = {
     MINIMA: 1955,
     CORRETTIVO: 65,
     CORRETTIVO_DA: 25000,
-    CORRETTIVO_A: 35000
+    CORRETTIVO_A: 35000,
+    /* Art. 13, comma 1, lettera a) TUIR: dentro la prima fascia la detrazione
+       ragguagliata ai giorni non puo' scendere sotto un pavimento, che e' piu'
+       alto nei rapporti a termine. Senza questa regola un contratto di pochi
+       mesi pagava imposta su una detrazione ridotta dal ragguaglio. */
+    PAVIMENTO_FINO: 15000,
+    PAVIMENTO: 690,
+    PAVIMENTO_DETERMINATO: 1380
   },
 
   CUNEO: {
@@ -1273,7 +1284,13 @@ const COSTANTI = {
   TRATTAMENTO_INTEGRATIVO: {
     IMPORTO: 1200,
     SOGLIA_PIENA: 15000,
-    SOGLIA_MAX: 28000
+    SOGLIA_MAX: 28000,
+    /* L. 234/2021, art. 1, comma 3: per decidere se il trattamento spetta, la
+       detrazione dell'art. 13 va confrontata con l'imposta lorda DIMINUITA di
+       75 euro rapportati al periodo di lavoro. Il taglio esiste perche' la
+       detrazione minima e' salita a 1.955 € e senza di esso una fascia di
+       redditi bassi sarebbe rimasta fuori dal trattamento. */
+    TAGLIO_DETRAZIONE: 75
   },
 
   ADD_REGIONALE_LOMBARDIA: [
@@ -1306,9 +1323,11 @@ function calcolaIrpefLorda(imponibile) {
 }
 
 /* ------------------------------------- DETRAZIONI LAVORO DIPENDENTE */
-function calcolaDetrazioniBase(imponibile) {
-  let detrazione;
-
+/* La sola quota a scaglioni, senza il correttivo di fascia. I due pezzi
+   restano separati perche' seguono regole diverse quando il rapporto non
+   copre l'anno intero: la quota a scaglioni si ragguaglia ai giorni, il
+   correttivo no. */
+function detrazioneScaglione(imponibile) {
   /* La detrazione dell'art. 13 spetta perche' al reddito concorrono redditi
      di lavoro dipendente: senza imponibile non ne matura nessuna, e senza
      questa riga il motore dichiarava 1.955 € di detrazioni "non godute" su
@@ -1317,22 +1336,45 @@ function calcolaDetrazioniBase(imponibile) {
 
   if (imponibile <= 15000) {
     // No tax area: la detrazione minima spettante è 1.955 €
-    detrazione = COSTANTI.DETRAZIONI.MINIMA;
-  } else if (imponibile <= 28000) {
-    detrazione = 1910 + 1190 * ((28000 - imponibile) / 13000);
-  } else if (imponibile <= 50000) {
-    detrazione = 1910 * ((50000 - imponibile) / 22000);
-  } else {
-    detrazione = 0;
+    return COSTANTI.DETRAZIONI.MINIMA;
   }
+  if (imponibile <= 28000) {
+    return 1910 + 1190 * ((28000 - imponibile) / 13000);
+  }
+  if (imponibile <= 50000) {
+    return 1910 * ((50000 - imponibile) / 22000);
+  }
+  return 0;
+}
 
-  // Correttivo di fascia: +65 € tra 25.000 e 35.000 € di imponibile
+/* Correttivo di fascia: +65 € tra 25.000 e 35.000 € di imponibile.
+   La norma che lo introduce dice espressamente che l'importo non e'
+   rapportato al periodo di lavoro nell'anno: chi lavora sei mesi ne prende
+   65, non 32,50. */
+function correttivoFascia(imponibile) {
   const C = COSTANTI.DETRAZIONI;
-  if (imponibile > C.CORRETTIVO_DA && imponibile <= C.CORRETTIVO_A) {
-    detrazione += C.CORRETTIVO;
+  if (imponibile <= 0) return 0;
+  return imponibile > C.CORRETTIVO_DA && imponibile <= C.CORRETTIVO_A ? C.CORRETTIVO : 0;
+}
+
+function calcolaDetrazioniBase(imponibile) {
+  return detrazioneScaglione(imponibile) + correttivoFascia(imponibile);
+}
+
+/* Detrazione da lavoro dipendente su un rapporto che non copre l'anno:
+   la quota a scaglioni si ragguaglia ai giorni ma non scende sotto il
+   pavimento dell'art. 13, comma 1, lettera a); il correttivo di fascia si
+   somma intero. Il pavimento vive dentro la lettera a), quindi vale solo
+   nella prima fascia di reddito. */
+function detrazioneDipendentePeriodo(imponibile, quotaAnno, tempoDeterminato) {
+  const C = COSTANTI.DETRAZIONI;
+  let scaglione = detrazioneScaglione(imponibile) * quotaAnno;
+
+  if (imponibile > 0 && imponibile <= C.PAVIMENTO_FINO) {
+    scaglione = Math.max(scaglione, tempoDeterminato ? C.PAVIMENTO_DETERMINATO : C.PAVIMENTO);
   }
 
-  return detrazione;
+  return scaglione + correttivoFascia(imponibile);
 }
 
 /* --------------------------------------------- CUNEO FISCALE 2025/26 */
@@ -1357,19 +1399,31 @@ function calcolaUlterioreDetrazione(imponibile) {
 }
 
 /* --------------------------------------- TRATTAMENTO INTEGRATIVO */
-// Ex bonus Renzi: 1.200 € annui. Non spetta in caso di incapienza.
-function calcolaTrattamentoIntegrativo(imponibile, irpefLorda, detrazioniBase, totDetrazioni) {
+/* Ex bonus Renzi: 1.200 € annui. Non spetta in caso di incapienza.
+
+   `detrazioniRilevanti` e' la somma delle sole detrazioni che la norma
+   elenca — quelle degli articoli 12 e 13 del TUIR. L'ulteriore detrazione
+   del cuneo nasce fuori dal TUIR (L. 207/2024, art. 1, comma 6) e l'elenco
+   del D.L. 3/2020 e' chiuso: quindi resta fuori dal confronto, anche se
+   entra regolarmente nel calcolo dell'IRPEF netta.                        */
+function calcolaTrattamentoIntegrativo(imponibile, irpefLorda, detrazioniBase,
+                                       detrazioniRilevanti, quotaAnno = 1) {
   const T = COSTANTI.TRATTAMENTO_INTEGRATIVO;
 
+  if (imponibile <= 0) return 0;
+
   if (imponibile <= T.SOGLIA_PIENA) {
-    // Diritto pieno solo se l'imposta lorda supera la detrazione da lavoro
-    // dipendente: sotto quella soglia il contribuente è incapiente.
-    return irpefLorda > detrazioniBase ? T.IMPORTO : 0;
+    /* Diritto pieno solo se l'imposta lorda supera la detrazione da lavoro
+       dipendente diminuita di 75 € rapportati al periodo: sotto quel punto
+       il contribuente e' incapiente. Il taglio sposta il pareggio da 8.500 €
+       a 8.173,91 € di imponibile. */
+    const soglia = Math.max(0, detrazioniBase - T.TAGLIO_DETRAZIONE * quotaAnno);
+    return irpefLorda > soglia ? T.IMPORTO : 0;
   }
 
   if (imponibile <= T.SOGLIA_MAX) {
     // Spetta per la sola quota di detrazioni eccedente l'imposta lorda
-    const eccedenza = totDetrazioni - irpefLorda;
+    const eccedenza = detrazioniRilevanti - irpefLorda;
     return eccedenza > 0 ? Math.min(T.IMPORTO, eccedenza) : 0;
   }
 
@@ -1429,9 +1483,11 @@ function calcolaBase(ral) {
   const detrazioneNonGoduta = totDetrazioni - detrazioneEffettiva;
   const irpefNetta = Math.max(0, irpefLorda - detrazioneEffettiva);
 
-  // 7. Trattamento integrativo
+  /* 7. Trattamento integrativo. Fra 15.000 e 28.000 € il confronto guarda le
+        sole detrazioni degli articoli 12 e 13: senza carichi di famiglia
+        resta la sola detrazione da lavoro dipendente. */
   const trattamentoIntegrativo =
-    calcolaTrattamentoIntegrativo(imponibile, irpefLorda, detrazioniBase, totDetrazioni);
+    calcolaTrattamentoIntegrativo(imponibile, irpefLorda, detrazioniBase, detrazioniBase);
 
   // 8. Fiscalità locale
   const addReg = calcolaAddizionaleRegionale(imponibile);
@@ -18111,7 +18167,10 @@ function contributiPrevidenziali(redditoLordo, chiaveGestione, forfetarioRidotto
     ? base * g.aliquota
     : g.sogliaFascia * g.aliquota + (base - g.sogliaFascia) * g.aliquotaOltre;
   const lordo = ivs + g.maternita;
-  const riduzione = forfetarioRidotto ? lordo * g.riduzioneForfetario : 0;
+  /* La riduzione del forfetario colpisce la sola contribuzione previdenziale.
+     Il contributo di maternita' resta dovuto per intero: e' un importo fisso
+     a copertura di una prestazione, non una quota del montante. */
+  const riduzione = forfetarioRidotto ? ivs * g.riduzioneForfetario : 0;
 
   return { gestione: g, base, contributi: lordo - riduzione,
            suMinimale: reddito < g.minimale, riduzione,
@@ -18132,6 +18191,10 @@ const TIPI_RAPPORTO = {
   determinato: {
     nome: 'Tempo determinato',
     addizionaleDatore: 0.014,
+    /* Alza il pavimento della detrazione dell'art. 13 da 690 a 1.380 €:
+       conta solo sui rapporti che non coprono l'anno intero, dove il
+       ragguaglio ai giorni porterebbe la detrazione sotto quel valore. */
+    tempoDeterminato: true,
     nota: 'Contributo addizionale NASpI dell’1,40% a carico del datore, '
         + 'che sale di 0,50 punti a ogni rinnovo ed e’ restituito se il rapporto viene trasformato.'
   },
@@ -18202,7 +18265,7 @@ const ESONERI = {
     finestraA: '2029-12-31',
     regioni: REGIONI_MEZZOGIORNO,
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'collaboratore'],
-    profiliEsclusi: ['domestico', 'agricolo_operaio'],
+    settoriEsclusi: ['domestico', 'agricoltura'],
     condizioni: 'Datori privati con meno di 250 dipendenti, sedi nelle otto regioni del Mezzogiorno. Esclusi agricoltura, lavoro domestico e pubblica amministrazione.',
     fonte: 'L. 207/2024, art. 1, commi 406-412 — INPS circolare n. 32/2025',
     verificatoIl: '2026-08-21'
@@ -18218,7 +18281,7 @@ const ESONERI = {
     finestraA: '2026-12-31',
     mesi: 24,
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico'],
+    settoriEsclusi: ['domestico'],
     condizioni: 'Assunzione a tempo indeterminato di donne svantaggiate, con incremento occupazionale netto. Durata 24 mesi, ridotti a 12 nei settori con accentuata disparita’ di genere.',
     fonte: 'D.L. 60/2024, art. 23 — prorogato per il 2026 dal D.L. 200/2025',
     verificatoIl: '2026-08-21'
@@ -18234,7 +18297,7 @@ const ESONERI = {
     finestraA: '2026-04-30',
     mesi: 24,
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico'],
+    settoriEsclusi: ['domestico'],
     condizioni: 'Under 35 mai assunti a tempo indeterminato. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile, con esonero pieno solo in caso di incremento occupazionale netto.',
     fonte: 'D.L. 60/2024, art. 22 — proroga limitata dal D.L. 200/2025',
     verificatoIl: '2026-08-21'
@@ -18249,7 +18312,8 @@ const ESONERI = {
     finestraA: '2026-12-31',
     mesi: 24,
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico', 'dirigente'],
+    settoriEsclusi: ['domestico'],
+    qualificheEscluse: ['dirigente'],
     condizioni: 'Non e’ un incentivo all’assunzione ma alla trasformazione: vale per i passaggi a tempo indeterminato '
       + 'effettuati fra il 1° agosto e il 31 dicembre 2026 di rapporti a termine instaurati entro il 30 aprile 2026, '
       + 'senza soluzione di continuita’ e di durata complessiva non superiore a dodici mesi. Il lavoratore deve avere '
@@ -18273,7 +18337,8 @@ const ESONERI = {
     mesi: 24,
     regioni: REGIONI_MEZZOGIORNO,
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico', 'dirigente'],
+    settoriEsclusi: ['domestico'],
+    qualificheEscluse: ['dirigente'],
     condizioni: 'Personale non dirigenziale assunto a tempo indeterminato nelle aree della ZES unica. Nel 2026 la proroga copriva le sole assunzioni fino al 30 aprile.',
     fonte: 'D.L. 60/2024, art. 24 — proroga limitata dal D.L. 200/2025',
     verificatoIl: '2026-08-21'
@@ -18287,7 +18352,8 @@ const ESONERI = {
     finestraDa: '2026-01-01',
     finestraA: '2026-12-31',
     rapportiEsclusi: ['apprendistato', 'tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico', 'dirigente'],
+    settoriEsclusi: ['domestico'],
+    qualificheEscluse: ['dirigente'],
     condizioni: 'Datori privati, assunzione a tempo indeterminato o trasformazione, di madri con almeno tre figli under 18 prive di impiego regolarmente retribuito da almeno sei mesi. Personale non dirigenziale, premi INAIL esclusi dall’esonero.',
     fonte: 'L. 199/2025, art. 1, commi 210-213 — INPS circolare n. 82/2026',
     verificatoIl: '2026-08-21'
@@ -18302,7 +18368,7 @@ const ESONERI = {
     finestraDa: '2024-01-01',
     finestraA: '2026-12-31',
     rapportiEsclusi: ['tirocinio', 'determinato', 'collaboratore'],
-    profiliEsclusi: ['domestico'],
+    settoriEsclusi: ['domestico'],
     condizioni: 'Lavoratrici madri di almeno tre figli con rapporto a tempo indeterminato, fino al compimento dei 18 anni del figlio più piccolo. Il tetto di 3.000 € annui è ripartito su 12 mensilità.',
     fonte: 'L. 213/2023, art. 1, comma 180 — resa strutturale dalla L. 207/2024',
     verificatoIl: '2026-08-21'
@@ -18327,8 +18393,18 @@ function statoEsonero(chiave, params, oggi) {
 
   if (e.rapportiEsclusi && e.rapportiEsclusi.includes(params.tipoRapporto))
     return { esonero: e, applicabile: false, motivo: `non spetta per il rapporto selezionato` };
-  if (e.profiliEsclusi && e.profiliEsclusi.includes(params.profilo))
+
+  /* L'esclusione guarda il settore e la qualifica, non la chiave del profilo.
+     La chiave e' composta (`settore|qualifica|dimensione`) e confrontarla con
+     un nome piatto come 'dirigente' non combaciava mai: gli esoneri che la
+     legge nega ai dirigenti e al lavoro domestico venivano applicati lo
+     stesso. Si normalizza la chiave e si leggono i due assi separati. */
+  const profilo = PROFILI_CONTRIBUTIVI[normalizzaProfilo(params.profilo)];
+  if (profilo && e.settoriEsclusi && e.settoriEsclusi.includes(profilo.settore))
+    return { esonero: e, applicabile: false, motivo: `non spetta nel settore selezionato` };
+  if (profilo && e.qualificheEscluse && e.qualificheEscluse.includes(profilo.qualifica))
     return { esonero: e, applicabile: false, motivo: `non spetta per l’inquadramento selezionato` };
+
   if (e.regioni && !e.regioni.includes(params.regione))
     return { esonero: e, applicabile: false, motivo: `riservato alle regioni del Mezzogiorno` };
 
@@ -18430,7 +18506,8 @@ function calcolaIrpefLordaAnno(imponibile, anno) {
 }
 
 /* Contributi a carico del lavoratore, con massimale e aliquota aggiuntiva.
-   L'aliquota aggiuntiva dell'1% (art. 3-ter L. 438/1992) si applica alla
+   L'aliquota aggiuntiva dell'1% (art. 3-ter del D.L. 384/1992, convertito
+   dalla L. 438/1992) si applica alla
    quota eccedente la prima fascia di retribuzione pensionabile, e solo
    quando l'aliquota a carico del lavoratore è inferiore al 10%.          */
 function calcolaContributiLavoratore(baseContributiva, profilo, anno, massimaleAttivo, gestioneSeparata) {
@@ -18512,7 +18589,10 @@ function detrazioneConiuge(reddito) {
   return 0;
 }
 
-/* Detrazione per figli a carico di età pari o superiore a 21 anni */
+/* Detrazione per figli a carico — art. 12 TUIR.
+   Sotto i 21 anni il posto della detrazione lo prende l'Assegno Unico; dal
+   2025 la detrazione si ferma ai 30 anni compiuti, salvo figli con
+   disabilita' accertata, caso che il prototipo non modella. */
 function detrazioneFigli(reddito, numFigli) {
   if (numFigli <= 0) return 0;
   const tetto = 95000 + Math.max(0, numFigli - 1) * 15000;
@@ -18521,7 +18601,8 @@ function detrazioneFigli(reddito, numFigli) {
   return numFigli * importoBase * ((tetto - reddito) / tetto);
 }
 
-/* Detrazione per altri familiari a carico */
+/* Detrazione per altri familiari a carico — art. 12 TUIR.
+   Dal 2025 la platea e' ristretta ai soli ascendenti conviventi. */
 function detrazioneAltriFamiliari(reddito, num) {
   if (num <= 0 || reddito >= 80000) return 0;
   return num * 750 * ((80000 - reddito) / 80000);
@@ -18720,7 +18801,11 @@ function calcolaPremium(params) {
   // Le detrazioni e i benefici del cuneo sono rapportati al periodo di lavoro
   // La detrazione dell'art. 13 comma 1 TUIR richiama espressamente l'art. 50
   // comma 1 lettera c): al tirocinante spetta, ed e' rapportata ai giorni.
-  const detrazioniBase = calcolaDetrazioniBase(redditoComplessivo) * quotaAnno;
+  // Il ragguaglio non e' pero' una moltiplicazione e basta: dentro la prima
+  // fascia c'e' un pavimento di legge, e il correttivo di fascia non si
+  // ragguaglia affatto.
+  const detrazioniBase = detrazioneDipendentePeriodo(redditoComplessivo, quotaAnno,
+                                                     !!rapporto.tempoDeterminato);
 
   // Il taglio del cuneo e il trattamento integrativo si rivolgono ai
   // titolari di reddito di lavoro dipendente: l'indennita' di tirocinio e'
@@ -18745,8 +18830,14 @@ function calcolaPremium(params) {
   const detrazioneNonGoduta = totDetrazioni - detrazioneEffettiva;
   const irpefNetta = Math.max(0, irpefLorda - detrazioneEffettiva);
 
+  /* Al confronto del trattamento integrativo concorrono le detrazioni degli
+     articoli 12 e 13 del TUIR — quella da lavoro dipendente e quelle per
+     carichi di famiglia — e non l'ulteriore detrazione del cuneo, che il
+     D.L. 3/2020 non elenca. */
+  const detrazioniPerTrattamento = detrazioniBase + detrFamiliari;
   const trattamentoIntegrativo = rapporto.assimilato ? 0
-    : calcolaTrattamentoIntegrativo(redditoComplessivo, irpefLorda, detrazioniBase, totDetrazioni) * quotaAnno;
+    : calcolaTrattamentoIntegrativo(redditoComplessivo, irpefLorda, detrazioniBase,
+                                    detrazioniPerTrattamento, quotaAnno) * quotaAnno;
 
   /* --- Imposta sostitutiva su premi e compensi accessori --------------- */
   const impostaPremio = premioSostitutiva * A.premiAliquota;
@@ -18999,7 +19090,15 @@ function calcolaAutonomo(params) {
   }
 
   const imposte = irpefNetta + addReg + addCom + impostaSostitutiva;
-  const nettoAnnuo = Math.max(0, compenso - costi - contributi - imposte);
+
+  /* Il minimale delle gestioni artigiani e commercianti e' dovuto anche a
+     reddito zero: sotto una certa soglia di fatturato l'anno non si chiude
+     in pari, si chiude in perdita. Fermare il netto a zero e basta avrebbe
+     nascosto proprio il numero che conta, quindi la parte scoperta viene
+     calcolata e dichiarata, come gia' accade nella scheda Avanzato. */
+  const nettoGrezzo = compenso - costi - contributi - imposte;
+  const nettoScoperto = Math.max(0, -nettoGrezzo);
+  const nettoAnnuo = Math.max(0, nettoGrezzo);
 
   // Il confronto onesto e' fra prelievo e fatturato al netto dei costi:
   // e' quanto resta davvero di cio' che si e' guadagnato.
@@ -19012,7 +19111,7 @@ function calcolaAutonomo(params) {
     forfetario, coefficiente: forfetario ? p.coefficiente : null,
     redditoLordo, baseContributiva, contributi, imponibile,
     irpefLorda, detrazione, irpefNetta, addReg, addCom, impostaSostitutiva,
-    imposte, nettoAnnuo, nettoMensile: nettoAnnuo / 12, pressione,
+    imposte, nettoAnnuo, nettoScoperto, nettoMensile: nettoAnnuo / 12, pressione,
     oltreSoglia: forfetario && compenso > FORFETTARIO.soglia,
     massimaleRaggiunto: redditoLordo > prev.gestione.massimale,
     gestione: p.gestione, gestioneNome: prev.gestione.nome,
@@ -19320,6 +19419,7 @@ function soglieRilevanti(params) {
   const soglie = [
     { valore: PREMIUM.PREMIO_REDDITO_MAX, nome: 'Accesso ai premi agevolati', gradino: true },
     { valore: 15000, nome: 'Trattamento integrativo', gradino: true },
+    { valore: COSTANTI.CUNEO.BONUS_1_FINO, nome: 'Prima fascia del bonus del cuneo', gradino: true },
     { valore: 20000, nome: 'Bonus del cuneo fiscale', gradino: true },
     { valore: 35000, nome: 'Correttivo di fascia', gradino: true },
     { valore: 28000, nome: 'Seconda aliquota IRPEF', gradino: false },
@@ -19725,11 +19825,12 @@ function spiegazioniBase(r) {
     },
     trattamento: {
       titolo: 'Trattamento integrativo',
-      corpo: 'I 1.200 € annui dell\'ex bonus Renzi spettano solo se l\'imposta lorda supera la detrazione da lavoro dipendente. Il punto di pareggio cade a 8.500 € di imponibile: sotto, il contribuente è incapiente e il bonus non spetta.',
-      fonte: 'D.L. 3/2020 conv. L. 21/2020',
+      corpo: 'I 1.200 € annui dell\'ex bonus Renzi spettano solo se l\'imposta lorda supera la detrazione da lavoro dipendente. Il punto di pareggio cade a 8.173,91 € di imponibile, non a 8.500: la detrazione entra nel confronto diminuita di 75 € rapportati al periodo. Sotto quel punto il contribuente è incapiente e il bonus non spetta.',
+      fonte: 'D.L. 3/2020 conv. L. 21/2020 · taglio di 75 €: L. 234/2021, art. 1 comma 3',
       html: formula([
         ['IRPEF lorda', euro2(r.irpefLorda)],
-        ['Detrazione da lavoro', euro2(r.detrazioniBase)]
+        ['Detrazione da lavoro', euro2(r.detrazioniBase)],
+        ['− taglio di legge', euro2(COSTANTI.TRATTAMENTO_INTEGRATIVO.TAGLIO_DETRAZIONE)]
       ], ['Trattamento integrativo', euro2(r.trattamentoIntegrativo)])
     },
     netto: {
@@ -20235,7 +20336,8 @@ function spiegazioniPremium(r) {
       fonte: 'D.L. 3/2020 conv. L. 21/2020, come modificato dal D.Lgs. 216/2023',
       html: formula([
         ['IRPEF lorda', euro2(r.irpefLorda)],
-        ['Detrazione da lavoro', euro2(r.detrazioniBase)]
+        ['Detrazione da lavoro', euro2(r.detrazioniBase)],
+        ['− taglio di legge', euro2(COSTANTI.TRATTAMENTO_INTEGRATIVO.TAGLIO_DETRAZIONE)]
       ], ['Trattamento integrativo', euro2(r.trattamentoIntegrativo)])
     },
     addReg: {
@@ -20449,10 +20551,11 @@ function renderGrafico(rCorrente) {
 
 function improntaMotore() {
   const materia = [
-    calcolaBase, calcolaIrpefLorda, calcolaDetrazioniBase, calcolaBonusCuneo,
+    calcolaBase, calcolaIrpefLorda, calcolaDetrazioniBase, detrazioneScaglione,
+    correttivoFascia, detrazioneDipendentePeriodo, calcolaBonusCuneo,
     calcolaUlterioreDetrazione, calcolaTrattamentoIntegrativo, calcolaAddizionaleScaglioni,
-    calcolaPremium, calcolaContributiLavoratore, applicaRegimeAgevolato,
-    calcolaAutonomo, invertiNetto
+    calcolaPremium, calcolaContributiLavoratore, contributiPrevidenziali,
+    applicaRegimeAgevolato, statoEsonero, calcolaAutonomo, invertiNetto
   ].map((fn) => fn.toString()).join('')
     + JSON.stringify(COSTANTI) + JSON.stringify(ANNI) + JSON.stringify(PREMIUM);
 
@@ -20494,25 +20597,36 @@ function eseguiTest() {
   }
   check('IRPEF netta mai negativa (1k → 200k)', capienzaOk);
 
-  // Discontinuità: la normativa genera tre "trappole fiscali" note, dove a un
-  // aumento di RAL corrisponde un netto inferiore. Nessun'altra rottura di
-  // monotonicità è ammessa: sarebbe un bug del motore.
-  //   15.000 € → decadenza del trattamento integrativo
-  //   23.000 € → effetto scalino dell'addizionale comunale di Milano
-  //   35.000 € → decadenza del correttivo di fascia da 65 €
-  const soglieAttese = [15000, 23000, 35000];
+  /* Discontinuità: la normativa genera quattro "trappole fiscali" note, dove
+     a un aumento di RAL corrisponde un netto inferiore. Nessun'altra rottura
+     di monotonicità è ammessa: sarebbe un bug del motore.
+       8.500 €  → il bonus del cuneo scende dal 7,1% al 5,3%
+      15.000 €  → decadenza del trattamento integrativo
+      23.000 €  → effetto scalino dell'addizionale comunale di Milano
+      35.000 €  → decadenza del correttivo di fascia da 65 €
+     La prima è comparsa insieme alla correzione del trattamento integrativo:
+     finché il trattamento scattava a 8.500 € invece che a 8.173,91 €, i suoi
+     1.200 € cadevano esattamente sul gradino del cuneo e lo coprivano. Il
+     gradino c'era già — era la soglia sbagliata a nasconderlo.
+     La soglia si verifica al centesimo: arrotondare al migliaio confondeva
+     8.500 € con 9.000 € e avrebbe accettato una rottura nel punto sbagliato. */
+  const soglieAttese = [8500, 15000, 23000, 35000];
   const rotture = [];
   let precedente = null;
   for (let ral = 500; ral <= 250000; ral += 1) {
-    const netto = calcolaBase(ral).nettoAnnuo;
-    if (precedente !== null && netto < precedente - 1e-9) {
-      rotture.push(Math.round(calcolaBase(ral).imponibile / 1000) * 1000);
+    const r = calcolaBase(ral);
+    if (precedente !== null && r.nettoAnnuo < precedente - 1e-9) {
+      rotture.push(r.imponibile);
     }
-    precedente = netto;
+    precedente = r.nettoAnnuo;
   }
-  check('Monotonicità: rotture solo sulle 3 soglie normative note',
-        rotture.length === 3 && soglieAttese.every((s, i) => rotture[i] === s),
-        rotture.map((s) => s / 1000 + 'k € di imponibile').join(' · '));
+  /* Lo scalino cade fra due RAL intere consecutive, quindi l'imponibile del
+     primo punto oltre la soglia la supera di meno di un euro di RAL. */
+  const passoImponibile = 1 - COSTANTI.ALIQUOTA_INPS;
+  check('Monotonicità: rotture solo sulle 4 soglie normative note',
+        rotture.length === soglieAttese.length &&
+        soglieAttese.every((s, i) => rotture[i] > s && rotture[i] <= s + passoImponibile),
+        rotture.map((s) => euro2(s) + ' di imponibile').join(' · '));
 
   // Riconciliazione contabile della cascata
   let quadratura = true;
@@ -20533,6 +20647,18 @@ function eseguiTest() {
   check('Trattamento integrativo nullo in caso di incapienza',
         r10.irpefLorda <= r10.detrazioniBase ? r10.trattamentoIntegrativo === 0 : true);
 
+  /* Il pareggio del trattamento integrativo non cade sulla detrazione piena
+     ma su quella diminuita di 75 €: 1.880 / 0,23 = 8.173,91 € di imponibile.
+     Un euro sopra spetta, un euro sotto no, ed e' una fascia di RAL che senza
+     il taglio restava a secco di 1.200 €. */
+  const K = COSTANTI.TRATTAMENTO_INTEGRATIVO;
+  const pareggioTi = (COSTANTI.DETRAZIONI.MINIMA - K.TAGLIO_DETRAZIONE) / COSTANTI.IRPEF.ALIQUOTA_1;
+  const tiSopra = calcolaBase((pareggioTi + 5) / (1 - COSTANTI.ALIQUOTA_INPS));
+  const tiSotto = calcolaBase((pareggioTi - 5) / (1 - COSTANTI.ALIQUOTA_INPS));
+  check('Trattamento integrativo: il pareggio è la detrazione meno 75 €',
+        tiSopra.trattamentoIntegrativo === K.IMPORTO && tiSotto.trattamentoIntegrativo === 0,
+        `pareggio a ${euro2(pareggioTi)} di imponibile`);
+
   // Il motore Premium, sullo stesso scenario del motore Base, deve coincidere:
   // profilo standard, Milano/Lombardia, nessun parametro attivo. L'anno resta
   // 2025 perche' molti test piu' sotto misurano proprio il salto fra i due anni.
@@ -20552,6 +20678,36 @@ function eseguiTest() {
     }
   }
   check('«Avanzato» 2026 = «Task Jet HR» sotto la prima fascia pensionabile', equivalenza, scarto);
+
+  /* Fra 15.000 e 28.000 € il confronto guarda gli articoli 12 e 13, non
+     l'ulteriore detrazione del cuneo: contarla avrebbe fatto comparire un
+     trattamento integrativo dove la legge non lo prevede. */
+  const conFamiglia = { ...scenarioBase, anno: 2026, ral: 25000,
+                        coniugeACarico: true, figli: 2 };
+  const rFamiglia = calcolaPremium(conFamiglia);
+  check('Trattamento integrativo: l’ulteriore detrazione del cuneo non conta',
+        rFamiglia.ulterioreDetrazione > 0 &&
+        rFamiglia.detrazioniBase + rFamiglia.detrFamiliari < rFamiglia.irpefLorda &&
+        rFamiglia.trattamentoIntegrativo === 0,
+        `detrazioni 12+13 ${euro2(rFamiglia.detrazioniBase + rFamiglia.detrFamiliari)} vs lorda ${euro2(rFamiglia.irpefLorda)}`);
+
+  /* Art. 13, comma 1, lettera a): nella prima fascia la detrazione
+     ragguagliata non scende sotto 690 €, che diventano 1.380 € sui rapporti
+     a termine. Il correttivo di fascia, al contrario, non si ragguaglia. */
+  const corto = { ...scenarioBase, anno: 2026, ral: 30000, giorniLavorati: 90 };
+  const cortoInd = calcolaPremium(corto);
+  const cortoDet = calcolaPremium({ ...corto, tipoRapporto: 'determinato' });
+  check('Detrazione art. 13: il pavimento regge al ragguaglio ai giorni',
+        vicino(cortoInd.detrazioniBase, COSTANTI.DETRAZIONI.PAVIMENTO) &&
+        vicino(cortoDet.detrazioniBase, COSTANTI.DETRAZIONI.PAVIMENTO_DETERMINATO),
+        `${euro2(cortoInd.detrazioniBase)} · a termine ${euro2(cortoDet.detrazioniBase)}`);
+
+  const mezzoAnno = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 60000, giorniLavorati: 183 });
+  check('Correttivo di fascia: 65 € interi, non rapportati ai giorni',
+        vicino(mezzoAnno.detrazioniBase,
+               detrazioneScaglione(mezzoAnno.redditoComplessivo) * mezzoAnno.quotaAnno
+               + COSTANTI.DETRAZIONI.CORRETTIVO),
+        euro2(mezzoAnno.detrazioniBase));
 
   // Sopra la soglia lo scostamento deve essere esattamente il contributo dell'1%
   const alto = calcolaPremium({ ...scenarioBase, anno: 2026, ral: 70000 });
@@ -20786,9 +20942,20 @@ function eseguiTest() {
         occasione.guadagno > 0 && occasione.spostamento <= 6200,
         occasione ? `${occasione.nome}: ${euro(occasione.guadagno)} recuperati` : 'nessuna occasione');
 
-  // Chi è già sotto tutte le soglie non deve ricevere suggerimenti inutili
+  /* Chi è già sotto tutte le soglie non deve ricevere suggerimenti inutili.
+     La più bassa è ora il gradino del cuneo a 8.500 € di imponibile, quindi
+     il caso «già basso» va cercato sotto quello: a 12.000 € di RAL un
+     suggerimento c'è, ed è reale. */
   check('Soglie: nessun suggerimento se l’imponibile è già basso',
-        opportunitaSoglia({ ...scenarioBase, anno: 2026, ral: 12000 }, 6200) === null);
+        opportunitaSoglia({ ...scenarioBase, anno: 2026, ral: 8000 }, 6200) === null);
+
+  const gradinoCuneo = opportunitaSoglia({ ...scenarioBase, anno: 2026, ral: 12000 }, 6200);
+  check('Soglie: anche il gradino del cuneo a 8.500 € è un’occasione misurata',
+        gradinoCuneo !== null &&
+        gradinoCuneo.valore === COSTANTI.CUNEO.BONUS_1_FINO &&
+        gradinoCuneo.imponibileDopo < COSTANTI.CUNEO.BONUS_1_FINO &&
+        gradinoCuneo.guadagno > 0,
+        gradinoCuneo ? `${euro(gradinoCuneo.guadagno)} recuperati` : 'nessuna occasione');
 
   // Un pacchetto non deve promettere welfare che non verrà erogato: oltre
   // la soglia di reddito il premio agevolato non spetta.
@@ -20962,16 +21129,30 @@ function eseguiTest() {
         !fuoriFinestra.applicabile && fuoriFinestra.scaduto,
         `${euro(conStabilizz.esoneroDatore)} di contributi non versati`);
 
-  // Ambito soggettivo: fuori i dirigenti, dentro gli operai agricoli —
-  // il contrario della decontribuzione Sud, che l'agricoltura la esclude.
+  /* Ambito soggettivo: fuori i dirigenti, dentro gli operai agricoli — il
+     contrario della decontribuzione Sud, che l'agricoltura la esclude.
+     Le chiavi usate qui sono quelle composte che l'interfaccia produce
+     davvero: con i vecchi nomi piatti il confronto passava sempre, e
+     l'esclusione dei dirigenti non scattava mai fuori dal test. */
   const stabDirigente = statoEsonero('stabilizzazione',
-        { ...scenarioEsoneri, profilo: 'dirigente' }, dentroFinestra);
+        { ...scenarioEsoneri, profilo: 'industria|dirigente|fino50' }, dentroFinestra);
   const stabAgricolo = statoEsonero('stabilizzazione',
-        { ...scenarioEsoneri, profilo: 'agricolo_operaio' }, dentroFinestra);
+        { ...scenarioEsoneri, profilo: 'agricoltura|operaio|unica' }, dentroFinestra);
   const stabTermine = statoEsonero('stabilizzazione',
         { ...scenarioEsoneri, tipoRapporto: 'determinato' }, dentroFinestra);
   check('Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati',
         !stabDirigente.applicabile && stabAgricolo.applicabile && !stabTermine.applicabile);
+
+  /* La stessa esclusione deve reggere sulla chiave composta anche quando
+     arriva fino al motore: e' il percorso che fa l'interfaccia. */
+  const dirigenteEsonerato = calcolaPremium({ ...scenarioEsoneri, regione: 'Campania',
+        profilo: 'industria|dirigente|fino50', esoneri: ['stabilizzazione'], oggi: dentroFinestra });
+  const domesticoEsonerato = calcolaPremium({ ...scenarioEsoneri, regione: 'Campania',
+        profilo: 'domestico|operaio|unica', esoneri: ['sud_pmi'], oggi: dentroFinestra });
+  check('Esoneri: l’esclusione regge sulla chiave composta del profilo',
+        dirigenteEsonerato.esoneriApplicati.length === 0 && dirigenteEsonerato.esoneroDatore === 0 &&
+        domesticoEsonerato.esoneriApplicati.length === 0 && domesticoEsonerato.esoneroDatore === 0,
+        `dirigente ${euro2(dirigenteEsonerato.esoneroDatore)} · domestico ${euro2(domesticoEsonerato.esoneroDatore)}`);
 
   // Il cumulo vietato dalla legge non deve essere possibile
   check('Esoneri: le misure non cumulabili sono riconosciute',
@@ -21144,10 +21325,51 @@ function eseguiTest() {
   const ordRidotto = calcolaAutonomo({ anno: 2026, compenso: 30000,
                                        gestione: 'artigiani', riduzioneForfetaria: true });
   const ordPieno = calcolaAutonomo({ anno: 2026, compenso: 30000, gestione: 'artigiani' });
+  /* La riduzione taglia la sola quota previdenziale: il contributo di
+     maternita' e' un importo fisso a copertura di una prestazione e resta
+     dovuto per intero, quindi il totale ridotto non e' il 65% secco. */
+  const maternitaArt = GESTIONI_PREVIDENZIALI.artigiani.maternita;
   check('Gestioni INPS: la riduzione del 35% vale solo nel forfetario',
-        vicino(artRidotto.contributi, artPieno.contributi * 0.65, 0.01) &&
+        vicino(artRidotto.contributi, (artPieno.contributi - maternitaArt) * 0.65 + maternitaArt, 0.01) &&
         vicino(ordRidotto.contributi, ordPieno.contributi, 0.01),
         `forfetario ${euro2(artPieno.contributi)} → ${euro2(artRidotto.contributi)}`);
+
+  check('Gestioni INPS: la riduzione non tocca il contributo di maternità',
+        vicino(artPieno.contributi - artRidotto.contributi,
+               (artPieno.contributi - maternitaArt) * 0.35, 0.01),
+        `risparmio ${euro2(artPieno.contributi - artRidotto.contributi)}`);
+
+  /* A fatturato quasi nullo il minimale resta dovuto: il netto si ferma a
+     zero, ma lo scoperto va detto, altrimenti il numero grande mente. */
+  const inPerdita = calcolaAutonomo({ anno: 2026, compenso: 0, gestione: 'artigiani' });
+  const quotaMinimale = GESTIONI_PREVIDENZIALI.artigiani.minimale
+                      * GESTIONI_PREVIDENZIALI.artigiani.aliquota + maternitaArt;
+  check('Partita IVA: sotto il minimale il netto si ferma a zero e lo scoperto è dichiarato',
+        inPerdita.nettoAnnuo === 0 && vicino(inPerdita.nettoScoperto, quotaMinimale, 0.01),
+        `scoperto ${euro2(inPerdita.nettoScoperto)}`);
+  check('Partita IVA: nessuno scoperto quando il fatturato copre i contributi',
+        calcolaAutonomo({ anno: 2026, compenso: 40000, gestione: 'artigiani' }).nettoScoperto === 0);
+
+  /* Identita' contabile della cascata: e' quella che la spiegazione del netto
+     disegna passo per passo, e i passi devono sommare al totale mostrato.
+     Senza questo controllo la spiegazione aveva gia' smesso di quadrare in
+     presenza di costi deducibili, senza che nulla lo segnalasse. */
+  let quadraturaIva = true, scartoIva = '';
+  for (const caso of [{ compenso: 50000, costi: 10000 }, { compenso: 3000, costi: 0 },
+                      { compenso: 80000, costi: 0 }, { compenso: 25000, costi: 24000 }]) {
+    for (const gestione of Object.keys(GESTIONI_PREVIDENZIALI)) {
+      for (const regimeAutonomo of Object.keys(REGIMI_AUTONOMI)) {
+        const a = calcolaAutonomo({ anno: 2026, gestione, regimeAutonomo, coefficiente: 0.67, ...caso });
+        const somma = a.compenso - a.costi - a.contributi - a.imposte + a.nettoScoperto;
+        if (!vicino(somma, a.nettoAnnuo, 0.01)) {
+          quadraturaIva = false;
+          scartoIva = `${gestione}/${regimeAutonomo} a ${euro(caso.compenso)}: ${euro2(somma)} contro ${euro2(a.nettoAnnuo)}`;
+        }
+      }
+    }
+  }
+  check('Partita IVA: fatturato − costi − contributi − imposte + scoperto = netto',
+        quadraturaIva, scartoIva);
 
   // Il netto deve muoversi con la gestione scelta, altrimenti il campo e' finto.
   const nettoSep = calcolaAutonomo({ anno: 2026, compenso: 30000, gestione: 'separata_professionisti' }).nettoAnnuo;
@@ -21221,6 +21443,11 @@ function eseguiTest() {
           </li>`).join('')}
       </ul>
     </div>`;
+
+  /* Restituire l'elenco non serve alla pagina, serve alla CI: `build/prova_motore.js`
+     esegue questa stessa funzione fuori dal browser e legge da qui l'esito,
+     invece di rovistare nell'HTML appena scritto. */
+  return risultati;
 }
 
 /* ====================================================================
@@ -22296,7 +22523,7 @@ function bloccoSoglie(params, scelto) {
         Con il welfare di <strong>&laquo;${scelto.nome}&raquo;</strong>: ${euro(capienza)} spostabili
       </p>
       <p class="text-sm text-slate-700">
-        L'imponibile attuale supera di poco la soglia <strong>${occasione.nome}</strong>
+        L'imponibile attuale supera la soglia <strong>${occasione.nome}</strong>
         (${euro(occasione.valore)}). Spostando <strong>${euro(occasione.spostamento)}</strong>
         dalla retribuzione al welfare, l'imponibile scende a ${euro(occasione.imponibileDopo)} e
         il lavoratore recupera <strong class="text-emerald-700">${euro(occasione.guadagno)}</strong> l'anno,
@@ -22730,10 +22957,12 @@ function spiegazioniAutonomo(r, gestione) {
       titolo: 'Riduzione contributiva del 35%',
       corpo: 'È una facoltà dei forfetari iscritti alle gestioni artigiani e commercianti, e va chiesta all’INPS: '
         + 'non si applica da sola. Non è denaro regalato: l’accredito pensionistico si riduce nella stessa '
-        + 'proporzione, quindi si versa meno oggi e si matura meno domani.',
+        + 'proporzione, quindi si versa meno oggi e si matura meno domani. Il taglio riguarda la sola quota '
+        + 'previdenziale: il contributo di maternità resta dovuto per intero, quindi lo sconto sul totale '
+        + 'versato è poco meno del 35%.',
       html: formula([
         ['Contributi pieni', euro2(r.contributi + r.riduzioneContributiva)],
-        ['− riduzione del 35%', euro2(r.riduzioneContributiva)]
+        ['− 35% sulla quota previdenziale', euro2(r.riduzioneContributiva)]
       ], ['Contributi versati', euro2(r.contributi)])
     };
   }
@@ -22783,16 +23012,27 @@ function spiegazioniAutonomo(r, gestione) {
     };
   }
 
+  /* I passi devono sommare al risultato mostrato, altrimenti la spiegazione
+     smentisce il numero che pretende di spiegare. Due voci vanno quindi
+     incluse solo quando esistono davvero: i costi, che nel forfetario non si
+     deducono, e lo scoperto, che compare quando il fatturato non copre i
+     contributi e il netto si ferma a zero. */
+  const passiNetto = [['Fatturato', euro2(r.compenso)]];
+  if (r.costi > 0) passiNetto.push(['− costi deducibili', euro2(r.costi)]);
+  passiNetto.push(['− contributi', euro2(r.contributi)]);
+  passiNetto.push(['− imposte', euro2(r.imposte)]);
+  if (r.nettoScoperto > 0.005) passiNetto.push(['+ scoperto non coperto dal fatturato', euro2(r.nettoScoperto)]);
+
   S.netto = {
     titolo: 'Netto',
     corpo: 'Quello che resta dopo contributi e imposte. Non è uno stipendio: non ci sono TFR, mensilità '
       + 'aggiuntive, ferie retribuite né malattia pagata, e l’imposta si versa per acconti e saldo, con una '
-      + 'cassa che questo prototipo non simula.',
-    html: formula([
-      ['Fatturato', euro2(r.compenso)],
-      ['− contributi', euro2(r.contributi)],
-      ['− imposte', euro2(r.imposte)]
-    ], ['Netto annuo', euro2(r.nettoAnnuo)])
+      + 'cassa che questo prototipo non simula.'
+      + (r.nettoScoperto > 0.005
+          ? ' Qui il fatturato non copre il minimale contributivo: il netto si ferma a zero e la parte scoperta '
+            + 'resta un debito verso l’INPS, non un guadagno mancato.'
+          : ''),
+    html: formula(passiNetto, ['Netto annuo', euro2(r.nettoAnnuo)])
   };
 
   S.pressione = {
@@ -22905,6 +23145,14 @@ function aggiornaAutonomo() {
   }
   righe.push(rigaAutonomo('Netto', 'Quanto resta dopo contributi e imposte', r.nettoAnnuo,
     { forte: true, evidenzia: true, spiega: S.netto }));
+  /* Il netto si ferma a zero perche' sotto zero non e' piu' un netto: e' un
+     debito verso l'INPS. Dirlo su una riga propria e' l'unico modo perche' il
+     numero grande non menta. */
+  if (r.nettoScoperto > 0.005) {
+    righe.push(rigaAutonomo('Scoperto a carico dell’iscritto',
+      `Il minimale di ${euro(r.minimaleGestione)} è dovuto anche sotto quel reddito: questa quota non è coperta dal fatturato`,
+      r.nettoScoperto, { tipo: 'negativo', indent: true }));
+  }
   el('a-dettaglio').innerHTML = righe.join('');
 
   /* Il confronto fra i tre regimi e' il motivo per cui questa sezione
@@ -22942,6 +23190,11 @@ function aggiornaAutonomo() {
   if (r.regimeAutonomo === 'forfettario5') {
     avvisi.push('L’aliquota del 5% vale solo per i primi cinque anni di una nuova attività, '
       + 'e a condizione che non sia la prosecuzione di un’attività già svolta.');
+  }
+  if (r.nettoScoperto > 0.005) {
+    avvisi.push(`Con questo fatturato l’anno si chiude in perdita: contributi e imposte superano di `
+      + `${euro2(r.nettoScoperto)} quanto resta del fatturato. Il minimale di ${euro(r.minimaleGestione)} `
+      + 'è dovuto comunque, anche a reddito zero.');
   }
   const alert = el('a-alert');
   alert.classList.toggle('hidden', avvisi.length === 0);
