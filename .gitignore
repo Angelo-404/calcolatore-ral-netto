@@ -13,3 +13,6 @@ Thumbs.db
 CLAUDE.md
 .claude/
 docs/reviews/
+
+# Browser test screenshots
+.playwright-mcp/
