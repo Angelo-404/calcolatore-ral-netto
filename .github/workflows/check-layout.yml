@@ -1,0 +1,38 @@
+name: Check the page layout
+
+# The other checks never open the page, so a defect that only shows on screen
+# passes them all: cards numbered out of order, a page that doubles in
+# height, the net pushed off the first screen. This one opens the page in
+# Chrome, on a computer screen and on a phone screen, and checks the rules
+# listed in tools/check_layout.mjs. GitHub runners come with Chrome installed.
+
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'src/ui/**'
+      - 'src/texts/**'
+      - 'tools/check_layout.mjs'
+      - '.github/workflows/check-layout.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'src/ui/**'
+      - 'src/texts/**'
+      - 'tools/check_layout.mjs'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: The page looks as expected on computer and phone
+        run: node tools/check_layout.mjs

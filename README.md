@@ -119,7 +119,11 @@ node tools/run_tests.mjs          # i controlli sui conti: devono passare tutti
 node tools/check_golden.mjs       # 1.892 casi fissi confrontati al centesimo con tools/golden/expected.json
 python tools/check_dataset.py     # integrità dei dati regionali e comunali
 node tools/build_css.js --check   # il foglio di stile corrisponde alle classi usate
+node tools/check_layout.mjs       # la pagina in Chrome, da computer e da telefono: numeri dei riquadri, altezza, netto in vista
 ```
+
+Il controllo della pagina usa il Chrome già installato e, la prima volta, scarica in `tools/.cache/` la libreria che
+lo comanda.
 
 ### Aggiornare i dati
 
