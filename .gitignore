@@ -1,15 +1,15 @@
-# Dati scaricati e artefatti rigenerabili
-build/*.csv
-build/reg_*.html
-build/dataset.js
-build/motore_estratto.js
+# Downloaded sources (rebuilt by tools/build_dataset.py)
+tools/.cache/
 
-# Sistema
+# System
 Thumbs.db
 .DS_Store
 
-# Note di lavoro e configurazione locale
-PROJECT.md
-TASKJETHR.md
+# Local notes and configuration
+/PROJECT.md
+/TASK*.md
 .vercel
 .env*
+CLAUDE.md
+.claude/
+docs/reviews/

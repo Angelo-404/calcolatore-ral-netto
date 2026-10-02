@@ -1,0 +1,79 @@
+name: Update regional and municipal rates
+
+# Municipalities pass resolutions all year round and the Dipartimento delle
+# Finanze publishes the updated registry every day. This workflow downloads
+# the sources again, rebuilds the data module and opens a pull request only
+# when something really changed: no noisy commits when there is nothing new.
+on:
+  schedule:
+    - cron: '0 5 1,15 * *'   # on the 1st and the 15th of every month, 05:00 UTC
+  workflow_dispatch:          # can be run by hand from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # pipefail: if the MEF does not answer or the parser breaks, the step
+      # must fail instead of reporting "nothing new".
+      - name: Download the MEF sources and rebuild the data
+        id: dataset
+        shell: bash
+        run: |
+          set -o pipefail
+          set +e
+          python tools/build_dataset.py --refresh | tee report.txt
+          code=$?
+          set -e
+          if [ "$code" -eq 10 ]; then
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 0 ]; then
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+          else
+            exit "$code"
+          fi
+
+      - name: Check the integrity of the new data
+        if: steps.dataset.outputs.changed == 'yes'
+        run: python tools/check_dataset.py
+
+      # A pull request opened with the default GitHub token does not trigger
+      # the other workflows: the tests must run here, before proposing the data.
+      - name: Set up Node
+        if: steps.dataset.outputs.changed == 'yes'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run the engine tests on the new data
+        if: steps.dataset.outputs.changed == 'yes'
+        run: node tools/run_tests.mjs
+
+      - name: Open the pull request with the updated rates
+        if: steps.dataset.outputs.changed == 'yes'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: data/rates-update
+          title: 'chore: update MEF regional and municipal rates'
+          commit-message: 'chore: update MEF regional and municipal rates'
+          body-path: report.txt
+          delete-branch: true
+
+      # The workflow stops here on purpose. Publishing happens when a person
+      # merges the pull request after reading it: tax data does not reach
+      # production without someone looking at it, as the page says.
+
+      - name: Nothing new
+        if: steps.dataset.outputs.changed == 'no'
+        run: echo "No new resolution compared with the published version."

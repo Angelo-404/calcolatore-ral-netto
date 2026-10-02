@@ -1,0 +1,48 @@
+name: Check the calculation engine
+
+# The test suite runs on every push and pull request, together with the
+# integrity checks of the territorial data. A red result here means the
+# change must not be published.
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tools/**'
+      - 'index.html'
+      - '.github/workflows/check-engine.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tools/**'
+      - 'index.html'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Engine test suite
+        run: node tools/run_tests.mjs
+
+      - name: Golden master (fixed scenarios, to the cent)
+        run: node tools/check_golden.mjs
+
+      - name: Syntax of the interface modules
+        run: for f in src/ui/*.js; do node --check "$f"; done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Integrity of the territorial data
+        run: python tools/check_dataset.py

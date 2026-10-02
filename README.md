@@ -1,969 +1,141 @@
-# Calcolatore RAL → Netto — Prototipo tecnico
+# Calcolatore RAL → Netto
 
-Single Page Application che calcola la proiezione della **retribuzione netta annuale e mensile** a partire dalla RAL, secondo la normativa fiscale italiana **2025/2026**.
+Calcola lo stipendio netto, mensile e annuo, a partire dalla RAL, e il percorso inverso: quale RAL serve per arrivare
+a una cifra netta. Una seconda scheda fa lo stesso conto per chi lavora con partita IVA, in regime ordinario o
+forfettario. Le regole sono quelle del 2025 e del 2026; le addizionali regionali e comunali vengono dai dati ufficiali
+del Ministero dell'Economia e delle Finanze per tutti i 7.897 comuni italiani.
 
-**Applicazione online:** <https://calcolatore-ral-netto.vercel.app/>
-**Codice sorgente:** <https://github.com/Angelo-404/calcolatore-ral-netto>
+Online: <https://calcolatore-ral-netto.vercel.app/>
 
-Il progetto è organizzato in tre sezioni accessibili dallo stesso URL. Fra parentesi il nome tecnico usato nel codice e nel resto di questo documento:
+Il risultato è una **stima a scopo informativo**. Non è una consulenza fiscale, del lavoro o previdenziale e non
+sostituisce il cedolino né il parere di un professionista.
 
-| Sezione | Contenuto |
+## Che cosa calcola
+
+**Dipendente.** Dalla RAL al netto, passando per contributi INPS, IRPEF, detrazioni, taglio del cuneo fiscale,
+trattamento integrativo e addizionali. Si possono indicare il tipo di contratto (tempo indeterminato o determinato,
+apprendistato, collaborazione, tirocinio), il settore, l'inquadramento e la dimensione dell'azienda, la durata del
+rapporto e il part-time, i carichi di famiglia, il comune di residenza, il welfare (fringe benefit e buoni pasto), il
+premio di risultato, gli aumenti 2026 da rinnovo del contratto nazionale, le maggiorazioni per lavoro notturno, festivo e a turni, la previdenza complementare, i regimi
+agevolati (impatriati, ricercatori, frontalieri) e gli esoneri contributivi all'assunzione. Ogni voce del dettaglio
+ha un pulsante «i» che mostra il conto fatto sui numeri della simulazione.
+
+**Dal netto alla RAL.** Trova la RAL più bassa che produce il netto richiesto. Dove la legge crea un salto (per
+esempio quando scatta il trattamento integrativo) lo dice, invece di dare un numero che non esiste.
+
+**Partita IVA.** Regime ordinario e forfettario al 15% o al 5%, con la Gestione separata INPS o le gestioni artigiani e
+commercianti, i coefficienti di redditività per codice ATECO e la riduzione contributiva del 35% per i forfettari.
+Mostra il confronto fra i tre regimi per lo stesso fatturato, senza verificare se si hanno i requisiti per accedervi.
+
+**Per chi assume.** Costo azienda, confronto fra due scenari e un calcolo di come cambia il costo se parte del valore
+arriva come welfare esente. Sono confronti di calcolo, non indicazioni su come impostare una retribuzione.
+
+## Fonti
+
+Aliquote e soglie sono prese da leggi, circolari e dati pubblicati da enti ufficiali, citati qui sotto; i dati comunali
+e regionali sono quelli del MEF, con le correzioni descritte nei limiti. Le fonti principali:
+
+| Regola | Fonte |
 |---|---|
-| **Task Jet HR** (Base) | Lo scenario richiesto, con profilo e assunzioni fissi. Motore di calcolo canonico, anno d'imposta in corso. |
-| **Avanzato** (Premium) | Motore parametrico completo: anno d'imposta 2025 o 2026, aliquota contributiva scelta per settore, qualifica e dimensione dell'organico, massimale e aliquota aggiuntiva, fiscalità locale su **tutti i 7.897 comuni italiani** e 21 regioni e province autonome, periodo di lavoro e part-time, carichi di famiglia, welfare, premi di risultato, previdenza complementare e regimi fiscali agevolati. |
-| **P.IVA** (Partita IVA) | Lavoro autonomo: regime ordinario e forfetario al 15% o al 5%, coefficienti di redditività dell'allegato 4, tre gestioni previdenziali INPS con il minimale di artigiani e commercianti, riduzione contributiva del 35% e confronto fra i tre regimi a parità di fatturato. |
-
-La sezione Base è la fonte di verità: la sezione Premium la estende senza modificarne una riga. Sullo stesso scenario, i due motori restituiscono lo stesso identico netto — verificato da un test automatico su tutta la scala retributiva.
-
-I dati territoriali non sono stimati: sono importati dall'**anagrafe ufficiale delle delibere del MEF — Dipartimento delle Finanze**. Il §8 elenca tutte le fonti, il §9 documenta la pipeline di importazione.
-
----
-
-## Aderenza al brief
-
-| Richiesta del brief | Dove è soddisfatta |
-|---|---|
-| Input RAL, output netto annuale e mensile | Sezione Base, card di sintesi in alto |
-| "quanto sono le tasse che deve pagare" | Card **Tasse e contributi a carico del dipendente**: totale, quota mensile, split tra contributi INPS e imposte (IRPEF netta + addizionali) |
-| "mostra tutte le voci trattenute al lordo" | Tabella **Dettaglio del calcolo**: cascata riga per riga da RAL a netto, con valore annuo e quota mensile per ogni voce |
-| Pulsante "calcola" | Pulsante **Calcola** sotto il campo RAL (attivabile anche con Invio). Il calcolo è comunque reattivo sull'evento `input`: il pulsante ricalcola in modo esplicito e evidenzia il risultato |
-| Caso semplice e standard | Impiegato a tempo indeterminato, Milano, nessuna agevolazione — le tre semplificazioni suggerite dal brief, più quelle dichiarate al §3 |
-| Semplificazioni dichiarate e discutibili in interview | §3 (assunzioni), §4.6 (discontinuità), §6 (limiti Premium), §7 (perimetro) |
-| Controllo sulle logiche, non output di un tool generativo | Ogni soglia è una costante nominata, ogni regola una funzione pura testabile; §5 documenta 91 test eseguibili dalla pagina, riproducibili in Node e verificati in CI a ogni push |
-| "abilità di ricerca delle informazioni rilevanti dalle fonti" | §8 elenca ogni istituto con la sua fonte primaria e le **quattro correzioni** che il confronto con le fonti ufficiali ha prodotto; §9 documenta la pipeline che importa i dati dall'anagrafe MEF |
-
----
-
-## Come leggere questo documento
-
-Il documento è lungo perché documenta un dominio lungo. Se il tempo è poco, quattro sezioni rispondono a quello che la
-prova chiede di valutare, e si leggono in una decina di minuti:
-
-| Se vuoi vedere | Vai a | Perché |
-|---|---|---|
-| Che le logiche sono capite, non copiate | [§4 — Precisione del motore](#4-precisione-del-motore-di-calcolo) | I punti dove la normativa è controintuitiva: il cuneo che cambia natura a 20.000 €, l'effetto scalino di Milano, la capienza, il taglio di 75 € sul trattamento integrativo, il pavimento della detrazione, le quattro discontinuità della curva |
-| Come sono state cercate le fonti | [§8 — Fonti normative](#8-fonti-normative) e le [quattro correzioni](#quattro-correzioni-prodotte-dalla-verifica-sulle-fonti) che ha prodotto | Ogni istituto con la sua fonte primaria, e i quattro punti in cui leggere la norma ha smentito il calcolo che c'era |
-| Come è stato verificato | [§5.1 — Difetti emersi dal collaudo](#51-difetti-emersi-dal-collaudo-combinatorio) | Non l'elenco dei test che passano, ma i difetti che il collaudo ha trovato e come sono stati chiusi |
-| Dove il prototipo si ferma | [§6.22](#622-cosa-non-è-conoscibile-e-come-viene-dichiarato) e [§7 — Perimetro](#7-perimetro-del-prototipo) | Cosa non è modellato, cosa non è conoscibile, e la differenza fra le due cose |
-
-Il resto è documentazione di dettaglio: §6 descrive i parametri della scheda Avanzato uno per uno, §9 la pipeline che
-importa le aliquote dal MEF, §10 la struttura dei file.
-
----
-
-## 1. Come si esegue
-
-```bash
-# Nessuna installazione, nessun build step, nessun package manager.
-# Aprire il file direttamente nel browser:
-start index.html      # Windows
-open index.html       # macOS
-```
-
-Nessun requisito di rete: foglio di stile, dataset e motore di calcolo stanno dentro il file. La pagina funziona aperta da disco, senza connessione.
-
-Il motore di calcolo è esposto in console per ispezione diretta durante la valutazione:
-
-```js
-MotoreFiscale.calcolaBase(30000)
-// { ral: 30000, inps: 2757, imponibile: 27243, irpefLorda: 6265.89,
-//   detrazioniBase: 2044.29, irpefNetta: 3221.60, addReg: 377.94,
-//   addCom: 217.94, nettoAnnuo: 23425.52, nettoMensile: 1801.96, … }
-```
-
----
-
-## 2. Architettura
-
-**Scelta: SPA zero-dependencies in un unico file.**
-
-| Vincolo | Decisione | Motivazione |
-|---|---|---|
-| Distribuzione | Un solo `index.html` | Un valutatore deve poter aprire il file con un doppio click. Nessun `npm install`, nessun ambiente da ricostruire, nessuna versione di Node da allineare. |
-| Runtime | JavaScript nativo, ES2020 | Il dominio del problema è aritmetica pura su un input scalare. Un framework aggiungerebbe superficie senza risolvere alcun problema reale. |
-| Stile | Tailwind CSS compilato e incorporato | Design system coerente, senza dipendenze a runtime: il foglio contiene le sole classi usate dal markup (23 KB) e viaggia dentro il file. La CDN faceva compilare il CSS nel browser del visitatore, con una richiesta a un terzo e un istante di pagina senza stile. Il CSS è contenuto generato da `build/costruisci_css.js`, e un workflow verifica a ogni push che corrisponda al markup. |
-| Grafici | SVG generato a runtime | Evita di importare una libreria di charting da centinaia di kB per una singola curva. |
-| Stato | Ricalcolo puro su evento `input` | Nessuno stato mutabile condiviso: ogni digitazione produce un ricalcolo completo e deterministico. |
-
-### Separazione delle responsabilità
-
-Il file è organizzato in strati nettamente distinti, nell'ordine:
-
-1. **Costanti normative** (`COSTANTI`, `ANNI`, `PROFILI_CONTRIBUTIVI`, `REGIMI`, `REGIONI`, `COMUNI`, `PROVINCE_REGIONE`, `PREMIUM`) — ogni soglia e ogni aliquota è una costante nominata, mai un numero magico inline. L'aggiornamento a una nuova legge di bilancio si riduce a modificare questo blocco.
-2. **Funzioni pure di dominio** — `calcolaInps`, `calcolaIrpefLorda`, `calcolaDetrazioniBase`, `calcolaBonusCuneo`, `calcolaUlterioreDetrazione`, `calcolaTrattamentoIntegrativo`, `calcolaAddizionaleScaglioni`, `calcolaAddizionaleComunale`. Nessuna tocca il DOM, ognuna è testabile in isolamento.
-3. **Orchestratori** — `calcolaBase(ral)` e `calcolaPremium(params)` compongono le funzioni pure e restituiscono un oggetto risultato completo, che include tutti i valori intermedi e non solo il netto finale. `invertiNetto(netto, params)` percorre la strada opposta, invertendo il motore per bisezione.
-4. **Rendering** — `renderBase`, `renderPremium`, `renderComposizione`, `renderGrafico` consumano l'oggetto risultato. Il calcolo non sa nulla della presentazione.
-5. **Binding UI** — listener, validazione dell'input, gestione delle sezioni.
-
-Questa separazione è la ragione per cui il motore è stato validato in Node.js estraendo gli strati 1–3 senza alcuna modifica al codice.
-
----
-
-## 3. Assunzioni di dominio (scheda Task Jet HR)
-
-Le assunzioni sono **hardcoded per scelta**, non per semplificazione: lo scenario richiesto è uno scenario preciso, e renderlo esplicito nel codice lo rende verificabile.
-
-| Assunzione | Valore | Effetto sul calcolo |
-|---|---|---|
-| Inquadramento | Impiegato, tempo indeterminato | Aliquota INPS a carico del lavoratore 9,19%, senza massimale contributivo |
-| Residenza fiscale | Milano (Lombardia) | Addizionale regionale a scaglioni Lombardia + addizionale comunale Milano |
-| Carichi di famiglia | Nessuno | Nessuna detrazione ex art. 12 TUIR: le uniche detrazioni sono quelle da lavoro dipendente |
-| Giorni di rapporto | 365 | Il rapporto copre l'intero anno: le detrazioni non vengono ragguagliate |
-| Mensilità | 13 | Il netto mensile è il netto annuo diviso 13 |
-| Anno d'imposta | 2026 | Scaglioni 23% / 33% / 43%: l'anno in corso. La traccia non ne indica uno, e un calcolatore consegnato oggi deve usare le regole di oggi. Dichiarato in pagina accanto alle altre assunzioni; il confronto col 2025 è nella scheda Avanzato |
-| Addizionali locali | **A regime, per competenza** | Vedi sotto |
-
-### Dove il profilo standard smette di valere
-
-L'aliquota INPS piatta al 9,19% senza massimale è corretta nella fascia retributiva ordinaria, ma oltre due soglie contributive non lo è più:
-
-| Soglia 2026 | Cosa cambia | Effetto sul netto della scheda Task Jet HR |
-|---|---|---|
-| 56.224 € | Si aggiunge l'aliquota contributiva dell'1% (art. 3-ter D.L. 384/1992) | Sovrastimato: a 80.000 € di RAL mancano 237,76 € di contributi, che sul netto valgono **129,51 €**. Meno del contributo, perché versarlo abbassa anche l'imponibile e quindi l'IRPEF |
-| 122.295 € | Opera il massimale contributivo per chi è privo di anzianità al 31/12/1995 | Sottostimato: i contributi continuano a crescere quando dovrebbero fermarsi |
-
-La sezione Base **non** implementa queste due regole, perché il profilo richiesto è quello standard. Piuttosto che presentare un numero impreciso come esatto, la interfaccia lo dichiara: superata la soglia compare un avviso che nomina la norma, quantifica lo scostamento e offre di ricalcolare nella sezione Premium, che applica entrambe le regole. La RAL viene trasferita e il massimale attivato automaticamente.
-
-A 200.000 € di RAL, con il massimale attivo, la scheda Avanzato restituisce **3.529,86 € di netto in più**: la scheda Task Jet HR continua a versare contributi che a quel livello dovrebbero essersi fermati.
-
-### Sul criterio "a regime, per competenza"
-
-Nel cedolino reale l'addizionale regionale e comunale seguono un criterio di **cassa sfalsato**: l'addizionale dell'anno N è determinata a conguaglio e trattenuta in rate nell'anno N+1, mentre nell'anno corrente si versano acconti calcolati sull'imponibile dell'anno precedente. In un anno di ingresso in azienda o di variazione retributiva, la trattenuta effettiva in busta paga non coincide quindi con l'addizionale di competenza.
-
-Il prototipo adotta il criterio **di competenza a regime**: calcola l'addizionale dovuta sull'imponibile dell'anno simulato e la ripartisce sulle 13 mensilità. È l'unico criterio che produce una proiezione stabile e confrontabile, che è esattamente ciò che serve a chi sta valutando un'offerta economica. La scelta è dichiarata nell'interfaccia, non nascosta.
-
----
-
-## 4. Precisione del motore di calcolo
-
-### 4.1 Il taglio del cuneo fiscale — due istituti, non uno
-
-L'errore più diffuso nei calcolatori online è trattare il taglio del cuneo come un'unica agevolazione. Non lo è. Dal 2025 il beneficio ha **due nature giuridiche diverse** a seconda dell'imponibile, e la differenza è sostanziale:
-
-| Imponibile | Istituto | Natura | Effetto sull'IRPEF |
-|---|---|---|---|
-| ≤ 8.500 € | Bonus 7,1% | Somma **esentasse** | Nessuno: non erode l'imposta |
-| 8.500 – 15.000 € | Bonus 5,3% | Somma **esentasse** | Nessuno |
-| 15.000 – 20.000 € | Bonus 4,8% | Somma **esentasse** | Nessuno |
-| 20.000 – 32.000 € | 1.000 € | **Detrazione d'imposta** | Riduce l'IRPEF, soggetta a capienza |
-| 32.000 – 40.000 € | 1.000 € × (40.000 − imp.) / 8.000 | **Detrazione d'imposta** decrescente | Riduce l'IRPEF, soggetta a capienza |
-| > 40.000 € | — | — | — |
-
-Nel motore i due istituti sono due funzioni distinte:
-
-- `calcolaBonusCuneo()` produce `bonusCuneo`, che entra nella formula finale **sommato al netto**, dopo il calcolo dell'imposta;
-- `calcolaUlterioreDetrazione()` produce `ulterioreDetrazione`, che entra nel monte detrazioni **prima** del calcolo dell'IRPEF netta ed è quindi soggetta al limite di capienza.
-
-Confonderli significa sbagliare il netto in due modi opposti: sopravvalutarlo per gli incapienti sotto i 20.000 € e sottovalutarlo tra 20.000 e 40.000 €.
-
-### 4.2 L'addizionale comunale di Milano — l'effetto scalino
-
-Milano prevede una **soglia di esenzione totale a 23.000 € di imponibile**. Il punto tecnico è che la soglia **non è una franchigia**: superata di un solo euro, l'aliquota dello 0,80% si applica all'**intero imponibile**, non alla sola quota eccedente.
-
-```js
-function calcolaAddizionaleComunale(imponibile, regola) {
-  if (imponibile <= regola.esenzione) return 0;
-  return imponibile * regola.aliquota;   // sull'INTERO imponibile
-}
-```
-
-Conseguenza misurabile: a 23.000 € di imponibile l'addizionale è 0 €; a 23.001 € è 184,01 €. Un contribuente che supera la soglia di 1 € perde 184 € netti. Un'implementazione a scaglioni progressivi, che qui sarebbe l'assunzione istintiva e sbagliata, produrrebbe 0,008 € invece di 184,01 € — un errore del 99,996% su quella voce.
-
-L'addizionale **regionale**, al contrario, è genuinamente progressiva a scaglioni ed è implementata con l'algoritmo cumulativo `calcolaAddizionaleScaglioni()`. Le due addizionali hanno logiche opposte e il motore le tiene separate.
-
-### 4.3 Capienza fiscale
-
-Le detrazioni non generano credito d'imposta:
-
-```js
-const detrazioneEffettiva = Math.min(totDetrazioni, irpefLorda);
-const irpefNetta = Math.max(0, irpefLorda - detrazioneEffettiva);
-```
-
-La quota di detrazione persa per incapienza è calcolata, esposta in una riga dedicata della cascata e mostrata all'utente. È un'informazione che i calcolatori commerciali tipicamente occultano, ma che spiega perché a redditi bassi un aumento di RAL possa avere un rendimento netto anomalo.
-
-### 4.4 Trattamento integrativo e incapienza
-
-Il trattamento integrativo (ex bonus Renzi, 1.200 € annui) **non spetta agli incapienti**: la condizione di legge è che l'imposta lorda superi la detrazione da lavoro dipendente. La detrazione però non entra nel confronto per intero. L'art. 1, comma 3 della L. 234/2021 la vuole **diminuita di 75 € rapportati al periodo di lavoro nell'anno**: il taglio fu introdotto proprio perché la detrazione minima era appena salita a 1.955 € e senza di esso una fascia di redditi bassi sarebbe rimasta fuori dal trattamento.
-
-Il pareggio cade quindi dove l'imposta lorda raggiunge 1.880 €, cioè a **8.173,91 € di imponibile** (1.880 / 0,23) e non a 8.500 € come suggerirebbe la detrazione piena. Fra i due valori c'è una fascia di circa 370 € di RAL in cui il trattamento spetta per intero: ignorarla vuol dire sbagliare quel netto di 1.200 €.
-
-```js
-const soglia = Math.max(0, detrazioniBase - T.TAGLIO_DETRAZIONE * quotaAnno);
-return irpefLorda > soglia ? T.IMPORTO : 0;
-```
-
-Sotto quel punto il motore restituisce `trattamentoIntegrativo = 0`, non 1.200 €. Tra 15.000 e 28.000 € spetta la sola quota di detrazioni eccedente l'imposta lorda, con tetto a 1.200 € — e al confronto concorrono **soltanto** le detrazioni degli articoli 12 e 13 del TUIR. L'ulteriore detrazione del cuneo, che nasce fuori dal testo unico (L. 207/2024, art. 1, comma 6), resta fuori: l'elenco del D.L. 3/2020 è chiuso. Nel profilo standard la differenza non si vede, perché senza carichi di famiglia il confronto non è mai in bilico; con coniuge e figli a carico vale fino a 1.000 €.
-
-### 4.5 Il pavimento della detrazione da lavoro dipendente
-
-La detrazione dell'art. 13 si rapporta ai giorni di durata del rapporto, ma il ragguaglio ha un limite inferiore scritto nella stessa lettera a): l'importo effettivamente spettante non scende sotto **690 €**, che diventano **1.380 €** nei rapporti a tempo determinato. Su un contratto di tre mesi la moltiplicazione secca darebbe 482,05 €, e il lavoratore pagherebbe imposta su una detrazione che la legge non ammette.
-
-Il correttivo di fascia da 65 € segue la regola opposta: la norma dice espressamente che **non** è rapportato al periodo di lavoro. Chi lavora sei mesi ne prende 65, non 32,50. Per questo la detrazione è calcolata in due pezzi distinti, `detrazioneScaglione()` e `correttivoFascia()`, invece che in un'unica funzione moltiplicata per la quota d'anno.
-
-### 4.6 Le quattro discontinuità della curva
-
-Il netto **non è una funzione monotona crescente della RAL**. La normativa produce quattro punti in cui a un aumento di lordo corrisponde una diminuzione di netto. Il motore le riproduce fedelmente e la suite di test le asserisce come comportamento atteso:
-
-| Soglia (imponibile) | RAL corrispondente | Perdita netta | Causa |
-|---|---|---|---|
-| 8.500 € | ≈ 9.361 € | −152,22 € | Il bonus del cuneo scende dal 7,1% al 5,3% |
-| 15.000 € | ≈ 16.519 € | −129,35 € | Decadenza del trattamento integrativo, non compensata dal gradino di detrazione |
-| 23.000 € | ≈ 25.328 € | −183,40 € | Effetto scalino dell'addizionale comunale di Milano |
-| 35.000 € | ≈ 38.543 € | −64,61 € | Decadenza del correttivo di fascia da 65 € |
-
-La prima è comparsa insieme alla correzione del §4.4, e vale la pena dire perché. Il gradino del cuneo a 8.500 € è sempre esistito; finché il trattamento integrativo scattava nello stesso identico punto, i suoi 1.200 € lo coprivano e la curva sembrava continua. Spostato il trattamento al punto giusto, il gradino è rimasto scoperto. Non è una discontinuità nuova: è una discontinuità che una soglia sbagliata teneva nascosta.
-
-Un calcolatore che restituisce una curva perfettamente monotona sta approssimando la normativa. Il test `Monotonicità: rotture solo sulle 4 soglie normative note` verifica su 250.000 punti che esistano **esattamente** queste quattro discontinuità e nessun'altra, confrontando l'imponibile **al centesimo**: la versione precedente arrotondava al migliaio e avrebbe confuso 8.500 € con 9.000 €.
-
----
-
-## 5. Verifica
-
-La pagina include una suite di test eseguibile dal browser: scheda **Avanzato → Verifica del motore di calcolo → Esegui test**. L'elenco che segue è generato dai nomi reali dei test nel codice, nell'ordine in cui vengono eseguiti: se un test cambia nome o sparisce, la differenza si vede.
-
-| Test | Tipo |
-|---|---|
-| RAL 30.000 — INPS = 2.757,00 € | Valore di riferimento |
-| RAL 30.000 — imponibile = 27.243,00 € | Valore di riferimento |
-| RAL 30.000 — netto annuo = 23.425,52 € | Valore di riferimento |
-| Milano — esenzione sotto 23.000 € di imponibile | Soglia normativa |
-| Milano — 0,80% sull’intero imponibile sopra soglia | Effetto scalino |
-| IRPEF netta mai negativa (1k → 200k) | Invariante |
-| Monotonicità: rotture solo sulle 4 soglie normative note | Invariante |
-| Quadratura: RAL − trattenute + bonus = netto | Riconciliazione contabile |
-| Cuneo: bonus esentasse fino a 20.000 € di imponibile | Confine tra istituti |
-| Trattamento integrativo nullo in caso di incapienza | Regola di legge |
-| Trattamento integrativo: il pareggio è la detrazione meno 75 € | Regola di legge |
-| «Avanzato» 2026 = «Task Jet HR» sotto la prima fascia pensionabile | Non-regressione |
-| Trattamento integrativo: l’ulteriore detrazione del cuneo non conta | Perimetro delle detrazioni rilevanti |
-| Detrazione art. 13: il pavimento regge al ragguaglio ai giorni | Minimo di legge sulla detrazione |
-| Correttivo di fascia: 65 € interi, non rapportati ai giorni | Ciò che il ragguaglio non tocca |
-| Sopra soglia lo scarto da «Task Jet HR» è solo l’aliquota aggiuntiva 1% | Non-regressione |
-| 2026 più conveniente del 2025 nello scaglione 28k–50k | Effetto della nuova aliquota |
-| Aliquota aggiuntiva 1% applicata sopra soglia | Regola contributiva |
-| Massimale contributivo blocca la contribuzione | Regola contributiva |
-| Impatriati: abbatte l’IRPEF ma non i contributi | Confine tra basi imponibili |
-| Ragguaglio ai giorni su retribuzione e detrazioni | Competenza temporale |
-| Fringe benefit: superata la soglia è tassato tutto | Soglia, non franchigia |
-| Fondo pensione: deduce l’imposta, non gonfia le detrazioni | Confine fra reddito complessivo e imponibile |
-| Compensi accessori: imposta sostitutiva solo dal 2026 | Vigenza temporale dell'agevolazione |
-| Fondo: il contributo del datore spetta solo a chi versa | Regola dei fondi negoziali |
-| Fondo: tetto di deducibilità condiviso fra lavoratore e datore | Confine del tetto unico |
-| Fondo: il contributo aziendale oltre il tetto torna imponibile | Trattamento dell'eccedenza |
-| TFR al fondo: nessun contributo dello 0,50% al Fondo di garanzia | Destinazione del TFR |
-| Fondo: il versamento non supera quanto la busta contiene | Capienza della busta paga |
-| Sweep sulle combinazioni di previdenza complementare | Copertura combinatoria (96 combinazioni) |
-| Altre trattenute: escono dal netto senza toccare le imposte | Assenza di effetto fiscale |
-| Altre trattenute: non superano il netto disponibile | Capienza della busta paga |
-| Ottimizzazione dal netto: stesso valore, costo decrescente | Correttezza dell'ottimizzatore |
-| Ottimizzazione dal budget: stessa spesa, valore crescente | Correttezza nella seconda direzione |
-| Ottimizzazione: il welfare resta entro i tetti di legge | Rispetto delle soglie |
-| Efficienza misurata: welfare esente 1:1, retribuzione molto meno | Misura anziché stima |
-| Tempo determinato: NASpI 1,40% sul solo costo azienda | Confine fra costo e busta paga |
-| Apprendistato: aliquota 5,84% indipendente dal settore | Indipendenza dei due assi |
-| Tirocinio: nessun contributo, nessun TFR, imponibile pieno | Natura del reddito assimilato |
-| Tirocinio: niente cuneo né trattamento integrativo | Perimetro delle misure per il lavoro dipendente |
-| Welfare: quantifica TFR e pensione a cui si rinuncia | Completezza del confronto |
-| Soglie: individua il gradino raggiungibile e lo quantifica | Ottimizzazione sulle discontinuità |
-| Soglie: nessun suggerimento se l’imponibile è già basso | Assenza di consigli inutili |
-| Soglie: anche il gradino del cuneo a 8.500 € è un’occasione misurata | Ottimizzazione sulla nuova discontinuità |
-| Ottimizzazione: nessun premio promesso oltre la soglia di reddito | Coerenza fra promesso ed erogato |
-| Soglie: lo spostamento porta l’imponibile sotto la soglia in ogni profilo | Correttezza su tutti i profili |
-| Aliquote per settore: la somma delle voci torna al totale di tabella | Riconciliazione fonte/tabella |
-| Aliquote per settore: la quota del datore è il totale meno quella del lavoratore | Definizione della quota del datore |
-| Composizione: le voci della barra sommano esattamente il lordo in busta | Fedeltà del grafico al calcolo |
-| Buoni pasto: i giorni con buono non superano i giorni di rapporto | Vincolo di realtà sui buoni |
-| Il netto non scende mai sotto zero, e lo scoperto viene dichiarato | Capienza della busta paga |
-| Profili storici: le chiavi dei vecchi link restano valide | Compatibilità dei link condivisi |
-| Esoneri: una misura scaduta non viene applicata | Disattivazione automatica |
-| Esoneri: quello del datore riduce il costo, non il netto | Confine fra costo e busta paga |
-| Esoneri: quello della lavoratrice alza netto e imponibile | Effetto fiscale dell'esonero |
-| Esoneri: la decontribuzione Sud vale solo nelle regioni previste | Requisito territoriale |
-| Co.co.co.: 35,03% diviso un terzo e due terzi | Ripartizione dell'onere in Gestione separata |
-| Co.co.co.: niente TFR né cuneo, il trattamento integrativo resta | Confine fra istituti su un reddito assimilato |
-| Co.co.co.: il massimale di 122.295 € si applica da solo | Regola, non opzione |
-| Esoneri: la stabilizzazione vale 500 € al mese dentro la sua finestra | Misura ed effetto della finestra di vigenza |
-| Esoneri: la stabilizzazione esclude dirigenti e rapporti non stabilizzati | Ambito soggettivo della misura |
-| Esoneri: l’esclusione regge sulla chiave composta del profilo | Ambito soggettivo sul percorso reale |
-| Esoneri: le misure non cumulabili sono riconosciute | Divieto di cumulo |
-| Senza retribuzione il netto resta a zero, non va sotto | Caso limite |
-| Sweep su tutte le combinazioni di contratto e regime | Copertura combinatoria (2.000 combinazioni) |
-| Ogni provincia è associata a una regione esistente | Coerenza territoriale |
-| Inversione: la RAL trovata riproduce il netto richiesto | Correttezza dell'inversione |
-| Inversione: più RAL per lo stesso netto, sceglie la meno costosa | Effetto delle discontinuità |
-| Inversione: dichiara le richieste fuori scala | Robustezza |
-| Forfetario: coefficiente ATECO, contributi dedotti, 15% sul resto | Catena di calcolo del regime |
-| Forfetario 5%: stessa base, imposta ridotta a un terzo | Isolamento dell'aliquota |
-| Forfetario: niente addizionali, il comune non cambia il netto | Perimetro dell'imposta sostitutiva |
-| Partita IVA: i contributi si fermano al massimale della Gestione separata | Tetto contributivo |
-| Partita IVA: detrazione dell’art. 13 comma 5, non quella dei dipendenti | Detrazione corretta per la categoria |
-| Ordinario: i costi abbattono reddito, contributi e imposte | Differenza sostanziale fra i due regimi |
-| Gestioni INPS: a reddito zero il minimale resta dovuto, la Separata no | Minimale contributivo |
-| Gestioni INPS: oltre 56.224 € l’aliquota sale di un punto | Fascia superiore dell'aliquota |
-| Gestioni INPS: la riduzione del 35% vale solo nel forfetario | Perimetro dell'agevolazione |
-| Gestioni INPS: la riduzione non tocca il contributo di maternità | Perimetro della riduzione |
-| Partita IVA: sotto il minimale il netto si ferma a zero e lo scoperto è dichiarato | Capienza e scoperto |
-| Partita IVA: nessuno scoperto quando il fatturato copre i contributi | Assenza di falsi allarmi |
-| Partita IVA: fatturato − costi − contributi − imposte + scoperto = netto | Riconciliazione contabile |
-| Gestioni INPS: cambiare gestione cambia il netto | Effetto reale della scelta |
-| Versione: l'impronta del motore corrisponde alla v2.1.0 | La versione in pagina non resta indietro rispetto al codice |
-| Dataset: anagrafe, tariffe e regioni coerenti fra loro | Integrità del dataset |
-| Dataset: Milano 0,80% con esenzione 23.000 € in entrambi gli anni | Integrità del dataset |
-| Dataset: Lombardia allineata alla specifica di «Task Jet HR» | Riconciliazione fonte/spec |
-| Dataset: nessuna aliquota comunale oltre il massimo di legge 1,20% | Integrità del dataset |
-| Input 0 gestito senza NaN | Robustezza |
-| Input negativo gestito senza NaN | Robustezza |
-| «Avanzato» con input 0 gestito senza NaN | Robustezza |
-
-**91 test su 91 superati.** La stessa suite gira anche senza browser, ed è il modo in cui la esegue la CI:
-
-```bash
-node build/prova_motore.js
-# 91/91 test superati
-```
-
-`build/prova_motore.js` ritaglia da `index.html` il motore e la funzione `eseguiTest()`, mette al posto del DOM il minimo indispensabile e riporta l'esito con un codice di uscita. Il ritaglio è volutamente fragile: se la pagina cambia struttura lo script si ferma con un messaggio, invece di eseguire una suite monca e dichiararla superata. Fino alla revisione che ha prodotto questa versione la suite esisteva ma **non girava da nessuna parte** se non a mano, dietro un bottone: 81 test verdi che nessuno eseguiva prima di un commit. Il workflow `verifica-motore.yml` la esegue adesso a ogni push, insieme ai controlli di integrità del dataset.
-
-Gli stessi calcoli si riproducono anche come modulo: `build/estrai_motore.py` taglia `index.html` prima del primo accesso al DOM ed esporta ciò che resta — costanti, funzioni pure e orchestratori — senza modificare una riga.
-
-```bash
-python build/estrai_motore.py
-node -e "const m=require('./build/motore_estratto.js'); console.log(m.calcolaBase(30000).nettoAnnuo)"
-# 23425.521215384615
-```
-
-I sette valori di riferimento della tabella più sotto sono stati riprodotti così, tutti e sette al centesimo. Se un giorno il taglio non fosse più possibile — perché il motore ha cominciato a toccare il DOM — lo script si ferma invece di produrre un modulo monco.
-
-**Reimplementazione indipendente.** Il motore Base è stato riscritto da zero a partire dal testo delle norme, senza guardare il codice esistente, e confrontato con l'originale su **ogni RAL intera da 0 a 300.000 €**: 300.001 confronti, nessuna differenza oltre il milionesimo di euro. È il controllo che ha fatto emergere il trattamento integrativo del §4.4, perché la suite non poteva accorgersene: asseriva la regola così com'era stata implementata.
-
-**Collaudo combinatorio.** Oltre alla suite, il motore è stato sottoposto a uno sweep di **36.505 valutazioni**: 24.000 combinazioni di profilo contributivo, anno d'imposta, mensilità, regime agevolato e massimale su dieci livelli di RAL; 4.608 combinazioni di welfare, carichi di famiglia e periodo variate sulle proprie soglie; e tutti i 7.897 comuni con la rispettiva regione. Su ognuna sono verificati valori finiti, netto non negativo, capienza, tetti di legge e identità contabile.
-
-L'interfaccia è stata collaudata a parte su **332 scenari**, pilotando i controlli reali e ispezionando ciò che viene disegnato: nessun `NaN` o valore mancante nel testo, dettaglio e grafico sempre presenti, nessuno scorrimento orizzontale, ogni spiegazione contestuale con un contenuto reale.
-
-Il collaudo ha prodotto le correzioni documentate al §5.1. L'ultima esecuzione, dopo l'estensione a cinquanta combinazioni contributive, ha fatto emergere due difetti nuovi: sono in fondo alla tabella.
-
-### 5.1 Difetti emersi dal collaudo combinatorio
-
-| Difetto | Causa | Correzione |
-|---|---|---|
-| Netto negativo con RAL 0 e fringe benefit | Senza retribuzione i contributi venivano calcolati su una busta paga inesistente | Le componenti accessorie si azzerano e l'interfaccia lo dichiara con un avviso dedicato |
-| Indirizzo rimasto indietro rispetto ai campi | I browser limitano la frequenza di `history.replaceState`: una chiamata a ogni digitazione superava la soglia e le successive venivano scartate in silenzio | L'indirizzo si scrive una sola volta, 350 ms dopo l'ultima modifica |
-| Avvisi privi di senso con RAL 0 | Detrazioni non godute e soglie contributive segnalate su un rapporto inesistente | Senza retribuzione resta un solo avviso, gli altri sono soppressi |
-| Versamento al fondo superiore alla busta paga | Con pochi giorni lavorati un importo fisso eccedeva la retribuzione. Il limite non è però la retribuzione: dedurre azzera l'imposta e fa perdere il trattamento integrativo, quindi il netto disponibile scende più in fretta di quanto si versa | Il trattenuto viene cercato per approssimazioni successive fino a mantenere il netto non negativo, e l'interfaccia dichiara quanto è stato effettivamente trattenuto |
-| Rapporto netto/costo negativo | Con netto sotto zero l'indicatore perdeva significato | Mostra un trattino invece di una percentuale priva di senso |
-| Pacchetto che prometteva welfare non erogabile | Oltre 80.000 € di reddito il premio agevolato non spetta, ma il pacchetto continuava a contarlo: prometteva 8.200 € di welfare consegnandone 3.200 | Il pacchetto viene ricostruito senza premio, così i numeri mostrati coincidono con ciò che il lavoratore riceve |
-| Spostamento verso la soglia calcolato con l'aliquota sbagliata | Fra RAL e imponibile non c'è solo l'aliquota del lavoratore: ci sono anche il contributo aggiuntivo dell'1% e i fondi di categoria. Su un dirigente lo spostamento mancava il bersaglio di 128 € e lasciava l'imponibile sopra la soglia | Lo spostamento si misura per bisezione sul motore, quindi vale per qualunque profilo |
-| Obiettivo netto non sempre raggiungibile | I salti normativi rendono certe cifre irraggiungibili, ma l'intestazione dichiarava comunque il valore richiesto | Quando il pacchetto consegna una cifra diversa, lo dichiara esplicitamente |
-| 220 buoni pasto in un rapporto di un giorno | I giorni con buono erano un campo indipendente dalla durata del rapporto. L'eccedenza imponibile dei buoni superava la retribuzione maturata e spingeva il netto sotto zero | I giorni con buono si contano sulle presenze, che non possono superare i giorni in cui il rapporto esiste: il numero viene ridotto e l'interfaccia lo dichiara |
-| Detrazione da lavoro dipendente a reddito zero | La detrazione dell'art. 13 spetta perché al reddito concorrono redditi di lavoro dipendente: senza imponibile non ne matura nessuna. Il motore ne dichiarava comunque 1.955 €, che la capienza azzerava — quindi il netto era giusto — ma la cascata mostrava 1.955 € di «detrazioni non godute» su una busta paga inesistente | La funzione restituisce zero sotto il primo euro di imponibile. Emerso dalla reimplementazione indipendente del §5, non dalla suite |
-| Netto negativo con fringe benefit su rapporto brevissimo | Il valore imponibile del welfare può superare la retribuzione maturata: le ritenute non avevano da cosa essere trattenute | Una busta paga non va in rosso: il netto si ferma a zero e la parte scoperta viene dichiarata, come già accadeva per il fondo pensione e per le altre trattenute |
-
-### 5.2 Difetti emersi dalla revisione sulle fonti
-
-I difetti del §5.1 li aveva trovati il collaudo: erano casi limite in cui il motore produceva un numero impossibile. Quelli che seguono no. Il motore rispondeva un numero perfettamente plausibile, e sbagliato — e la suite lo confermava, perché asseriva la regola come era stata scritta, non come sta nella norma. Sono emersi rileggendo il testo di legge accanto al codice e riscrivendo il motore Base da zero.
-
-| Difetto | Causa | Correzione |
-|---|---|---|
-| Esoneri applicati a dirigenti, lavoro domestico e agricoltura | `profiliEsclusi` elencava chiavi piatte (`'dirigente'`) confrontate con `Array.includes` contro la chiave composta che l'interfaccia produce davvero (`'industria\|dirigente\|fino50'`): il confronto non combaciava mai, e l'esclusione non scattava. Il test la dichiarava funzionante perché passava una chiave storica che nessuna tendina genera — **verde su un percorso che non esiste** | L'esclusione guarda `settoriEsclusi` e `qualificheEscluse` sul profilo normalizzato. Il test usa ora le chiavi composte, e un secondo test verifica l'esclusione fino al risultato del motore |
-| Trattamento integrativo negato a chi ne ha diritto | La condizione confrontava l'imposta lorda con la detrazione piena, mentre la L. 234/2021 la vuole diminuita di 75 €. Fra 9.002 e 9.370 € di RAL il motore restituiva 0 invece di 1.200 € | Il taglio entra nel confronto, ragguagliato al periodo. Il pareggio scende da 8.500 a 8.173,91 € di imponibile e fa riemergere il gradino del cuneo descritto al §4.6 |
-| Detrazione sotto il minimo di legge sui rapporti brevi | Il ragguaglio ai giorni era una moltiplicazione secca, senza il pavimento di 690 € (1.380 € a tempo determinato) dell'art. 13. Su novanta giorni la detrazione scendeva a 482,05 €: circa 208 € di imposta in più, che diventano 898 € su un contratto a termine | `detrazioneDipendentePeriodo()` applica il pavimento dentro la prima fascia. Il tipo di rapporto, che prima non incideva sulla detrazione, ora alza il minimo |
-| Correttivo di fascia ragguagliato ai giorni | I 65 € venivano moltiplicati per la quota d'anno, ma la norma dice che l'importo non è rapportato al periodo di lavoro | Scaglione e correttivo sono due funzioni separate: solo il primo si ragguaglia |
-| Trattamento integrativo riconosciuto grazie a una detrazione che non conta | Al confronto fra 15.000 e 28.000 € concorreva anche l'ulteriore detrazione del cuneo, che il D.L. 3/2020 non elenca. Con coniuge e due figli a carico faceva comparire un trattamento che non spetta | Al confronto restano le sole detrazioni degli articoli 12 e 13 |
-| Perdita nascosta sotto il minimale della partita IVA | Il netto era troncato a zero con `Math.max`. Un artigiano a fatturato nullo leggeva «0 €» invece di un debito di 4.521,36 € verso l'INPS: il numero grande mentiva proprio nel caso in cui contava di più | Lo scoperto viene calcolato, mostrato nella cascata e dichiarato in un avviso, come già avveniva nella scheda Avanzato |
-| La spiegazione del netto della partita IVA non quadrava | I passi mostrati nel popover erano fatturato − contributi − imposte: i costi deducibili non comparivano, quindi in regime ordinario la somma mancava il totale di tutto il loro importo. Con lo scoperto appena introdotto sarebbe sbagliata anche in perdita | I passi si costruiscono su ciò che esiste davvero nello scenario, e un test verifica l'identità contabile su 441 combinazioni di gestione, regime e fatturato |
-| Riduzione del 35% applicata al contributo di maternità | La riduzione del forfetario veniva calcolata sul totale. È la sola contribuzione previdenziale a scendere: la maternità è un importo fisso a copertura di una prestazione | La riduzione colpisce la sola quota IVS |
-| La suite non girava da nessuna parte | Esisteva solo dietro un bottone nella pagina. La CI verificava il foglio di stile, non i conti: una modifica al motore poteva arrivare in produzione senza che un test fosse mai eseguito | `build/prova_motore.js` la esegue fuori dal browser e `verifica-motore.yml` la lancia a ogni push, insieme ai controlli sul dataset |
-
-Il filo comune è uno solo, e vale la pena dirlo: **una suite di test non può trovare un errore di lettura della norma.** Può solo confermare che il codice fa quello che l'autore credeva dicesse la legge. Per questo i due controlli che hanno prodotto questa sezione sono di natura diversa dalla suite — la riscrittura indipendente del motore e la rilettura del testo di legge accanto al codice — e per questo il test dei dirigenti era verde mentre l'esclusione non funzionava.
-
-Un dettaglio di metodo: la prima verifica del debounce risultò superata su una **pagina servita dalla cache**, che non conteneva ancora la correzione. Il controllo è stato ripetuto forzando il ricaricamento. Un test che passa su codice vecchio è peggio di un test assente, perché dà una falsa sicurezza.
-
-Un dettaglio che vale la pena spiegare: i due motori **non** coincidono sopra i 56.224 € di retribuzione, e questo è corretto. Il motore Base fissa l'INPS al 9,19% puro, com'è per il profilo standard; il motore Premium applica anche l'aliquota aggiuntiva dell'1% prevista dall'art. 3-ter del D.L. 384/1992. Il test non nasconde la divergenza: la misura e verifica che sia esattamente pari a quel contributo.
-
-### Valori di riferimento verificati
-
-| RAL | Imponibile | IRPEF netta | Add. reg. | Add. com. | Bonus | Netto annuo | Netto/mese | Pressione |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 15.000 € | 13.621,50 | 1.177,95 | 167,54 | 0,00 | 1.921,94 | 14.197,95 | 1.092,15 | 5,3% |
-| 20.000 € | 18.162,00 | 1.366,70 | 234,46 | 0,00 | 871,78 | 17.432,61 | 1.340,97 | 12,8% |
-| 25.000 € | 22.702,50 | 1.826,65 | 306,20 | 0,00 | 0,00 | 20.569,65 | 1.582,28 | 17,7% |
-| 30.000 € | 27.243,00 | 3.221,60 | 377,94 | 217,94 | 0,00 | 23.425,52 | 1.801,96 | 21,9% |
-| 45.000 € | 40.864,50 | 9.892,16 | 611,17 | 326,92 | 0,00 | 30.034,26 | 2.310,33 | 33,3% |
-| 60.000 € | 54.486,00 | 15.628,98 | 845,91 | 435,89 | 0,00 | 37.575,22 | 2.890,40 | 37,4% |
-| 100.000 € | 90.810,00 | 31.248,30 | 1.474,31 | 726,48 | 0,00 | 57.360,91 | 4.412,38 | 42,6% |
-
-A 15.000 € di RAL la pressione fiscale è 5,3% e a 10.000 € è **negativa** (−5,2%): i bonus esentasse superano il prelievo. Il valore non è un errore di calcolo, è il risultato corretto del cuneo fiscale a redditi bassi.
-
----
-
-## 6. La scheda Avanzato
-
-Costruita sopra le stesse funzioni pure del motore Base. Rimuove tutte le assunzioni fisse e copre gli istituti che un HR applica realmente in busta paga.
-
-### 6.1 Anno d'imposta: il 2026 non è il 2025
-
-La differenza più rilevante è che **le regole cambiano fra i due anni**, e un calcolatore che ne implementa uno solo è già sbagliato per metà del suo perimetro:
-
-| Parametro | 2025 | 2026 |
-|---|---:|---:|
-| Seconda aliquota IRPEF (28.000–50.000 €) | 35% | **33%** |
-| Massimale contributivo annuo | 120.607 € | 122.295 € |
-| Soglia dell'aliquota aggiuntiva 1% | 55.448 € | 56.224 € |
-| Minimale retributivo mensile (26 giorni) | 1.490,32 € | 1.511,38 € |
-| Buoni pasto elettronici esenti | 8 €/giorno | **10 €/giorno** |
-| Imposta sostitutiva sui premi di risultato | 5% | **1%** |
-| Massimale del premio agevolato | 3.000 € | **5.000 €** |
-
-A 45.000 € di RAL, il solo passaggio dal 2025 al 2026 vale **+257,29 €** di netto annuo — importo calcolato dal motore, non stimato.
-
-La traccia non indica un anno d'imposta. La scheda Task Jet HR usa quindi le regole **in corso** — 23% / 33% / 43% — perché un calcolatore consegnato oggi che applicasse gli scaglioni dell'anno scorso sarebbe sbagliato senza dirlo. La scheda Avanzato permette invece di scegliere l'anno, ed è lì che il confronto fra i due si legge in euro.
-
-### 6.2 Contribuzione reale per settore e qualifica
-
-| Funzionalità | Nota |
-|---|---|
-| 50 combinazioni contributive | Nove settori (industria, edilizia, artigianato, commercio a CUAF intera e ridotta, pubblici esercizi, logistica, agricoltura, lavoro domestico) per quattro qualifiche (operaio, impiegato/quadro, viaggiatore, dirigente) e fino a tre scaglioni dimensionali |
-| 5 tipi di rapporto | Indeterminato, determinato, apprendistato, collaborazione coordinata e continuativa, tirocinio. Asse separato dal settore: si combinano fra loro. Vedi §6.17 |
-| **Aliquota aggiuntiva 1%** | Art. 3-ter D.L. 384/1992: 1% sulla quota oltre la prima fascia di retribuzione pensionabile, dovuta quando l'aliquota a carico del lavoratore è inferiore al 10%. Assente in quasi tutti i calcolatori online |
-| **Massimale contributivo** | Per chi è privo di anzianità al 31/12/1995: oltre il tetto la contribuzione si ferma e il netto marginale sale bruscamente |
-| Minimale retributivo | Segnalato quando la retribuzione mensile scende sotto la soglia INPS |
-| Fondo di categoria dei dirigenti | Quota a carico del dirigente, con tetto di retribuzione |
-| Contribuzione a carico del datore | Totale di tabella INPS meno la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate agricoltura e lavoro domestico |
-
-**Le aliquote contributive non seguono l'anno d'imposta.** È l'unica cosa in questa sezione che non varia fra 2025 e 2026: le tabelle caricate sono l'edizione 2026, e restano le stesse anche selezionando il 2025. Non è una svista, ed è verificabile — la tabella INPS del gennaio 2023 riporta per l'industria gli stessi identici totali dell'edizione 2026: 39,87% per gli operai fino a 15 dipendenti, 37,65% per gli impiegati, 37,43% per i viaggiatori. Le voci che li compongono — IVS al 33%, NASpI all'1,61%, CUAF allo 0,68%, CIG, fondo di garanzia TFR, malattia e maternità — sono fissate da norme che non si rinnovano ogni anno, a differenza degli scaglioni IRPEF.
-
-Cambia invece con l'anno, ed è modellato, tutto ciò che le circolari INPS aggiornano davvero: **massimale contributivo** (120.607 € nel 2025, 122.295 € nel 2026), **prima fascia pensionabile** oltre la quale scatta l'aliquota aggiuntiva dell'1% (55.448 € e 56.224 €) e **minimale retributivo mensile**.
-
-### 6.3 Competenza temporale
-
-| Funzionalità | Nota |
-|---|---|
-| Giorni di rapporto nell'anno | Giorni di calendario, non presenze: assunzione o cessazione in corso d'anno ragguagliano **detrazioni, bonus cuneo e trattamento integrativo**, le soglie di reddito no |
-| Part-time percentuale | Riduce la retribuzione maturata, non le soglie normative |
-| Mensilità 12 / 13 / 14 | Modifica il divisore del netto mensile |
-
-### 6.4 Welfare e compensi variabili
-
-| Funzionalità | Nota |
-|---|---|
-| Fringe benefit | Soglia 1.000 € (2.000 € con figli a carico). Se superata, l'**intero** importo diventa imponibile: è una soglia, non una franchigia. Errore molto frequente |
-| Buoni pasto | Limite giornaliero esente per anno e per tipo (elettronici o cartacei); l'eccedenza è imponibile e contributiva |
-| Premio di risultato | Imposta sostitutiva 5% entro 3.000 € (2025) o 1% entro 5.000 € (2026-2027), per redditi da lavoro dipendente dell'anno precedente fino a 80.000 €; l'eccedenza torna a tassazione ordinaria. Richiede un contratto collettivo aziendale o territoriale depositato entro 30 giorni |
-| Conversione del premio in welfare | Esente da imposte e contributi: alternativa esplicita, con confronto immediato sul netto |
-| Straordinari, notturni e festivi | Imposta sostitutiva 5% per redditi fino a 33.000 € |
-| Previdenza complementare | Contributo del lavoratore, contributo del datore in percentuale, destinazione del TFR. Vedi §6.14 |
-| TFR maturato | RAL / 13,5 al netto del contributo dello 0,50% al Fondo di garanzia |
-| **Altre trattenute** | Quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa: un campo unico, perché si comportano tutte allo stesso modo. Vedi §6.15 |
-
-### 6.5 Regimi fiscali agevolati
-
-| Regime | Effetto |
-|---|---|
-| Impatriati — D.Lgs. 209/2023 | Imponibile al 50%, o al 40% con figlio minore, entro 600.000 € di reddito agevolabile |
-| Docenti e ricercatori — art. 44 D.L. 78/2010 | Imponibile al 10% |
-| Frontalieri | Franchigia di 10.000 € sull'imponibile |
-
-Tutti e tre riducono l'imponibile IRPEF e **nessuno riduce la base contributiva**: è una distinzione che il motore rispetta e che un test verifica esplicitamente.
-
-### 6.6 Fiscalità locale su base nazionale
-
-- **7.897 comuni** e **21 regioni e province autonome**, importati dall'anagrafe ufficiale del MEF.
-- Ricerca del comune con completamento a digitazione, che mostra aliquota ed esenzione prima ancora della selezione.
-- Ogni comune conserva la propria struttura: aliquota unica oppure scaglioni cumulativi, con o senza soglia di esenzione.
-- Il motore gestisce entrambi gli anni: dove il comune non ha ancora deliberato per il 2026 resta in vigore l'aliquota 2025, ed è segnalato in interfaccia.
-
-### 6.7 Dal netto alla RAL
-
-La domanda che in un'azienda di HR si fa ogni giorno è l'inversa di quella che i calcolatori sanno rispondere: *"il candidato chiede 2.500 € netti al mese, che RAL devo mettere nell'offerta?"*.
-
-L'inversione avviene per bisezione sul motore stesso, ma il caso interessante nasce dalle discontinuità del §4.6. Un salto verso il basso **non** lascia buchi nell'insieme dei netti raggiungibili: fa attraversare due volte lo stesso livello. La conseguenza pratica è che alcune cifre nette corrispondono a **più RAL diverse**.
-
-Esempio reale prodotto dal motore, vicino allo scalino di Milano:
-
-> Serve una RAL di **25.277 €**. Per via dei salti normativi questa cifra netta è prodotta anche da 25.586 €. Ho scelto la più bassa: stesso netto in busta, ma **426 € in meno di costo azienda**.
-
-È l'unico punto in cui il lavoro sulle discontinuità produce un risultato che l'utente usa, invece di una nota nel README. Il ramo che gestisce i valori davvero irraggiungibili resta implementato come difesa: servirebbe un salto verso l'alto, che una normativa futura potrebbe introdurre.
-
-### 6.8 Confronto fra scenari
-
-Chi lavora in selezione non calcola: compara. Un pulsante blocca lo scenario corrente come A; da lì ogni modifica dei parametri produce lo scenario B e le differenze su netto, netto più welfare, prelievo, costo azienda ed efficienza.
-
-Serve a confrontare due offerte, due città, i due anni d'imposta, oppure più RAL contro meno RAL più welfare.
-
-**Il confronto sta dove si guarda.** La prima versione aveva il pannello in fondo alla pagina: per bloccare uno scenario bisognava scorrere giù, per cambiare un parametro risalire, per leggere la differenza riscendere. Il ciclo vero è *blocca, cambia, leggi*, e chiedeva due scorrimenti a ogni giro.
-
-Ora una barra sottile apre i risultati, sopra le card del netto: da lì si blocca lo scenario e lì compaiono le cinque differenze che contano, in una riga sola. Il parametro da muovere è nella colonna accanto, alla stessa altezza: il giro si chiude senza mai scorrere. La tabella completa resta in fondo per chi vuole tutte le voci, raggiungibile con un collegamento dalla barra, e i due pulsanti — quello in alto e quello accanto alla tabella — sono la stessa azione, così chi sta leggendo il dettaglio non deve risalire per bloccare un nuovo scenario.
-
-Le differenze sono colorate secondo il verso che conta per chi legge: il verde è più netto in busta, ma sul costo aziendale e sulla pressione fiscale è la discesa a essere una buona notizia.
-
-### 6.9 Scenario condivisibile
-
-Ogni parametro vive nell'indirizzo: `?sezione=premium&anno=2025&comune=L219&ral=62000&profilo=industria|dirigente|oltre50&massimale=1`. La simulazione si configura e si manda per link, e alla riapertura lo stato è identico. Nell'URL finiscono solo i parametri diversi dal valore predefinito, per tenerlo leggibile.
-
-Selezionare un comune **allinea automaticamente la regione**: senza questo vincolo era possibile calcolare Torino con l'addizionale regionale della Lombardia. Un test verifica che tutte le 107 province del dataset ricadano in una delle 21 regioni.
-
-### 6.10 Avvisi contestuali
-
-L'interfaccia segnala automaticamente le situazioni che un HR deve vedere e spiegare al dipendente: massimale raggiunto, aliquota aggiuntiva attiva, retribuzione sotto il minimale, detrazioni perse per incapienza, delibera comunale 2026 non ancora pubblicata.
-
-### 6.11 Spiegazioni contestuali
-
-Ogni voce che nasconde una regola porta un pulsante informativo che apre **la derivazione sui numeri del calcolo corrente**, non un testo di aiuto generico. A 30.000 € di RAL, la detrazione da lavoro dipendente si apre così:
-
-> **Detrazione per lavoro dipendente**
-> Fra 15.000 e 28.000 €: 1.910 € più una quota decrescente di 1.190 €. Fra 25.000 e 35.000 € si aggiunge il correttivo di fascia di 65 €.
->
-> | | |
-> |---|---:|
-> | Detrazione di fascia | 1.979,29 € |
-> | Correttivo | 65,00 € |
-> | **Totale** | **2.044,29 €** |
->
-> *TUIR art. 13*
-
-Sono **32 in tutto**: 11 nella cascata di «Task Jet HR», 19 in quella di «Avanzato», 2 sulle card di sintesi. Le due cascate non spiegano le stesse cose: «Avanzato» ha più voci perché ha più parametri, e nessuna spiegazione presente nella sezione semplice manca in quella avanzata. Compaiono solo quando la voce corrispondente entra nel calcolo, così l'interfaccia non si riempie di icone inutili. Coprono l'IRPEF scaglione per scaglione, la capienza, l'effetto scalino, il cuneo nelle sue due nature, il trattamento integrativo, l'aliquota aggiuntiva 1%, il massimale, i regimi agevolati, il ragguaglio ai giorni, la soglia dei fringe benefit e l'imposta sostitutiva sui premi.
-
-Alcune si adattano al contesto: l'IRPEF lorda mostra anche quanto sarebbe con le aliquote dell'altro anno d'imposta; l'addizionale comunale cambia testo se il comune è esente, se ha scaglioni o se non ha ancora deliberato.
-
-Servono a portare il contenuto di questo documento dentro l'interfaccia, dove viene effettivamente letto.
-
-### 6.12 Come si legge il risultato
-
-**La composizione del lordo apre la scheda, la curva resta a un clic.** La curva netto/RAL risponde a una domanda che quasi nessuno si fa per prima — come cambierebbe il netto se la RAL fosse un'altra. La domanda che si fa per prima è dove finiscono i soldi di *questa* RAL. La barra scompone il lordo che passa dalla busta in sette voci: netto, contributi INPS, IRPEF netta, addizionali locali, imposte sostitutive su premi e accessori, versamento al fondo pensione, altre trattenute. Le voci sono quelle del calcolo, non una loro approssimazione grafica, e un test verifica che sommate diano esattamente il lordo.
-
-Due cose restano fuori dalla barra e la nota le dichiara: i bonus del cuneo e il trattamento integrativo si **aggiungono** alla retribuzione anziché uscirne, e il welfare esente non passa nemmeno dalla busta paga.
-
-**«Netto + welfare» non è uno stipendio più alto.** Sommare denaro e benefit produce un numero solo, e un numero solo si legge come stipendio. La card non promette: la cifra non è verde, sotto compare una barra con la proporzione fra le due metà e una riga in ambra dichiara quanta parte è welfare vincolato nell'uso.
-
-**Il delta dichiara con chi si confronta.** La differenza mostrata accanto al netto annuo non è rispetto a una simulazione precedente: è rispetto al profilo fisso della scheda Task Jet HR, a parità di RAL. Quando i parametri diversi sono più d'uno il testo lo dice, e la spiegazione avverte che il numero li somma tutti e non è attribuibile a nessuno in particolare, rimandando al confronto fra scenari.
-
-### 6.13 Uso quotidiano
-
-- **Apertura a clic, tastiera e tocco.** I tooltip solo-hover sarebbero inaccessibili da telefono: l'apertura in hover è attiva solo dove esiste un puntatore vero. Sotto i 640px la spiegazione diventa un pannello ancorato al fondo dello schermo, con chiusura esplicita.
-- **Le schede si navigano con le frecce.** Dichiarare `role="tablist"` è una promessa verso chi usa la tastiera: frecce per spostarsi, Home e Fine per gli estremi, e il pannello che segue il fuoco. Senza quel blocco il markup prometteva un comportamento che non c'era.
-- **Il netto viene annunciato a digitazione ferma.** Marcare `aria-live` le cifre stesse faceva leggere allo screen reader ogni valore intermedio, una volta per tasto premuto. L'annuncio esce ora da una sola regione invisibile, 700 ms dopo l'ultima modifica, come frase intera: «Netto mensile …, netto annuo …». Gli avvisi contestuali restano `role="alert"`. Ogni controllo di modulo ha un nome accessibile, anche i due del riquadro «Dal netto alla RAL», dove l'etichetta era solo visiva.
-- **Il primo tasto della pagina salta al contenuto.** Un collegamento nascosto finché non prende il fuoco evita di attraversare intestazione e schede a ogni caricamento.
-- **La ricerca del comune è un combobox vero.** Frecce per percorrere i risultati, Invio per scegliere, Esc per rinunciare, `aria-activedescendant` per dire quale opzione è attiva. E se il campo resta su un testo che non corrisponde al comune in uso, al termine della digitazione torna a dire quale comune sta davvero calcolando: prima si poteva leggere «Roma» mentre il calcolo era di Milano.
-- **Contrasto conforme AA.** Il grigio più chiaro (`slate-400`, 2,6:1 su bianco) è rimasto solo dentro le card scure, dove supera 7:1; sul chiaro tutto il testo secondario è salito a `slate-500`.
-- **Esportazione.** *Copia CSV* mette il dettaglio negli appunti, pronto per un foglio di calcolo. *Stampa / PDF* produce un documento, non un modulo compilato: su carta non c'è niente da compilare, quindi i campi perdono bordo e sfondo e restano il valore che contengono, i menu a tendina mostrano la voce scelta per intero, pulsanti e cursori spariscono e le card scure diventano leggibili in bianco e nero. Restano i colori che portano un significato — la barra della composizione, le pastiglie di stato, le differenze in verde e rosso — e nessuna riga si spezza fra due pagine. Sparisce anche il riquadro *Dal netto alla RAL*, che è uno strumento e non un risultato.
-- **Responsive verificato.** Nessuno scorrimento orizzontale a 390px: le colonne della griglia possono restringersi e lo scorrimento resta confinato alla tabella del dettaglio.
-- **Le opzioni di dettaglio stanno in una tendina, non sparite.** Giorni e tipo di buono, modalità di erogazione del premio, contributo del datore e destinazione del TFR: sono nove controlli che a riposo non hanno nulla su cui agire. Nasconderli del tutto li avrebbe resi irraggiungibili — un campo invisibile non si compila — quindi restano dietro una riga con la freccia, sempre apribile. La tendina segue il valore: è aperta finché c'è qualcosa da vedere e si richiude quando tutto torna a zero. Conta anche ciò che sta dentro — i giorni con buono diversi dai 220 predefiniti, la spunta sui buoni cartacei, il contributo del datore — altrimenti si chiuderebbe sotto le dita di chi sta compilando un'opzione senza aver ancora toccato la voce principale. Vale anche all'apertura di un link condiviso, che porta i valori e con essi le tendine giuste già aperte.
-
-### 6.14 Fondi pensione di settore
-
-I fondi negoziali sono modellati **per parametri, non per catalogo**: le percentuali variano per CCNL e nessun ente le pubblica in forma interrogabile, quindi inserirle a memoria significherebbe ripetere l'errore corretto al §8. Chi usa lo strumento indica il contributo del proprio fondo; il motore applica le tre regole che contano.
-
-**Il contributo del datore spetta solo a chi versa.** È la regola dei fondi negoziali: chi non aderisce rinuncia al denaro dell'azienda. Il motore azzera il contributo aziendale quando il versamento del lavoratore è nullo, e l'interfaccia lo dichiara.
-
-**Il tetto di deducibilità è unico.** I 5.164,57 € annui valgono per la somma dei versamenti del lavoratore e del datore: se l'azienda versa consuma capienza, e la quota del lavoratore è deducibile solo per la parte restante. La porzione di contributo aziendale che eccede il tetto **torna a essere reddito imponibile** per il lavoratore.
-
-**Il TFR cambia natura.** Conferito al fondo non si accantona più in azienda e non sconta il contributo dello 0,50% al Fondo di garanzia, che riguarda l'accantonamento interno. La card del TFR dichiara la destinazione invece di mostrare un numero ambiguo.
-
-Un esempio prodotto dal motore — operaio metalmeccanico a 32.000 €, versamento di 384 € l'anno, contributo aziendale al 2%, TFR conferito:
-
-| | |
-|---|---:|
-| Netto annuo a cui rinuncia | −247,60 € |
-| Versamento proprio | 384,00 € |
-| Contributo dell'azienda | 640,00 € |
-| TFR conferito | 2.370,37 € |
-| **Accantonato nell'anno** | **3.394,37 €** |
-
-Rinuncia a 247,60 € di netto e accumula 3.394,37 €. È il conto che un HR fa a voce davanti a un neoassunto, e che il calcolatore ora sa mostrare.
-
-### 6.15 Altre trattenute
-
-Un campo unico raccoglie le trattenute che escono dal netto **già tassato**: quota sindacale, cessione del quinto, pignoramenti, prestiti aziendali, mensa. Si comportano tutte allo stesso modo, quindi un solo parametro le copre.
-
-Fiscalmente sono la voce più semplice del cedolino: **non sono oneri deducibili né detraibili**. Non toccano imponibile, imposte né contributi. È però la differenza fra il netto teorico e quello che arriva sul conto — la cifra che un dipendente contesta all'HR.
-
-Due conseguenze che il motore rispetta:
-
-- **La pressione fiscale le ignora.** Misura il prelievo dello Stato, non le spese personali del lavoratore: una quota sindacale non è un'imposta e non deve far salire quell'indicatore. Stesso criterio per il rapporto netto/costo azienda.
-- **Non possono eccedere il netto disponibile.** Qui il limite è semplice, perché non hanno effetto fiscale: nessuna ricerca per approssimazioni, a differenza dei versamenti al fondo.
-
-Il **limite del quinto** non viene imposto: il campo raccoglie voci diverse e solo la cessione del quinto vi è soggetta. Quando l'importo supera un quinto del netto, l'interfaccia lo segnala indicando il tetto di legge, lasciando all'utente il giudizio su quale voce stia inserendo.
-
-### 6.16 Ottimizzazione del costo aziendale
-
-Un euro di RAL e un euro di welfare non costano uguale all'azienda, perché non subiscono lo stesso prelievo. È il punto in cui il calcolatore smette di misurare una busta paga e comincia a rispondere a una domanda di impresa.
-
-**Due direzioni, la stessa macchina.**
-
-| Modalità | Domanda | Risposta |
-|---|---|---|
-| Dal netto desiderato | Il candidato chiede 2.000 € netti al mese: qual è il pacchetto che glieli consegna al minor costo? | Tre pacchetti a parità di valore, con il costo aziendale decrescente |
-| Dal budget aziendale | Ho 50.000 € l'anno da spendere: qual è il valore massimo che posso consegnare? | Tre pacchetti a parità di spesa, con il valore crescente |
-
-**Le due direzioni restano allineate.** Ottimizzando dal netto, il campo del budget si compila con la spesa che il pacchetto migliore comporta; partendo dal budget, l'obiettivo netto si aggiorna con quanto quella spesa riesce a consegnare. Si può proseguire nell'altra direzione senza ricopiare un numero a mano, e senza trovarne uno vecchio rimasto lì. L'andata e ritorno è coerente: 2.000 € netti al mese producono un budget di 38.868 €, che ricalcolato restituisce di nuovo 2.000 € al mese.
-
-**Un solo punto d'ingresso per l'obiettivo netto.** La cifra che il candidato chiede si scrive una volta sola, nel riquadro *Dal netto alla RAL*, e da lì partono due azioni: **Trova la RAL** cerca la retribuzione che produce quella cifra, **Ottimizza** cerca il modo meno costoso di consegnarla. Duplicare il campo in due riquadri diversi avrebbe significato chiedere due volte la stessa cosa. Il budget, che non è un netto, resta l'ingresso speculare accanto ai risultati.
-
-**L'efficienza è misurata, non dichiarata.** A ciascuno strumento viene aggiunta una quota e si osserva la variazione reale di costo aziendale e di valore ricevuto. Nessun coefficiente scritto a mano che poi invecchia:
-
-| Strumento | Ricevuto per ogni euro speso |
-|---|---:|
-| Fringe benefit entro soglia | 1,00 € |
-| Buoni pasto entro il limite | 1,00 € |
-| Premio convertito in welfare | 1,00 € |
-| Premio in denaro | 0,65 € |
-| Retribuzione ordinaria | 0,37 € |
-
-Il dato sulla retribuzione è marginale: a 45.000 € di RAL, l'euro aggiuntivo sconta contributi del datore e del lavoratore, IRPEF marginale al 33%, addizionali e perdita progressiva delle detrazioni.
-
-**Risultato concreto.** Per consegnare 26.000 € di valore annuo: 47.823,97 € di costo con la sola retribuzione, **36.357,10 € con il pacchetto ottimizzato**. Sono 11.466,87 € risparmiati, il 24,0%.
-
-**Cosa il lavoratore guadagna e cosa rinuncia.** Un confronto che mostrasse solo il risparmio dell'azienda sarebbe metà della verità. Il welfare non passa dalla busta paga, e ciò che non è retribuzione non costruisce pensione né matura TFR. Il pannello espone le due colonne affiancate.
-
-Sull'esempio dei 26.000 € di valore annuo:
-
-| Guadagna | | Rinuncia | |
-|---|---:|---|---:|
-| Welfare esente da imposte | 8.200 € | Retribuzione lorda dichiarata | −14.367,19 € |
-| Costo aziendale in meno | 11.466,87 € | TFR maturato nell'anno | −992,40 € |
-| | | Accantonamento pensionistico | −4.741,17 € |
-
-Sono **5.733,57 € l'anno di accantonamenti differiti**, calcolati con l'aliquota di computo del 33% che alimenta il montante contributivo. Cala anche la base per NASpI, malattia e maternità, e il reddito che una banca legge per concedere un mutuo. Il minor costo per l'azienda non sparisce: è il margine su cui si può trattare l'offerta, ed è giusto che entrambe le parti lo vedano.
-
-**Ottimizzazione rispetto alle soglie.** Non tutte le soglie sono uguali: alcune cambiano solo l'aliquota marginale, e attraversarle non costa nulla di netto; altre sono gradini, e superarle di un euro fa perdere un importo intero. Spostare retribuzione su welfare abbassa l'imponibile e può riportarlo sotto un gradino.
-
-Il calcolo cerca la soglia più conveniente fra quelle raggiungibili con la capienza welfare disponibile — inclusa **l'esenzione comunale del comune selezionato**, che varia da comune a comune — e quantifica il recupero. Con un imponibile di 24.065 €:
-
-> L'imponibile supera di poco la soglia del **bonus del cuneo fiscale** (20.000 €). Spostando 4.481 € dalla retribuzione al welfare, l'imponibile scende a 19.995 € e il lavoratore recupera **1.937 € l'anno**.
-
-Sceglie l'occasione con il recupero maggiore, non la più vicina: l'esenzione comunale di Milano era a soli 1.173 € di distanza, ma vale 192 € contro i 1.937 € del cuneo. E non suggerisce nulla a chi è già sotto tutte le soglie.
-
-**Il pacchetto da analizzare si sceglie.** I due riquadri sotto la tabella — cosa cambia per il lavoratore e soglia raggiungibile — leggevano sempre il pacchetto più conveniente. Era una raccomandazione, non una lettura: chi voleva capire il baratto di un pacchetto diverso non aveva modo di chiederlo. Ogni riga è selezionabile, il consigliato parte già scelto e porta il suo badge, e il pacchetto non applicabile resta visibile ma non selezionabile.
-
-La leva della soglia è il welfare del pacchetto scelto, non la somma dei tetti di legge: con «Solo retribuzione» non c'è nulla da spostare, e il riquadro lo dice invece di sparire in silenzio.
-
-**Tre vincoli che l'ottimizzatore rispetta.**
-
-- Non supera mai le soglie di esenzione: oltre la soglia il fringe benefit diventa imponibile per intero e il vantaggio evapora. È l'effetto scalino del §4.2 applicato a un altro istituto.
-- Segnala quando il premio di risultato non spetta, perché il reddito supera gli 80.000 € o manca il contratto aziendale.
-- Dichiara sempre quanta parte del valore arriva come denaro e quanta come welfare vincolato. Non li somma fingendo che siano la stessa cosa: nel pacchetto migliore dell'esempio, il 68,5% è denaro in busta.
-
-### 6.17 Tipo di rapporto, separato da settore e inquadramento
-
-La prima versione mescolava tre assi in un unico selettore: settore, inquadramento e tipo di contratto. Non era possibile simulare *un apprendista nell'industria* o *un operaio a tempo determinato*, perché erano alternative mutuamente esclusive. Ora sono due dimensioni indipendenti che si combinano.
-
-Ma il punto vero non era la combinatoria: era che ogni voce cambiava **soltanto due aliquote**, mentre certi rapporti cambiano la natura stessa del reddito.
-
-| Tipo | Cosa cambia davvero |
-|---|---|
-| **Indeterminato** | Contribuzione ordinaria del settore |
-| **Tempo determinato** | Contributo addizionale NASpI dell'1,40% **a carico del solo datore**: la busta paga del lavoratore è identica, cambia solo il costo aziendale. A 24.000 € sono 336 € l'anno |
-| **Apprendistato** | Aliquota del lavoratore fissata per legge al 5,84%, indipendente dal settore scelto |
-| **Collaborazione coordinata e continuativa** | Non è lavoro dipendente né lavoro autonomo: Gestione separata INPS al 35,03%, divisa per un terzo sul collaboratore e due terzi sul committente |
-| **Tirocinio / stage** | Non è un'aliquota diversa: è un reddito diverso |
-
-**Il tirocinio è il caso che valeva la pena modellare.** L'indennità non è reddito di lavoro dipendente ma **assimilato**, ex art. 50, comma 1, lettera c) del TUIR. Le conseguenze sono strutturali:
-
-- **Nessun contributo previdenziale.** L'imponibile IRPEF coincide con l'intera indennità, non con l'indennità al netto dei contributi. A parità di importo lordo il tirocinante paga *più* IRPEF di un dipendente, non meno.
-- **Nessun TFR, nessuna mensilità aggiuntiva.** I controlli che non hanno effetto vengono disattivati invece di restare attivi e ininfluenti.
-- **La detrazione dell'art. 13 spetta**, ed è ragguagliata ai giorni: il comma 1 richiama espressamente l'art. 50 comma 1 lettera c). L'ho verificato sul testo della norma, perché due fonti secondarie sostenevano che si applicasse la detrazione per "taluni redditi assimilati" del comma 5 — che invece riguarda le lettere e), f), g), h), i), non la c).
-- **Cuneo fiscale e trattamento integrativo non sono riconosciuti**, perché si rivolgono ai titolari di reddito di lavoro dipendente. Questa è un'interpretazione, non un calcolo, ed è dichiarata come tale nell'avviso in pagina.
-- **Costo per il soggetto ospitante**: indennità più copertura INAIL, senza contribuzione previdenziale.
-
-**La collaborazione coordinata e continuativa è il secondo caso in cui cambia la natura del reddito**, e ha richiesto di distinguere tre istituti che sembrano uno solo:
-
-- **Contributi**: Gestione separata al 35,03% (33% IVS più 0,50%, 0,22% e 1,31% DIS-COLL), ripartita per legge in un terzo a carico del collaboratore e due terzi a carico del committente. Il massimale di 122.295 € qui non è una casella da spuntare come per i dipendenti: si applica sempre, e l'interfaccia lo mostra spuntato e disattivato.
-- **Detrazione dell'art. 13, comma 1**: spetta, perché la norma richiama la lettera c-bis) dell'art. 50.
-- **Trattamento integrativo**: spetta. Il D.L. 3/2020 elenca espressamente la lettera c-bis) fra i redditi ammessi.
-- **Taglio del cuneo 2025**: *non* spetta. La Legge di Bilancio 2025 si rivolge ai «titolari di reddito di lavoro dipendente di cui all'articolo 49», e la collaborazione è reddito assimilato dell'art. 50.
-
-Le ultime due voci sono la ragione per cui questa distinzione andava verificata riga per riga sulle due norme invece che assumere un comportamento unico per «i redditi assimilati»: due istituti nati per lo stesso scopo hanno perimetri diversi. Niente TFR e niente mensilità aggiuntive: il compenso si divide per dodici.
-
-Resta fuori la **somministrazione**, che aggiunge i contributi ai fondi bilaterali.
-
-### 6.18 Partita IVA: un secondo motore, non un ramo
-
-Il lavoro autonomo ha una sezione propria, accanto a Base e Premium, e un motore separato — `calcolaAutonomo` — che non passa da `calcolaPremium`. Non è una scelta estetica: nel lavoro autonomo non c'è una busta paga da ricostruire, non esistono TFR, mensilità aggiuntive, welfare aziendale né un datore che versa due terzi dei contributi, e soprattutto **cambia l'ordine dei fattori**. I contributi si calcolano sul reddito e poi si deducono dallo stesso reddito; nel forfetario l'imposta sostitutiva prende il posto di IRPEF e addizionali. Innestare tutto questo come ramo del motore dei dipendenti avrebbe prodotto una funzione piena di eccezioni, cioè il posto dove nascono gli errori.
-
-| Regime | Come si arriva al netto |
-|---|---|
-| **Ordinario** | Fatturato − costi = reddito; contributi della gestione previdenziale scelta, deducibili; IRPEF a scaglioni con la detrazione dell'**art. 13, comma 5** (non quella dei dipendenti: a 20.000 € vale circa la metà); addizionali regionale e comunale |
-| **Forfetario 15%** | Reddito = fatturato × coefficiente ATECO dell'allegato 4 (dal 40% all'86%); contributi sul reddito così determinato e deducibili; imposta sostitutiva del 15% al posto di IRPEF, addizionali e IRAP |
-| **Forfetario 5%** | Identico al precedente con aliquota al 5%, per i primi cinque anni di una nuova attività |
-
-Tre conseguenze che il calcolatore rende visibili invece di nasconderle:
-
-- **Nel forfetario i costi effettivi non contano.** Vale il coefficiente, che dipende dal codice ATECO e non da quanto si è speso: per un professionista al 78% il regime è conveniente finché i costi reali restano sotto il 22% del fatturato. Il campo dei costi sparisce quando si sceglie il forfetario, invece di restare lì a suggerire un effetto che non c'è.
-- **Il comune di residenza non sposta il netto forfetario di un centesimo**, perché l'imposta sostitutiva sostituisce anche le addizionali locali. È un risultato, non una svista, ed è asserito da un test che confronta lo stesso fatturato a Milano e a Roma.
-- **La tabella di confronto fra i tre regimi** sta accanto al dettaglio: la domanda vera di chi apre una partita IVA non è quanto paga, ma quale regime gli conviene a parità di fatturato.
-
-**Limiti dichiarati anche in pagina:** la previdenza si sceglie fra tre gestioni INPS — Separata per i professionisti senza cassa, artigiani, commercianti — mentre le casse professionali di categoria non sono ancora modellate; i contributi sono imputati all'anno di competenza, senza acconti, saldo e cassa sfalsata; l'IVA non entra nel calcolo; le cause di esclusione dal forfetario (redditi da lavoro dipendente sopra 35.000 €, partecipazioni societarie, prevalenza dell'ex datore di lavoro) non sono verificate, mentre il superamento della soglia di 85.000 € è segnalato.
-
-### 6.19 Esoneri contributivi all'assunzione
-
-Sono la leva con cui un HR decide *chi* assumere e *come*, e mancavano del tutto. A differenza delle aliquote territoriali non sono un dataset: nascono da leggi che ne cambiano la **struttura**, non solo gli importi.
-
-**Vigenti al 21 agosto 2026**, verificati sulle fonti:
-
-| Misura | Incide su | Entità | Fonte |
-|---|---|---|---|
-| Decontribuzione Sud — PMI | Datore | 20%, max 125 €/mese nel 2026 | L. 207/2024 c. 406-412 — INPS circ. 32/2025 |
-| Bonus Donne | Datore | 100%, max 650 €/mese, 24 mesi | D.L. 60/2024 art. 23 — prorogato dal D.L. 200/2025 |
-| Esonero assunzione madri con tre figli | Datore | 100%, max 8.000 € l'anno | L. 199/2025 c. 210-213 — INPS circ. 82/2026 |
-| Esonero lavoratrici madri con 3+ figli | Lavoratrice | 100% quota IVS, max 3.000 € l'anno | L. 213/2023 — resa strutturale dalla L. 207/2024 |
-| Incentivo alla stabilizzazione degli under 35 | Datore | 100%, max 500 €/mese, 24 mesi | D.L. 62/2026 art. 4, conv. L. 112/2026 — INPS circ. 72/2026 |
-
-**Scadute, e il calcolatore lo dice da solo:** Bonus Giovani under 35 e Bonus ZES. La proroga per il 2026 copriva le sole assunzioni fino al 30 aprile: restano consultabili, marcate *scadute*, non selezionabili. Nasconderle lascerebbe credere che non esistano; applicarle sarebbe peggio.
-
-Stanno però raccolte in una tendina chiusa, sotto le misure vive: chi apre la card vede le cinque che può usare, non nove righe di cui due grigie. Chi cerca il Bonus Giovani lo trova, con la data in cui la finestra si è chiusa. È la stessa distinzione fatta altrove fra nascondere e togliere di mezzo: la prima cancella un'informazione, la seconda la mette dove non disturba.
-
-**Due comportamenti che vale la pena distinguere.** Un esonero sul datore riduce il costo aziendale e **non tocca la busta paga**. Un esonero sulla quota della lavoratrice alza il netto, ma anche l'imponibile: ciò che non si versa all'INPS resta reddito tassabile, quindi su 2.757 € esonerati ne arrivano 1.612. L'aliquota di computo pensionistico resta comunque piena — l'esonero non intacca la pensione futura.
-
-**Un incentivo che non premia l'assunzione ma la trasformazione.** L'ultima misura della tabella si applica solo al passaggio a tempo indeterminato, fra il 1° agosto e il 31 dicembre 2026, di un rapporto a termine instaurato entro il 30 aprile 2026, senza soluzione di continuità e di durata complessiva non superiore a dodici mesi; il lavoratore deve avere meno di 35 anni e non essere mai stato occupato a tempo indeterminato. È anche l'unica ad ammettere gli operai agricoli — che la decontribuzione Sud invece esclude — e a escludere i dirigenti. Restano fuori pubbliche amministrazioni, lavoro domestico, apprendistato e trasformazione del lavoro intermittente; i premi INAIL restano dovuti. Il calcolatore modella ciò che incide sul costo — percentuale, tetto, finestra, ambito — e dichiara nelle condizioni ciò che non può verificare: DURC regolare e incremento occupazionale netto sulla media dei dodici mesi precedenti.
-
-Il **cumulo vietato** dalla legge è codificato: decontribuzione Sud e bonus del decreto Coesione non sono compatibili, la stabilizzazione non si cumula con nessun altro esonero sulle aliquote del datore, e l'interfaccia impedisce la combinazione invece di produrre un numero impossibile.
-
-### 6.20 L'ordine delle card dei parametri
-
-Le sei card della colonna sinistra seguono **l'ordine in cui ogni parametro entra nel calcolo**, cioè lo stesso ordine della cascata dei risultati che sta a destra:
-
-1. **Contratto** — retribuzione, tipo di rapporto, inquadramento: da qui nascono lordo e contributi
-2. **Esoneri all'assunzione** — agiscono sui contributi appena calcolati
-3. **Welfare, premi e trattenute** — costruiscono l'imponibile fiscale, o lo aggirano restando esenti
-4. **Regimi fiscali agevolati** — abbattono l'imponibile IRPEF, mai la base contributiva
-5. **Carichi di famiglia** — detrazioni sull'IRPEF lorda
-6. **Residenza fiscale** — addizionali regionale e comunale, ultimo anello della catena
-
-L'ordine precedente metteva la residenza fiscale al secondo posto e gli esoneri al quinto: alfabeticamente innocuo, ma chiedeva di saltare avanti e indietro nella busta paga per capire dove ciascun parametro agisse. Leggere le card dall'alto verso il basso ora ricalca la lettura del cedolino.
-
-### 6.21 Sorveglianza normativa
-
-Le aliquote territoriali si aggiornano da sole perché sono un dataset. Gli esoneri no: nessun automatismo può leggere una legge e tradurla in codice. Quello che si può automatizzare è **accorgersi che qualcosa si è mosso**, e ridurre il danno quando nessuno se ne accorge.
-
-- **Scadenza automatica.** Ogni misura porta la propria finestra di vigenza. Il motore la confronta con la data odierna e disattiva ciò che è scaduto, senza attendere che qualcuno intervenga. È il rimedio al modo peggiore di sbagliare: applicare un esonero che non esiste più.
-- **Data di verifica.** Ogni voce dichiara in pagina quando è stata controllata l'ultima volta, insieme alla norma e alla circolare INPS.
-- **Sorveglianza dei feed.** Un workflow settimanale legge i feed RSS delle circolari e dei messaggi INPS, filtra per parole chiave — *esonero, decontribuzione, aliquote, massimali* — scarta il rumore delle convenzioni sindacali e apre una segnalazione con i link. Non interpreta: dice dove guardare.
-
-Questa sorveglianza, eseguita per la prima volta durante lo sviluppo, ha già prodotto un risultato: ha segnalato la **circolare INPS n. 82 del 29 luglio 2026**, che introduce l'esonero per l'assunzione di madri con tre figli. Quella misura non era nel mio elenco iniziale ed è stata aggiunta grazie alla segnalazione. Ha inoltre intercettato l'incentivo alla stabilizzazione dei rapporti a termine (D.L. 62/2026, INPS circ. 72/2026), oggi modellato: dalla segnalazione alla misura in tabella, il ciclo si è chiuso due volte.
-
-### 6.22 Cosa non è conoscibile, e come viene dichiarato
-
-Un calcolatore che presenta come esatto un numero che nessuno può conoscere perde credibilità presso chi il mestiere lo fa. Tre voci della sezione Premium hanno un margine di incertezza che non dipende dall'implementazione, e sono marcate come tali nell'interfaccia:
-
-| Voce | Perché non è conoscibile | Come viene dichiarato |
-|---|---|---|
-| **Costo azienda** | Il premio INAIL varia dallo 0,4% a oltre il 13% secondo la lavorazione; qui è fissato allo 0,5%, valore da ufficio. Le aliquote a carico del datore variano per CCNL, dimensione e ATECO | La card porta la dicitura *"stima, non un preventivo"* e una spiegazione che scompone il calcolo e nomina l'incertezza |
-| **Netto in busta più welfare** | Sommare denaro e benefit produce un numero solo, e un numero solo si legge come stipendio. Ma mille euro di buoni pasto non sono mille euro in busta: sono vincolati nell'uso, non costruiscono pensione né TFR, e le banche non li leggono come reddito | La card non si chiama più «valore totale» e la cifra non è verde: sotto compare una barra che mostra la proporzione fra le due metà, e una riga in ambra dichiara quanta parte è welfare vincolato. La spiegazione apre dicendo che non è uno stipendio più alto |
-| **Minimale contributivo** | Sotto la soglia INPS i contributi andrebbero calcolati sul minimale, non sulla retribuzione effettiva | L'avviso dice esplicitamente che il motore **non** applica la correzione e che i contributi risultano sottostimati |
-
-La regola seguita: dove il dato è normativo si calcola; dove dipende da variabili che il calcolatore non può conoscere, si dichiara.
-
-### Limiti dichiarati
-
-Dichiarati anche nell'interfaccia, non solo qui:
-
-- Le aliquote contributive vengono dalle **tabelle INPS** e si scelgono su tre assi — settore, qualifica, dimensione dell'organico — perché sono i tre che le determinano. La quota a carico del datore è la differenza fra il totale di tabella e la quota del lavoratore: una sottrazione, non una stima. Restano stime dichiarate solo agricoltura e lavoro domestico.
-- Le detrazioni per carichi di famiglia sono calcolate sul reddito del solo dichiarante.
-- La detrazione per figli a carico vale per i **21–30 anni**: sotto i 21 il posto lo prende l'Assegno Unico, dai 30 la detrazione cessa. L'eccezione per i figli con disabilità accertata, che non ha limite d'età, non è modellata perché il calcolatore non chiede l'età dei figli né la loro condizione. La detrazione per altri familiari spetta dal 2025 ai soli **ascendenti conviventi**: il campo va compilato con quelli, non con fratelli o generi.
-- Il premio di risultato agevolato spetta a chi ha avuto un reddito di lavoro dipendente non superiore a 80.000 € **nell'anno precedente**. Il motore usa la RAL dello scenario corrente, che è l'unico reddito che conosce: su una carriera stabile le due cifre coincidono, su un anno di forte variazione no.
-- La **riduzione contributiva del 50% per 36 mesi** riservata a chi si è iscritto per la prima volta alle gestioni artigiani e commercianti non è modellata. Non è una dimenticanza: la misura si conta in mesi dalla data di iscrizione, e il motore della partita IVA ragiona per anno d'imposta senza conoscere quella data. Modellarla avrebbe richiesto di indovinare la finestra di vigenza oltre il 2025, e un dato fiscale indovinato è peggio di un dato assente. Chi ne ha diritto deve ridurre a mano la voce dei contributi.
-- Il taglio forfettario di 440 € sulle detrazioni al 19% per redditi oltre 200.000 € non è modellato, perché il calcolatore non gestisce oneri detraibili: senza oneri, non c'è nulla da tagliare.
-- Il fringe benefit da auto aziendale va inserito come importo già valorizzato: il motore non calcola le tabelle ACI.
-- Per la partita IVA la previdenza si sceglie fra tre **gestioni INPS**. Artigiani e commercianti hanno un minimale di 18.808 €: sotto quel reddito il contributo non scende, e a reddito zero restano dovuti 4.521,36 € o 4.611,64 €. Chi versa a una **cassa professionale** di categoria non è ancora coperto e non deve usare la Gestione Separata come approssimazione. I contributi sono imputati per competenza, senza acconti e saldo. L'IVA resta fuori dal calcolo.
-
----
-
-## 7. Perimetro del prototipo
-
-Fuori scope, in modo deliberato:
-
-- Conguaglio fiscale di fine anno e criterio di cassa sulle addizionali (acconto e saldo)
-- Tassazione separata di arretrati e TFR liquidato
-- Detrazioni per oneri (spese sanitarie, interessi passivi, ristrutturazioni) e relativo taglio forfettario oltre 200.000 €
-- Minimi tabellari, scatti di anzianità e superminimi previsti dai singoli CCNL
-- Assegno Unico Universale, che non transita dalla busta paga fiscale
-
-Il prototipo è una **stima previsionale a fini illustrativi** e non sostituisce il cedolino elaborato dal consulente del lavoro.
-
-### Dati e privacy
-
-Non c'è un backend, quindi non c'è un posto dove i dati inseriti possano finire: il calcolo avviene nel browser e gli importi non vengono trasmessi né conservati. Verificato, non dichiarato: zero occorrenze di `document.cookie`, `localStorage`, `sessionStorage`, `fetch` e `XMLHttpRequest` nel sorgente, nessuna analitica, e nessun header `Set-Cookie` dal server pubblicato.
-
-Ne segue che **non serve un banner cookie**: il consenso riguarda ciò che viene memorizzato sul dispositivo, e qui non viene memorizzato nulla. Metterne uno lo renderebbe un rituale.
-
-Restano tre fatti veri, dichiarati nel piè di pagina:
-
-- lo stato della simulazione vive nell'indirizzo, quindi **condividere il link significa condividere i parametri** — RAL e carichi di famiglia compresi. È la conseguenza meno ovvia della scelta di rendere ogni scenario un link, e vale la pena dirla;
-- l'hosting su Vercel registra gli accessi nei log tecnici, come qualunque hosting;
-- **nessun'altra risorsa esterna**: la pagina non contatta alcun terzo. Il foglio di stile di Tailwind è compilato in fase di preparazione e incorporato nel file, quindi nessuna CDN vede l'indirizzo IP di chi visita.
-
-Per uno strumento che tratta stipendi e situazione familiare, dire dove finiscono i numeri conta quanto calcolarli bene.
-
-L'hosting serve la pagina con una `Content-Security-Policy` che consente soltanto risorse della stessa origine (`vercel.json`): siccome
-non c'è più alcuna risorsa esterna, la politica non è una dichiarazione d'intenti ma una regola che il browser applica. Nella stessa
-configurazione viaggiano `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, una `Permissions-Policy`
-che nega fotocamera, microfono e posizione, e `frame-ancestors 'none'`, che impedisce di incorniciare il calcolatore in un altro sito.
-
----
-
-## 8. Fonti normative
-
-Le regole implementate derivano dalle fonti seguenti. Dove la fonte primaria lascia margine interpretativo, la scelta adottata è dichiarata nelle sezioni precedenti.
-
-| Istituto | Fonte |
-|---|---|
-| Assetto a tre scaglioni IRPEF, aliquote 23% / 35% / 43% nel 2025 e 23% / 33% / 43% dal 2026 | TUIR — D.P.R. 917/1986, art. 11; tre scaglioni introdotti dal D.Lgs. 216/2023 e resi strutturali dalla L. 207/2024; seconda aliquota ridotta al 33% dalla Legge di Bilancio 2026 |
-| Detrazioni per lavoro dipendente e correttivo di fascia | TUIR, art. 13 |
-| Pavimento della detrazione ragguagliata ai giorni: 690 €, 1.380 € nei rapporti a termine | TUIR, art. 13, comma 1, lett. a) |
-| Correttivo di fascia da 65 €: non rapportato al periodo di lavoro nell'anno | D.Lgs. 216/2023, art. 2, comma 2, reso strutturale dalla L. 207/2024 |
-| Detrazioni per carichi di famiglia (sezione Premium) | TUIR, art. 12 |
-| Taglio del cuneo fiscale 2025: bonus esentasse fino a 20.000 € e ulteriore detrazione 20.000–40.000 € | L. 207/2024 (Legge di Bilancio 2025); istruzioni operative Agenzia delle Entrate |
-| Trattamento integrativo (1.200 € annui) e condizione di capienza | D.L. 3/2020 conv. L. 21/2020, come modificato dal D.Lgs. 216/2023 |
-| Taglio di 75 € alla detrazione dell'art. 13 ai soli fini del trattamento integrativo | L. 234/2021, art. 1, comma 3 |
-| Aliquota contributiva 9,19% a carico del lavoratore | Circolari INPS sulle aliquote contributive del settore privato (FPLD) |
-| Aliquote totali per settore, qualifica e dimensione: industria, edilizia, artigianato, commercio, pubblici esercizi, logistica | Tabelle INPS delle aliquote contributive, edizione 2026; scomposizione per voce dalla tabella INPS di gennaio 2023 (IVS 33%, NASpI 1,61%, CUAF 0,68%, CIG, fondo di garanzia TFR 0,20%, malattia, maternità) |
-| Addizionale regionale IRPEF Lombardia, scaglioni 1,23% / 1,58% / 1,72% / 1,73% | Legge regionale Lombardia sull'addizionale IRPEF; elenco aliquote pubblicato dal MEF — Dipartimento delle Finanze |
-| Addizionale comunale IRPEF Milano, 0,80% con esenzione fino a 23.000 € | Delibera comunale di Milano sulle aliquote dell'addizionale; regolamento comunale e anagrafe MEF delle aliquote |
-| Soglie fringe benefit (1.000 € / 2.000 € con figli) | TUIR art. 51, comma 3; L. 207/2024 (Legge di Bilancio 2025), che le fissa per il triennio 2025-2027 |
-| Buoni pasto esenti: 8 €/giorno nel 2025, 10 €/giorno dal 2026; cartacei 4 €/giorno | TUIR art. 51, comma 2 lett. c); L. 199/2025 (Legge di Bilancio 2026), art. 1 comma 14 |
-| Premio di risultato: imposta sostitutiva 1% entro 5.000 € per il 2026-2027 | L. 208/2015, art. 1 commi 182-189; L. 199/2025, art. 1 comma 9 |
-| Quota TFR (retribuzione / 13,5) e contributo 0,50% al Fondo di garanzia | Art. 2120 c.c.; L. 297/1982 |
-| Seconda aliquota IRPEF 2026 al 33% e sterilizzazione oltre 200.000 € | L. 199/2025 (Legge di Bilancio 2026), art. 1 comma 3; [scheda MEF sulle principali misure](https://www.mef.gov.it/focus/Principali-misure-della-legge-di-bilancio-2026/) |
-| Massimale contributivo 122.295 €, prima fascia pensionabile 56.224 €, minimale di retribuzione 58,13 € al giorno | INPS, circolare n. 6 del 30 gennaio 2026 (rivalutazione ISTAT +1,4%). Il minimale mensile usato dal motore, 1.511,38 €, è il giornaliero per i 26 giorni convenzionali del mese |
-| Aliquota aggiuntiva 1% | Art. 3-ter D.L. 384/1992, conv. L. 438/1992 |
-| Gestione separata: 35,03% per i collaboratori (un terzo e due terzi), 26,07% per i professionisti, massimale 122.295 € | INPS, circolare n. 8 del 3 febbraio 2026 |
-| Artigiani 24% e commercianti 24,48% (25% e 25,48% oltre 56.224 €), minimale 18.808 €, maternità 7,44 €, contributi fissi 4.521,36 € e 4.611,64 € | INPS, circolare n. 14 del 9 febbraio 2026 |
-| Riduzione contributiva del 35% per i forfetari iscritti alle gestioni artigiani e commercianti, applicata alla sola quota IVS | L. 190/2014, art. 1 comma 77; INPS, circolare n. 35/2016 |
-| Detrazione per redditi di lavoro autonomo | TUIR, art. 13, comma 5 |
-| Regime forfetario: soglia 85.000 €, imposta sostitutiva 15% e 5%, coefficienti di redditività per gruppo ATECO | L. 190/2014, art. 1, commi 54-89 e **allegato 4** |
-| Imposta sostitutiva su premi di risultato (5% nel 2025, 1% nel 2026) e sui compensi accessori | L. 208/2015; Legge di Bilancio 2026 |
-| Regime impatriati: imponibile al 50%, 40% con figlio minore, tetto 600.000 € | D.Lgs. 209/2023, art. 5; [Agenzia delle Entrate — nuovo regime impatriati](https://www.agenziaentrate.gov.it/portale/lavoratori-impatriati-209-2023/infogen-lavoratori-impatriati-209-2023-cittadini) |
-| Docenti e ricercatori: imponibile al 10% | Art. 44 D.L. 78/2010 |
-| Previdenza complementare deducibile fino a 5.164,57 € | D.Lgs. 252/2005, art. 8 |
-| **Aliquote di tutti i 7.897 comuni** | MEF — Dipartimento delle Finanze, [anagrafe delle delibere comunali](https://www1.finanze.gov.it/finanze2/dipartimentopolitichefiscali/fiscalitalocale/addirpef_newDF/download/tabella.htm) (CSV per anno d'imposta) |
-| **Aliquote di tutte le 21 regioni e province autonome** | MEF — Dipartimento delle Finanze, [ricerca aliquote regionali](https://www1.finanze.gov.it/finanze2/dipartimentopolitichefiscali/fiscalitalocale/addregirpef/sceltaregione.htm) |
-
-### Quattro correzioni prodotte dalla verifica sulle fonti
-
-La prima versione del prototipo usava, per i territori diversi da Milano e Lombardia, valori ricostruiti a memoria e dichiarati come indicativi. Il confronto con l'anagrafe ufficiale, e con le circolari INPS, ne ha corretti quattro:
-
-| Dato | Prima versione | Fonte ufficiale |
-|---|---|---|
-| Esenzione comunale di Roma | 12.000 € | **14.000 €** |
-| Esenzioni comunali riservate ad altre categorie | Applicate anche ai dipendenti | **Filtrate**: 17 comuni deliberano esenzioni per pensionati, lavoro autonomo o compensi sportivi. Ad Acerra convivono tre soglie e quella dei dipendenti è 8.174 €, non gli 8.500 € dei pensionati |
-| Tetto massimo dell'addizionale comunale | 0,80% | **1,20%** — i comuni che hanno aderito agli accordi per il ripiano del disavanzo (Genova, Torino, Alessandria, Brindisi e altri) superano il tetto ordinario |
-| Aliquota INPS a carico del lavoratore sopra soglia | 9,19% piatta | **9,19% + 1%** sulla quota oltre la prima fascia pensionabile |
-
-Sono esattamente il tipo di errore che un valore "plausibile" nasconde e che solo la fonte primaria smaschera.
-
-**Verifica incrociata.** I valori di riferimento della tabella al §5 sono stati ricalcolati in Node.js sul motore estratto da `index.html`, con la procedura riproducibile descritta al §5.
-
-**Reimplementazione indipendente.** Il motore semplice è stato riscritto una seconda volta partendo dalle norme e non dal codice — INPS al 9,19%, i tre scaglioni, la detrazione dell'art. 13 con il correttivo di fascia, le due nature del cuneo, la capienza, il trattamento integrativo, gli scaglioni lombardi e lo scalino di Milano — e le due implementazioni sono state confrontate **su ogni RAL da 0 a 250.000 € a passo di un euro**, undici campi per volta: **2.750.011 confronti**. La riscrittura ha fatto emergere quattro difetti, corretti al §5.1 e al §5.2: a reddito zero il motore dichiarava 1.955 € di detrazioni non godute su una busta paga inesistente; il trattamento integrativo ignorava il taglio di 75 € della L. 234/2021; il ragguaglio della detrazione ai giorni non conosceva il proprio pavimento; il correttivo di fascia veniva ragguagliato mentre la norma dice il contrario. Le quattro discontinuità del §4.6 sono state individuate con una scansione a passo 1 € su 250.000 punti, non ipotizzate a priori.
-
----
-
-## 9. Pipeline dei dati territoriali
-
-Il dataset non è stato digitato a mano né copiato da siti di terze parti: è generato da uno script di build che parte dalle fonti primarie.
+| Scaglioni IRPEF: 23 / 35 / 43% nel 2025, 23 / 33 / 43% dal 2026 | TUIR, art. 11; L. 207/2024; L. 199/2025, art. 1, c. 3 |
+| Detrazione per lavoro dipendente, pavimento sui rapporti brevi, correttivo di 65 € | TUIR, art. 13 |
+| Detrazioni per carichi di famiglia (figli al 50% fra i genitori salvo accordo o coniuge a carico) | TUIR, art. 12 |
+| Taglio del cuneo fiscale: somma esente fino a 20.000 € e ulteriore detrazione fino a 40.000 € | L. 207/2024, art. 1, c. 4-9; Agenzia delle Entrate, circolare 4/E del 16/05/2025 |
+| Trattamento integrativo e taglio di 75 € ai fini della capienza | D.L. 3/2020; L. 207/2024, art. 1, c. 3; circolare 4/E/2025 |
+| Addizionali dovute solo se è dovuta l'IRPEF netta | D.Lgs. 446/1997, art. 50; D.Lgs. 360/1998, art. 1, c. 4 |
+| Addizionali regionali per anno, con le «disposizioni particolari» | MEF, Dipartimento delle Finanze, pagine delle aliquote regionali per anno |
+| Addizionali comunali | MEF, Dipartimento delle Finanze, anagrafe delle delibere (file per anno) |
+| Contributi, massimale 122.295 €, prima fascia 56.224 €, aliquota aggiuntiva 1% | INPS, circolare n. 6/2026; art. 3-ter D.L. 384/1992 |
+| Aliquote per settore, qualifica e dimensione | Tabelle INPS delle aliquote contributive, edizione 2026 |
+| Gestione separata e gestioni artigiani e commercianti, 2025 e 2026 | INPS, circolari n. 27 e 38 del 2025, n. 8 e 14 del 2026 |
+| Fringe benefit 1.000 € (2.000 € con figli a carico) | TUIR, art. 51, c. 3; L. 207/2024, art. 1, c. 390 |
+| Buoni pasto esenti | TUIR, art. 51, c. 2, lett. c); L. 199/2025, art. 1, c. 14 |
+| Premio di risultato | L. 208/2015, art. 1, c. 182-189; L. 199/2025, art. 1, c. 9 |
+| Maggiorazioni per notturno, festivo e turni al 15% entro 1.500 € (solo 2026) | L. 199/2025, art. 1, c. 10-11 |
+| Detrazione per lavoro autonomo (con i 50 € del comma 5-ter) | TUIR, art. 13, c. 5 e 5-ter |
+| Regime forfettario e coefficienti di redditività | L. 190/2014, art. 1, c. 54-89; tabella dei coefficienti nell'allegato 2 alla L. 145/2018 |
+| Impatriati e ricercatori | D.Lgs. 209/2023, art. 5; D.L. 78/2010, art. 44 |
+| Previdenza complementare deducibile fino a 5.164,57 € (5.300 € dal 2026), Previndai compreso | D.Lgs. 252/2005, art. 8, c. 4; L. 199/2025, art. 1, c. 201; Previndai, pagina «Contribuzione» |
+| Aumenti da rinnovo contrattuale 2026 al 5% | L. 199/2025, art. 1, c. 7; Agenzia delle Entrate, circolare 2/E del 24/02/2026 |
+
+La data dell'ultima verifica delle regole e quella dei dati comunali sono scritte in fondo alla pagina.
+
+## Limiti
+
+La pagina li elenca nella sezione «Fonti e limiti». I principali: il netto mensile è l'annuo diviso per le mensilità,
+non il cedolino di un mese preciso (le addizionali in busta sono quelle dell'anno prima, a conguaglio); i carichi di
+famiglia valgono per l'anno intero; le detrazioni regionali per figli o per disabilità non sono incluse; le casse
+professionali non sono coperte; per le soglie di reddito che la legge misura sull'anno precedente si usa l'anno
+simulato.
+
+Alcuni casi sono semplificati o non calcolati, e la pagina lo dice dove serve: il regime dei frontalieri applica solo la
+franchigia sul reddito; per bar, ristoranti, turismo e terme il trattamento integrativo del 15% su notturno e festivo
+(L. 199/2025, art. 1, c. 18) non è calcolato; i fondi di categoria diversi da Previndai vanno indicati a mano. Nei dati MEF
+del 2026 due comuni (Airuno e Bentivoglio) hanno una fascia con il limite scritto male: lo script la sposta al limite
+IRPEF successivo e lo segnala a ogni aggiornamento.
+
+Dal 1° gennaio 2027 il D.Lgs. 117/2026 riordina il testo unico delle imposte sui redditi: le regole e le citazioni
+andranno ricontrollate prima di quella data.
+
+## Privacy
+
+Il calcolo avviene nel browser. Gli importi non vengono inviati né conservati, la pagina non usa cookie, non traccia la
+navigazione e non contatta altri server. Lo stato della simulazione sta nell'indirizzo dopo il simbolo «#»: quella
+parte non arriva al server, nemmeno aprendo un link condiviso. Chi condivide il link condivide però i parametri
+inseriti con chi lo riceve.
+
+## Come è fatto
+
+Una pagina statica con moduli JavaScript nativi, senza framework e senza passaggi di compilazione.
 
 ```
-CSV MEF addizionali comunali 2025  ─┐
-CSV MEF addizionali comunali 2026  ─┼─→  build_dataset.py  ─→  dataset incorporato in index.html
-21 pagine MEF aliquote regionali   ─┘
+index.html              la pagina: struttura, testi fissi, foglio di stile compilato
+src/engine/             il motore di calcolo, diviso per argomento (regole nazionali,
+                        parametri per anno, esoneri, territorio, dipendente, partita IVA,
+                        calcolo inverso, ottimizzazione)
+src/data/mef-data.js    le aliquote regionali e comunali, generate dalle fonti MEF
+src/texts/it.js         tutti i testi che il codice mostra all'utente
+src/ui/                 l'interfaccia
+src/tests/suite.js      i controlli sui conti, eseguibili anche dalla pagina
+tools/                  aggiornamento dei dati, controlli, foglio di stile, test
 ```
 
-**Passaggi dello script:**
+Il codice è in inglese; i testi per l'utente sono in italiano, in `src/texts/it.js`.
 
-1. Scarica i CSV ufficiali dell'anagrafe comunale per il 2025 e il 2026 (790 KB e 1,2 MB).
-2. Interpreta le coppie *(aliquota, fascia di applicazione)* — fino a 12 per comune — distinguendo i quattro formati presenti nella fonte: esenzione, aliquota unica, scaglione chiuso, scaglione aperto.
-3. Normalizza i decimali: il CSV comunale usa la virgola e omette lo zero iniziale (`,8`), le tabelle regionali usano il punto (`1.23`). Due parser distinti, perché unificarli produceva aliquote del 123%.
-4. Applica la regola di vigenza: **la delibera 2026 prevale; in sua assenza resta in vigore quella 2025**. Su 7.897 comuni, 3.028 hanno deliberato per il 2026, 3.984 ereditano il 2025 e 885 non hanno alcuna delibera.
-5. Comprime il risultato: anagrafe scritta una sola volta, tariffe posizionali, 2026 come diff sul 2025 (solo 508 comuni differiscono). Il `dataset.js` prodotto scende da 495 KB a **267 KB**, che incorporati in `index.html` diventano 251 KB al netto dell'intestazione. La proprietà di file unico resta intatta.
+### Provarlo sul proprio computer
 
-Il dataset resta rigenerabile: rilanciando lo script su una nuova annualità, il calcolatore si aggiorna senza toccare una riga del motore.
-
-### 9.1 Aggiornamento automatico
-
-I dati territoriali si aggiornano da soli. Un workflow GitHub Actions gira il 1° e il 15 di ogni mese:
-
-1. Riscarica i CSV dal Dipartimento delle Finanze.
-2. Ricostruisce il dataset e lo reinserisce in `index.html`.
-3. Esegue `build/verifica_dataset.py`: 21 regioni, oltre 7.500 comuni, anagrafe e tariffe allineate, nessuna aliquota oltre il tetto di legge, Milano ancora allo 0,80% con esenzione a 23.000 €.
-4. Apre una pull request **solo se qualcosa è cambiato davvero**, allegando il report della ricostruzione.
-
-E qui si ferma. La pubblicazione avviene alla fusione della pull request, per mano di chi l'ha letta: è la stessa promessa che il sito fa in fondo alla pagina, e un passo di deploy diretto dal workflow l'avrebbe scavalcata.
-
-Il controllo di integrità è verificato al contrario: alterando l'aliquota di Milano lo script fallisce con codice 1 e blocca la pull request. Un controllo che non fallisce mai non protegge nulla.
-
-La data dell'ultima verifica è scritta nel dataset e mostrata in pagina, nel piè di pagina e nell'intestazione della sezione Premium: chi legge sa quanto sono recenti le delibere incorporate.
-
-### 9.2 Cosa l'automazione non può fare
-
-Va detto con precisione, perché la differenza è sostanziale.
-
-| Tipo di dato | Aggiornabile in automatico | Perché |
-|---|---|---|
-| Aliquote comunali e regionali | **Sì** | Il MEF le pubblica in CSV, leggibile da una macchina |
-| Aliquote IRPEF, cuneo, detrazioni, soglie contributive | **No** | Nascono da un testo di legge, non da un dataset. Nessuna fonte italiana le espone in formato interrogabile |
-
-Nessun ente pubblica la Legge di Bilancio come API. Quando cambia un'aliquota IRPEF, qualcuno deve leggere la norma e capirla: è esattamente ciò che ho fatto scoprendo che dal 2026 la seconda aliquota scende al 33%.
-
-Quello che l'architettura garantisce è che quel lavoro umano costi il minimo possibile: ogni parametro normativo è una costante nominata dentro `ANNI` e `COSTANTI`. Aggiungere l'anno d'imposta 2027 significa aggiungere un blocco di una dozzina di righe, senza toccare una sola formula. Gli 80 test dicono subito se qualcosa si è rotto.
-
-È la distinzione fra un software che si aggiorna da solo dove è possibile, e uno che promette di farlo dove non lo è.
-
----
-
-## 10. Struttura dei file
+I moduli JavaScript non si aprono con un doppio clic sul file: serve un piccolo server locale.
 
 ```
-.
-├── index.html                      # SPA completa: motore, dataset MEF incorporato, foglio di stile, UI, suite di test
-├── README.md                       # Questo documento
-├── vercel.json                     # Header di sicurezza e di cache serviti dall'hosting
-├── LICENSE                         # MIT
-├── build/
-│   ├── build_dataset.py            # Scarica dal MEF e ricostruisce il dataset
-│   ├── aggiorna_index.py           # Reinserisce il dataset in index.html, solo se cambiato
-│   ├── verifica_dataset.py         # Controlli di integrita', gira in CI
-│   ├── estrai_motore.py            # Estrae il motore come modulo Node, per la verifica fuori dal browser
-│   ├── prova_motore.js             # Esegue la suite della pagina senza browser, per la CI
-│   ├── costruisci_css.js           # Compila il foglio Tailwind e lo incorpora in index.html
-│   └── sorveglia_norme.py          # Legge i feed INPS e segnala le novita' rilevanti
-└── .github/workflows/
-    ├── aggiorna-dati.yml           # Ricontrolla le delibere il 1 e il 15 di ogni mese
-    ├── verifica-motore.yml         # Suite di regressione e integrita' del dataset, a ogni push
-    ├── verifica-css.yml            # Il CSS incorporato corrisponde al markup, a ogni push
-    └── sorveglia-norme.yml         # Sorveglia le circolari INPS ogni lunedi'
+python -m http.server 8000
 ```
 
-Il foglio di stile si rigenera quando cambiano le classi del markup:
+Poi aprire <http://localhost:8000/>.
 
-```bash
-node build/costruisci_css.js             # ricompila e reincorpora
-node build/costruisci_css.js --verifica  # non scrive: dice solo se e' rimasto indietro
+### Controlli
+
+```
+node tools/run_tests.mjs          # i controlli sui conti: devono passare tutti
+node tools/check_golden.mjs       # 1.892 casi fissi confrontati al centesimo con tools/golden/expected.json
+python tools/check_dataset.py     # integrità dei dati regionali e comunali
+node tools/build_css.js --check   # il foglio di stile corrisponde alle classi usate
 ```
 
-Prima di un commit che tocca il motore, i tre controlli che gira anche la CI:
+### Aggiornare i dati
 
-```bash
-node build/prova_motore.js       # 91/91 test superati
-python build/verifica_dataset.py # integrita' delle aliquote territoriali
-node build/costruisci_css.js --verifica
+```
+python tools/build_dataset.py --refresh
 ```
 
-Se cambia una formula, l'impronta del motore non corrisponde piu' a quella dichiarata e un test lo dice: vanno aggiornate `ENGINE_VERSION` e `IMPRONTA_MOTORE` in testa allo script, con il valore che il messaggio d'errore riporta. E' un attrito voluto, e serve a rendere visibile in pagina che il motore e' cambiato.
+Riscarica dal MEF le delibere comunali e le aliquote regionali e ricostruisce `src/data/mef-data.js`. Lo stesso
+script gira da solo il 1° e il 15 di ogni mese su GitHub e, se qualcosa è cambiato, apre una richiesta di modifica da
+controllare prima della pubblicazione. Un secondo controllo automatico legge ogni lunedì le circolari INPS e segnala
+quelle che potrebbero cambiare il calcolo.
 
-`index.html` pesa circa **663 KB** (**184 KB** compressi in transito), di cui **251 KB** sono il dataset ufficiale delle aliquote territoriali e **23 KB** il foglio di stile compilato: il motore di calcolo, la suite di test e l'intera interfaccia occupano i 388 KB restanti. L'applicazione resta un unico file autosufficiente: `build/` serve solo a rigenerare i dati, non è richiesto per eseguirla.
+Le regole nazionali (aliquote, soglie, detrazioni) non si aggiornano da sole: nascono dalle leggi e si ricontrollano a
+ogni legge di bilancio.
 
-Il repository è collegato a Vercel: ogni push sul ramo `main` pubblica il sito, e ogni pull request genera un'anteprima con indirizzo proprio. La pull request aperta dal workflow di aggiornamento dati è quindi ispezionabile prima di essere accettata.
+## Licenza
 
-**Riproducibilità.** Lo script scarica da solo le fonti mancanti dal Dipartimento delle Finanze:
-
-```bash
-cd build && python build_dataset.py
-```
-
-Da una cartella vuota, produce un `dataset.js` **identico byte per byte** a quello incorporato in `index.html`, insieme a un report di controllo: numero di comuni, quanti hanno deliberato per l'anno corrente, quanti ereditano l'anno precedente, e le aliquote di alcuni comuni di riferimento.
-
----
-
-## 11. Licenza
-
-[MIT](LICENSE). Il codice si può leggere, riusare e modificare; i calcoli restano una stima previsionale, non un cedolino.
+Il codice è distribuito con licenza MIT (vedi `LICENSE`). La licenza riguarda il codice, non i risultati del calcolo,
+che restano una stima.

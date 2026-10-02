@@ -1,0 +1,38 @@
+name: Check the stylesheet
+
+# The Tailwind CSS is compiled and embedded in index.html. It is generated
+# content, so it can fall behind the markup: a class added by hand and never
+# compiled simply has no rules, and the defect only shows when looking at the
+# page. This check compiles again and compares: if the block does not match
+# the markup and the templates, it fails.
+
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'src/ui/**'
+      - 'src/texts/**'
+      - 'tools/build_css.js'
+      - '.github/workflows/check-css.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'src/ui/**'
+      - 'src/texts/**'
+      - 'tools/build_css.js'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: The CSS in the page matches the markup
+        run: node tools/build_css.js --check

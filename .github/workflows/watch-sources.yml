@@ -1,0 +1,50 @@
+name: Watch INPS circulars
+
+# Hiring exemptions are not a dataset: they come from laws that change their
+# structure, not only their amounts. No automation can read them and turn them
+# into code, but it can notice that something moved: this workflow reads the
+# INPS feeds, filters them by keyword and opens an issue with the links, so
+# that a person can assess them.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # every Monday, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Look for relevant INPS publications
+        id: search
+        run: python tools/watch_sources.py
+
+      - name: Open an issue
+        if: steps.search.outputs.found == 'yes'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('report.md', 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Possibili novità normative — ${new Date().toISOString().slice(0, 10)}`,
+              body,
+              labels: ['normativa']
+            });
+
+      - name: Nothing new
+        if: steps.search.outputs.found != 'yes'
+        run: echo "No relevant circular in the period watched."

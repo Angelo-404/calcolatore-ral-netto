@@ -1,6 +1,12 @@
-# Fuori dal sito pubblico: note di lavoro, sorgenti dei dati, configurazione
-PROJECT.md
-TASKJETHR.md
-build/
+# Not part of the public site: notes, tools, sources, configuration
+/PROJECT.md
+/TASK*.md
+tools/
 .git/
 .github/
+CLAUDE.md
+.claude/
+docs/
+README.md
+LICENSE
+src/package.json
