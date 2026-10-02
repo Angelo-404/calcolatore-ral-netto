@@ -898,6 +898,14 @@ function updateContextNotes(p, r) {
   el('emp-detail-fund').open = p.pensionFund > 0
     || p.employerFundContribution > 0 || p.tfrToFund;
 
+  /* The welfare card, instead, only ever opens by itself: closing it while
+     someone deletes a value to type a new one would hide the field. */
+  const welfareCount = [p.fringeBenefit > 0, p.mealVoucherPerDay > 0, p.performanceBonus > 0 || p.bonusAsWelfare,
+    p.shiftPremiums > 0, p.renewalIncrease > 0, p.pensionFund > 0 || p.employerFundContribution > 0 || p.tfrToFund,
+    p.otherDeductions > 0].filter(Boolean).length;
+  el('emp-welfare-summary').textContent = welfareCount ? T.welfareSummary(welfareCount) : T.welfareSummaryNone;
+  if (welfareCount) el('emp-card-welfare').open = true;
+
   el('emp-inbound-box').className = p.regime === 'impatriati'
     ? 'flex items-center gap-3 cursor-pointer'
     : 'hidden items-center gap-3 cursor-pointer';
@@ -1248,7 +1256,39 @@ document.addEventListener('click', (e) => {
   const link = e.target.closest('[data-scroll-to]');
   if (!link) return;
   e.preventDefault();
-  el(link.dataset.scrollTo).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const target = el(link.dataset.scrollTo);
+  const fold = target.closest('details');
+  if (fold) fold.open = true;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (link.dataset.focus) whenScrollStops(() => el(link.dataset.focus).focus({ preventScroll: true }));
+});
+
+/* A field taking the focus stops a smooth scroll halfway, so the focus waits
+   until the page has stood still for 150 ms. 'scrollend' would be the natural
+   event, but it does not fire everywhere yet. Two seconds at most. */
+function whenScrollStops(callback) {
+  let last = window.scrollY, still = 0, ticks = 0;
+  const timer = setInterval(() => {
+    ticks += 1;
+    still = window.scrollY === last ? still + 1 : 0;
+    last = window.scrollY;
+    if ((ticks >= 4 && still >= 3) || ticks >= 40) {
+      clearInterval(timer);
+      callback();
+    }
+  }, 50);
+}
+
+/* Paper has no clicks: every folded card prints open, then goes back to how
+   the visitor left it. */
+let foldedForPrint = [];
+window.addEventListener('beforeprint', () => {
+  foldedForPrint = [...document.querySelectorAll('details:not([open])')];
+  foldedForPrint.forEach((d) => { d.open = true; });
+});
+window.addEventListener('afterprint', () => {
+  foldedForPrint.forEach((d) => { d.open = false; });
+  foldedForPrint = [];
 });
 
 // The suite is loaded only when someone asks for it: most visitors never do.
@@ -1302,6 +1342,10 @@ function renderExemptions(params) {
         </summary>
         <div class="pt-2 space-y-2">${expiredList.map(card).join('')}</div>
       </details>` : '');
+
+  el('emp-exemptions-summary').textContent = chosenList.length
+    ? T.exemptionsSummary(chosenList.length) : T.exemptionsSummaryNone;
+  if (chosenList.length) el('emp-card-exemptions').open = true;
 
   const conflict = exemptionsInConflict(chosenList);
   const warning = el('exemptions-conflict');
